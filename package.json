@@ -1,0 +1,13 @@
+{
+  "name": "agro-campo-root",
+  "version": "1.0.0",
+  "description": "Root proxy package for Agro-Campo",
+  "main": "app.js",
+  "scripts": {
+    "postinstall": "npm install --prefix Agro-Campo-main",
+    "start": "node app.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
