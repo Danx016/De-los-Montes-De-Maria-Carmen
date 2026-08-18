@@ -50,12 +50,23 @@ class EmailService {
   /**
    * Envío a través de APIs HTTP REST (Puerto 443 HTTPS - 100% compatible con Render)
    */
-  async sendViaHttpApi({ to, subject, html }) {
+  async sendViaHttpApi({ to, subject, html, text }) {
     const brevoKey = appConfig.brevoApiKey || process.env.BREVO_API_KEY;
     const resendKey = appConfig.resendApiKey || process.env.RESEND_API_KEY;
 
     if (brevoKey) {
       try {
+        const payload = {
+          sender: { name: 'De los Montes de María', email: appConfig.smtp.user || 'danilorodelo355@gmail.com' },
+          to: [{ email: to }],
+          replyTo: { email: appConfig.smtp.user || 'danilorodelo355@gmail.com', name: 'De los Montes de María' },
+          subject,
+          htmlContent: html
+        };
+        if (text) {
+          payload.textContent = text;
+        }
+
         const response = await fetch('https://api.brevo.com/v3/smtp/email', {
           method: 'POST',
           headers: {
@@ -63,16 +74,14 @@ class EmailService {
             'api-key': brevoKey,
             'content-type': 'application/json'
           },
-          body: JSON.stringify({
-            sender: { name: 'De los Montes de María', email: appConfig.smtp.user || 'danilorodelo355@gmail.com' },
-            to: [{ email: to }],
-            subject,
-            htmlContent: html
-          })
+          body: JSON.stringify(payload)
         });
         if (response.ok) {
-          console.log(`✉️ [Brevo HTTPS] Correo enviado exitosamente a: ${to}`);
+          console.log(`✉️ [Brevo HTTPS] Correo enviado exitosamente a: ${to} | Asunto: ${subject}`);
           return true;
+        } else {
+          const errBody = await response.text();
+          console.warn(`⚠️ [Brevo HTTP Status ${response.status}]:`, errBody);
         }
       } catch (e) {
         console.warn('⚠️ [Brevo HTTPS Error]:', e.message);
