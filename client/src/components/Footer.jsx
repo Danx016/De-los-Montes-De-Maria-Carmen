@@ -48,9 +48,6 @@ export default function Footer() {
           <p><i className="fa fa-phone" /> <a href="tel:3008723989">+57 300 872 3989</a></p>
           <p><i className="fa fa-envelope" /> danilorodelo355@gmail.com</p>
           <p><i className="fa fa-map-marker-alt" /> Montes de María, Bolívar / Sucre, Colombia</p>
-          <div className="payment-badges">
-            <span className="badge badge-info"><i className="fa fa-shield-alt" /> Pagos Seguros Wompi & ePayco</span>
-          </div>
         </div>
       </div>
 
