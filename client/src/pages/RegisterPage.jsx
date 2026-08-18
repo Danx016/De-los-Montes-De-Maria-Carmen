@@ -189,7 +189,7 @@ export default function RegisterPage() {
             alt="Logo"
             className="auth-brand-img"
             onError={(e) => {
-              e.target.src = '/img/logo vaca.png'
+              e.target.src = '/img/Logo.jpg'
             }}
           />
           <h1>Crear Cuenta Nueva</h1>

@@ -80,10 +80,10 @@ export default function BottomMobileNav() {
           <div className="bottom-nav-icon-wrap">
             {isAuthenticated ? (
               <img
-                src={user?.avatar || '/img/logo vaca.png'}
+                src={user?.avatar || '/img/Logo.jpg'}
                 alt={user?.nombre || 'Usuario'}
                 className="bottom-nav-avatar"
-                onError={(e) => { e.target.src = '/img/logo vaca.png' }}
+                onError={(e) => { e.target.src = '/img/Logo.jpg' }}
               />
             ) : (
               <i className="fa fa-user-circle" />

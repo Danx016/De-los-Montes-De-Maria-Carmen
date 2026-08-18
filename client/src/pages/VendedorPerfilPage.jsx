@@ -68,7 +68,7 @@ export default function VendedorPerfilPage() {
     ? vendedor.avatar
     : vendedor?.avatar
     ? (vendedor.avatar.startsWith('/uploads') ? vendedor.avatar : `/uploads/${vendedor.avatar}`)
-    : '/img/logo vaca.png'
+    : '/img/Logo.jpg'
 
   return (
     <>
@@ -114,7 +114,7 @@ export default function VendedorPerfilPage() {
                         src={avatarImg}
                         alt={vendedor.nombre}
                         className="vendor-profile-avatar-img"
-                        onError={(e) => { e.target.src = '/img/logo vaca.png' }}
+                        onError={(e) => { e.target.src = '/img/Logo.jpg' }}
                       />
                     </div>
 

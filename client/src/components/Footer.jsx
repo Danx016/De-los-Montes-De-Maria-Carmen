@@ -6,7 +6,7 @@ export default function Footer() {
       <div className="app-container footer-grid">
         <div className="footer-col brand-col">
           <div className="footer-brand">
-            <img src="/img/logo vaca.png" alt="Logo Montes de María" onError={(e) => { e.target.style.display = 'none' }} />
+            <img src="/img/Logo.jpg" alt="Logo Montes de María" className="footer-brand-img" onError={(e) => { e.target.style.display = 'none' }} />
             <h3>De los Montes de María</h3>
           </div>
           <p className="footer-desc">

@@ -59,7 +59,7 @@ export default function CartPage() {
                         ? item.imagen
                         : item.imagen
                         ? `/uploads/${item.imagen}`
-                        : '/img/logo vaca.png'
+                        : '/img/Logo.jpg'
 
                       return (
                         <div key={item.id_producto} className="cart-item-row">
@@ -67,7 +67,7 @@ export default function CartPage() {
                             src={img}
                             alt={item.nombre}
                             className="cart-item-image"
-                            onError={(e) => { e.target.src = '/img/logo vaca.png' }}
+                            onError={(e) => { e.target.src = '/img/Logo.jpg' }}
                           />
 
                           <div className="cart-item-info">

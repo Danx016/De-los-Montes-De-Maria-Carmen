@@ -342,7 +342,7 @@ export default function InvoiceModal({ idCompra, onClose, userEmail }) {
                         alt="Logo De los Montes de María"
                         style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                         onError={(e) => {
-                          e.target.src = '/img/logo vaca.png'
+                          e.target.src = '/img/Logo.jpg'
                         }}
                       />
                     </div>

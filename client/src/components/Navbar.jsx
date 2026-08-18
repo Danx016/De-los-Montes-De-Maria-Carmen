@@ -106,7 +106,7 @@ export default function Navbar() {
               src="/img/Logo.jpg"
               alt="Logo De los Montes de María"
               className="header-brand-img"
-              onError={(e) => { e.target.src = '/img/logo vaca.png' }}
+              onError={(e) => { e.target.src = '/img/Logo.jpg' }}
             />
             <div className="header-brand-text">
               <span className="brand-name">De los Montes de María</span>
@@ -158,10 +158,10 @@ export default function Navbar() {
                         className="search-dropdown-item"
                       >
                         <img
-                          src={prod.imagen?.startsWith('http') ? prod.imagen : (prod.imagen ? `/uploads/${prod.imagen}` : '/img/logo vaca.png')}
+                          src={prod.imagen?.startsWith('http') ? prod.imagen : (prod.imagen ? `/uploads/${prod.imagen}` : '/img/Logo.jpg')}
                           alt={prod.nombre}
                           className="search-dropdown-thumb"
-                          onError={(e) => { e.target.src = '/img/logo vaca.png' }}
+                          onError={(e) => { e.target.src = '/img/Logo.jpg' }}
                         />
                         <div className="search-dropdown-meta">
                           <span className="search-dropdown-title">{prod.nombre}</span>
@@ -244,11 +244,11 @@ export default function Navbar() {
                             ? (user.foto_perfil.startsWith('http') || user.foto_perfil.startsWith('/')
                                 ? user.foto_perfil
                                 : `/uploads/profiles/${user.foto_perfil}`)
-                            : '/img/logo vaca.png')
+                            : '/img/Logo.jpg')
                     }
                     alt="Perfil"
                     className="user-dropdown-avatar"
-                    onError={(e) => { e.target.src = '/img/logo vaca.png' }}
+                    onError={(e) => { e.target.src = '/img/Logo.jpg' }}
                   />
                   <span className="user-dropdown-name">{user?.nombre?.split(' ')[0] || user?.username || 'Cuenta'}</span>
                   <i className="fa fa-caret-down" />

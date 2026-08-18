@@ -1277,7 +1277,7 @@ export default function AdminPage() {
                           ? prod.imagen
                           : prod.imagen
                           ? (prod.imagen.startsWith('/') ? prod.imagen : `/uploads/products/${prod.imagen}`)
-                          : '/img/logo vaca.png'
+                          : '/img/Logo.jpg'
 
                         return (
                           <tr key={prod.id_producto || prod.id}>
@@ -2473,7 +2473,7 @@ export default function AdminPage() {
                                     src={b.categoria_thumb || '/img/verduras.avif'}
                                     alt={b.categoria_nombre}
                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                    onError={(e) => { e.target.src = '/img/logo vaca.png' }}
+                                    onError={(e) => { e.target.src = '/img/Logo.jpg' }}
                                   />
                                 </div>
                                 <div>
@@ -2498,7 +2498,7 @@ export default function AdminPage() {
                                     src={b.tarjeta_imagen || '/img/Ñame.avif'}
                                     alt={b.tarjeta_titulo}
                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                    onError={(e) => { e.target.src = '/img/logo vaca.png' }}
+                                    onError={(e) => { e.target.src = '/img/Logo.jpg' }}
                                   />
                                 </div>
                                 <div>
@@ -3816,7 +3816,7 @@ export default function AdminPage() {
                               src={bannerThumbPreview || bannerForm.categoria_thumb || '/img/verduras.avif'}
                               alt={bannerForm.categoria_nombre}
                               className="ofercampo-badge-thumb"
-                              onError={(e) => { e.target.src = '/img/logo vaca.png' }}
+                              onError={(e) => { e.target.src = '/img/Logo.jpg' }}
                             />
                             <span className="ofercampo-badge-title">{bannerForm.categoria_nombre || 'Categoría'}</span>
                           </div>
@@ -3866,7 +3866,7 @@ export default function AdminPage() {
                               <img
                                 src={bannerProdImgPreview || bannerForm.tarjeta_imagen || '/img/Ñame.avif'}
                                 alt={bannerForm.tarjeta_titulo}
-                                onError={(e) => { e.target.src = '/img/logo vaca.png' }}
+                                onError={(e) => { e.target.src = '/img/Logo.jpg' }}
                               />
                             </div>
 

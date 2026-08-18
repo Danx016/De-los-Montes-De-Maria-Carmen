@@ -318,7 +318,7 @@ export default function ProfilePage() {
       ? user.avatar
       : user?.avatar
       ? (user.avatar.startsWith('/uploads') ? user.avatar : `/uploads/${user.avatar}`) + `?t=${imgKey}`
-      : '/img/logo vaca.png'
+      : '/img/Logo.jpg'
   )
 
   const isVendorUser = user?.id_rol === 2
@@ -370,7 +370,7 @@ export default function ProfilePage() {
                     src={avatarImg}
                     alt={user?.nombre || 'Mi Perfil'}
                     className="vendor-profile-avatar-img"
-                    onError={(e) => { e.target.src = '/img/logo vaca.png' }}
+                    onError={(e) => { e.target.src = '/img/Logo.jpg' }}
                   />
 
                   {/* Botón Tipo Lápiz Semitransparente para Subir Foto de Perfil */}

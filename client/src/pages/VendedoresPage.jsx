@@ -151,7 +151,7 @@ export default function VendedoresPage() {
                   ? vendedor.avatar
                   : vendedor.avatar
                   ? (vendedor.avatar.startsWith('/uploads') ? vendedor.avatar : `/uploads/${vendedor.avatar}`)
-                  : '/img/logo vaca.png'
+                  : '/img/Logo.jpg'
 
                 return (
                   <div key={vendedor.id || vendedor.id_usuario} className="card rich-vendor-card fade-in">
@@ -178,7 +178,7 @@ export default function VendedoresPage() {
                           src={avatarImg}
                           alt={vendedor.nombre}
                           className="rich-vendor-avatar"
-                          onError={(e) => { e.target.src = '/img/logo vaca.png' }}
+                          onError={(e) => { e.target.src = '/img/Logo.jpg' }}
                         />
                       </div>
 

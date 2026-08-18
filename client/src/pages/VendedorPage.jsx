@@ -421,7 +421,7 @@ export default function VendedorPage() {
                             ? prod.imagen
                             : prod.imagen
                             ? `/uploads/${prod.imagen}`
-                            : '/img/logo vaca.png'
+                            : '/img/Logo.jpg'
 
                           const title = prod.nombre || prod.nombre_producto
 
@@ -432,7 +432,7 @@ export default function VendedorPage() {
                                   src={img}
                                   alt={title}
                                   className="seller-item-img"
-                                  onError={(e) => { e.target.src = '/img/logo vaca.png' }}
+                                  onError={(e) => { e.target.src = '/img/Logo.jpg' }}
                                 />
                                 <div className="seller-item-badges">
                                   <span className="badge badge-primary">
@@ -500,7 +500,7 @@ export default function VendedorPage() {
                               ? prod.imagen
                               : prod.imagen
                               ? `/uploads/${prod.imagen}`
-                              : '/img/logo vaca.png'
+                              : '/img/Logo.jpg'
 
                             const title = prod.nombre || prod.nombre_producto
 
@@ -511,7 +511,7 @@ export default function VendedorPage() {
                                     src={img}
                                     alt={title}
                                     className="table-thumb"
-                                    onError={(e) => { e.target.src = '/img/logo vaca.png' }}
+                                    onError={(e) => { e.target.src = '/img/Logo.jpg' }}
                                   />
                                 </td>
                                 <td>

@@ -83,7 +83,7 @@ export default function LoginPage() {
             src="/img/Logo.jpg"
             alt="Logo"
             className="auth-brand-img"
-            onError={(e) => { e.target.src = '/img/logo vaca.png' }}
+            onError={(e) => { e.target.src = '/img/Logo.jpg' }}
           />
           <h1>Bienvenido de Vuelta</h1>
           <p>Ingresa a tu cuenta de De los Montes de María</p>

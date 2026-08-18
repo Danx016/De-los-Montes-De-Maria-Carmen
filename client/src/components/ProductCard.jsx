@@ -28,7 +28,7 @@ export default function ProductCard({ producto }) {
     ? producto.imagen
     : producto.imagen
     ? `/uploads/${producto.imagen}`
-    : '/img/logo vaca.png'
+    : '/img/Logo.jpg'
 
   const vendorId = producto.id_vendedor || producto.id_proveedor
   const prodTitle = producto.nombre || producto.nombre_producto || 'Producto Campesino'
@@ -43,7 +43,7 @@ export default function ProductCard({ producto }) {
           alt={prodTitle}
           className="product-card-img"
           onError={(e) => {
-            e.target.src = '/img/logo vaca.png'
+            e.target.src = '/img/Logo.jpg'
           }}
           loading="lazy"
         />
