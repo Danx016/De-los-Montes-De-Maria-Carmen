@@ -41,7 +41,7 @@ export default function PaymentPage() {
   const totalConEnvio = totalConDescuento + costoEnvio
 
   useEffect(() => {
-    if (orderSuccess) return // Si la compra fue exitosa, permanecer en pantalla de éxito/factura
+    if (orderSuccess) return
     const savedShipping = sessionStorage.getItem('checkout_shipping')
     if (!savedShipping || items.length === 0) {
       navigate('/carrito')
@@ -50,7 +50,6 @@ export default function PaymentPage() {
     setShippingInfo(JSON.parse(savedShipping))
   }, [items, navigate, orderSuccess])
 
-  // Timer cooldown for OTP resend
   useEffect(() => {
     let interval = null
     if (resendTimer > 0) {
@@ -62,35 +61,28 @@ export default function PaymentPage() {
   }, [resendTimer])
 
   const formatCOP = (val) =>
-    Number(val || 0).toLocaleString('es-CO', {
+    new Intl.NumberFormat('es-CO', {
       style: 'currency',
       currency: 'COP',
       maximumFractionDigits: 0,
-    })
+    }).format(val || 0)
 
-  // ── Cupón Handlers ──
   const handleApplyCoupon = async (e) => {
-    if (e) e.preventDefault()
-    if (!couponInput || !couponInput.trim()) {
-      setCouponError('Ingresa un código de cupón.')
-      return
-    }
+    e.preventDefault()
+    if (!couponInput.trim()) return
+
     setCouponLoading(true)
     setCouponError('')
     try {
-      const res = await validarCupon({
-        codigo: couponInput.trim(),
-        monto_compra: total,
-      })
+      const res = await validarCupon({ codigo: couponInput.trim(), monto_compra: total })
       const c = res.data?.cupon
       setAppliedCoupon(c)
-      setCouponError('')
-      toast.success(
-        `¡Cupón "${c.codigo}" aplicado! Descuento: -${formatCOP(c.descuento)} (${c.descuento_porcentaje ? `${c.descuento_porcentaje}%` : 'Monto fijo'})`
-      )
+      toast.success(`¡Cupón "${c.codigo}" aplicado con éxito!`)
     } catch (err) {
-      setAppliedCoupon(null)
-      setCouponError(err.response?.data?.error || 'Cupón no válido, inactivo o expirado.')
+      setCouponError(
+        err.response?.data?.error ||
+          'Cupón inválido o expirado. Por favor intenta con otro código.'
+      )
     } finally {
       setCouponLoading(false)
     }
@@ -100,128 +92,95 @@ export default function PaymentPage() {
     setAppliedCoupon(null)
     setCouponInput('')
     setCouponError('')
-    toast.info('Cupón removido de la orden.')
+    toast.info('Cupón removido de la orden')
   }
 
-  // Paso 1: Iniciar el proceso y enviar el código de seguridad al correo
   const handleInitiatePayment = async () => {
     setError('')
-    setOtpError('')
-    setSendingOtp(true)
-
-    const userEmail = user?.correo || shippingInfo?.correo || shippingInfo?.email
+    const userEmail = user?.correo || shippingInfo?.correo
     if (!userEmail) {
-      setError('No se encontró un correo electrónico asociado para enviar el código de seguridad.')
-      setSendingOtp(false)
+      setError('No se encontró un correo electrónico válido para enviar el código de seguridad.')
       return
     }
 
+    setSendingOtp(true)
     try {
       await enviarOtp({
         email: userEmail,
-        nombre: user?.nombre || shippingInfo?.nombre_destinatario || 'Cliente',
+        nombre: shippingInfo?.nombre_destinatario || user?.nombre || 'Estimado(a) Cliente',
         total: totalConEnvio,
       })
       setShowOtpModal(true)
-      setResendTimer(45)
       setOtpCode('')
-      toast.info(`Código de seguridad enviado a: ${userEmail}`)
+      setOtpError('')
+      setResendTimer(60)
+      toast.info(`Código de seguridad enviado a ${userEmail}`)
     } catch (err) {
       setError(
-        err.response?.data?.error ||
-          'No se pudo enviar el código de seguridad al correo. Inténtalo nuevamente.'
+        err.response?.data?.error || 'No se pudo enviar el código de seguridad al correo. Inténtalo de nuevo.'
       )
     } finally {
       setSendingOtp(false)
     }
   }
 
-  // Reenviar código OTP
   const handleResendOtp = async () => {
     if (resendTimer > 0) return
+    const userEmail = user?.correo || shippingInfo?.correo
     setSendingOtp(true)
     setOtpError('')
-    const userEmail = user?.correo || shippingInfo?.correo
     try {
       await enviarOtp({
         email: userEmail,
-        nombre: user?.nombre || 'Cliente',
+        nombre: shippingInfo?.nombre_destinatario || user?.nombre || 'Estimado(a) Cliente',
         total: totalConEnvio,
       })
-      setResendTimer(45)
-      toast.success('¡Nuevo código enviado a tu correo!')
+      setResendTimer(60)
+      toast.info('Nuevo código de seguridad enviado a tu correo')
     } catch (err) {
-      setOtpError(err.response?.data?.error || 'Error al reenviar el código.')
+      setOtpError('Error al reenviar el código. Inténtalo en un momento.')
     } finally {
       setSendingOtp(false)
     }
   }
 
-  // Paso 2: Verificar el código OTP y confirmar la compra + enviar factura
   const handleVerifyAndConfirmOrder = async (e) => {
-    if (e) e.preventDefault()
+    e.preventDefault()
     if (!otpCode || otpCode.trim().length < 4) {
-      setOtpError('Ingresa el código de seguridad que enviamos a tu correo.')
+      setOtpError('Por favor ingresa el código de seguridad.')
       return
     }
 
     setVerifyingOtp(true)
     setOtpError('')
 
-    const userEmail = user?.correo || shippingInfo?.correo
     try {
-      // 1. Validar OTP
-      await verificarOtp({
-        email: userEmail,
-        code: otpCode.trim(),
-      })
+      const userEmail = user?.correo || shippingInfo?.correo
+      await verificarOtp({ email: userEmail, code: otpCode.trim() })
 
-      // 2. Crear la orden de compra
       const userId = user?.id || user?.id_usuario || user?.idUser
-      const addressString = shippingInfo?.direccion
-        ? `${shippingInfo.direccion}, ${shippingInfo.ciudad || shippingInfo.municipio || ''} - ${shippingInfo.departamento || ''} (Recibe: ${shippingInfo.nombre_destinatario || user?.nombre || ''}, Tel: ${shippingInfo.telefono || ''})`
-        : 'Dirección confirmada en checkout'
+      const addressString = `${shippingInfo?.direccion || ''}, ${shippingInfo?.ciudad || ''} - ${shippingInfo?.departamento || ''}`
 
       const resCompra = await crearCompra({
         idUser: userId,
-        id_usuario: userId,
-        productos: items.map((i) => ({
-          id_producto: i.id_producto || i.id,
-          idProducto: i.id_producto || i.id,
-          cantidad: i.cantidad,
-          precio_unitario: i.precio,
-          precio: i.precio,
-        })),
+        productos: items.map((i) => ({ id_producto: i.id_producto || i.id, cantidad: i.cantidad, precio: i.precio })),
         metodo_pago: 'Contra Entrega (Efectivo)',
         metodoPago: 'Contra Entrega (Efectivo)',
-        id_direccion: shippingInfo?.id_direccion,
         direccion: addressString,
-        direccion_envio: addressString,
         total: totalConEnvio,
         codigo_cupon: appliedCoupon?.codigo || null,
         descuento: discountAmount,
         shippingInfo,
       })
 
-      const compraId =
-        resCompra.data?.id_compra ||
-        resCompra.data?.idCompra ||
-        resCompra.data?.id ||
-        'MM-' + Math.floor(1000 + Math.random() * 9000)
-
+      const compraId = resCompra.data?.id_compra || resCompra.data?.id || 'MM-' + Math.floor(1000 + Math.random() * 9000)
       setShowOtpModal(false)
-      setOrderSuccess({ id_compra: compraId, metodo: 'contraentrega' })
+      setOrderSuccess({ id_compra: compraId })
       setShowInvoice(true)
       clearCart()
       sessionStorage.removeItem('checkout_shipping')
-
-      toast.success('¡Compra confirmada! Factura electrónica emitida con éxito.')
     } catch (err) {
-      setOtpError(
-        err.response?.data?.error ||
-          err.response?.data?.message ||
-          'Código inválido o expirado. Por favor verifica el correo e inténtalo nuevamente.'
-      )
+      setOtpError('Código inválido o expirado. Por favor verifica el correo.')
     } finally {
       setVerifyingOtp(false)
     }
@@ -230,7 +189,6 @@ export default function PaymentPage() {
   return (
     <>
       <Navbar />
-
       <main className="main-content">
         <div className="app-container">
           <div className="checkout-stepper">
@@ -238,7 +196,7 @@ export default function PaymentPage() {
             <span className="step-arrow">→</span>
             <span className="step-badge completed">2. Envío</span>
             <span className="step-arrow">→</span>
-            <span className="step-badge active">3. Pago Seguro</span>
+            <span className="step-badge active">3. Pago Contra Entrega</span>
           </div>
 
           {orderSuccess ? (
@@ -247,22 +205,16 @@ export default function PaymentPage() {
                 <i className="fa fa-check-circle" />
               </div>
               <h2>¡Pedido Confirmado con Éxito!</h2>
-              <p className="order-number">
-                Número de Orden: <strong>#{orderSuccess.id_compra}</strong>
-              </p>
+              <p className="order-number">N° de Orden: <strong>{orderSuccess.id_compra}</strong></p>
               <p className="order-desc">
-                Tu transacción ha sido autorizada correctamente. Hemos enviado tu <strong>factura electrónica oficial</strong> a tu correo electrónico (<strong>{user?.correo}</strong>) y los campesinos de Los Montes de María ya preparan tu pedido.
+                Tu pago contra entrega ha sido registrado con éxito. Hemos enviado tu <strong>factura electrónica oficial</strong> a tu correo (<strong>{user?.correo || shippingInfo?.correo}</strong>).
               </p>
-              <div className="success-actions">
-                <button
-                  type="button"
-                  className="btn btn-primary btn-lg"
-                  onClick={() => setShowInvoice(true)}
-                >
-                  <i className="fa fa-file-invoice" /> Ver / Imprimir Factura Electrónica
+              <div style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => setShowInvoice(true)} className="btn btn-primary btn-lg">
+                  <i className="fa fa-file-invoice" /> Ver Factura Electrónica
                 </button>
-                <Link to="/perfil" className="btn btn-secondary btn-lg">
-                  <i className="fa fa-receipt" /> Mis Pedidos
+                <Link to="/perfil" className="btn btn-outline-primary btn-lg">
+                  Ver Mis Pedidos
                 </Link>
                 <Link to="/" className="btn btn-outline-success btn-lg">
                   Seguir Comprando
@@ -271,14 +223,14 @@ export default function PaymentPage() {
             </div>
           ) : (
             <div className="cart-layout-grid fade-in" style={{ marginTop: '2rem' }}>
-              {/* Payment Methods */}
+              {/* Payment Info */}
               <div className="cart-items-column">
                 <div className="card">
                   <h2>
                     <i className="fa fa-shield-alt text-primary" /> Método de Pago & Seguridad
                   </h2>
                   <p className="text-muted" style={{ marginBottom: '1.5rem' }}>
-                    Para tu total seguridad, cada transacción requiere un código de verificación que llegará a tu correo antes de confirmar el despacho.
+                    Para tu total seguridad y tranquilidad, pagas en efectivo únicamente cuando recibas los productos en tu domicilio.
                   </p>
 
                   {error && (
@@ -288,26 +240,34 @@ export default function PaymentPage() {
                   )}
 
                   <div className="payment-options-grid">
-                    {/* Contra Entrega */}
                     <div
                       className="payment-method-card active"
-                      style={{ cursor: 'default', border: '2px solid var(--primary-color)' }}
+                      style={{
+                        cursor: 'default',
+                        border: '2px solid var(--primary-color)',
+                        backgroundColor: 'rgba(46, 125, 50, 0.04)',
+                        borderRadius: '12px',
+                        padding: '1.25rem',
+                      }}
                     >
-                      <input
-                        type="radio"
-                        name="payment_method"
-                        value="contraentrega"
-                        checked={true}
-                        readOnly
-                      />
-                      <div className="method-icon-box">
-                        <i className="fa fa-hand-holding-usd" />
-                      </div>
-                      <div className="method-text">
-                        <strong>Pago Contra Entrega (Efectivo)</strong>
-                        <span>
-                          Pagas en efectivo al momento de recibir los productos en la puerta de tu casa o finca. ¡Directo del campo sin intermediarios!
-                        </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <input
+                          type="radio"
+                          name="payment_method"
+                          value="contraentrega"
+                          checked={true}
+                          readOnly
+                          style={{ accentColor: 'var(--primary-color)', width: '18px', height: '18px' }}
+                        />
+                        <div className="method-icon-box" style={{ color: 'var(--primary-color)' }}>
+                          <i className="fa fa-hand-holding-usd" style={{ fontSize: '1.4rem' }} />
+                        </div>
+                        <div className="method-text" style={{ flex: 1 }}>
+                          <strong style={{ fontSize: '1rem' }}>Pago Contra Entrega (Efectivo)</strong>
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted, #64748b)' }}>
+                            Pagas en efectivo al momento de recibir los productos en la puerta de tu casa o finca. ¡Directo del campo sin intermediarios!
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -328,7 +288,7 @@ export default function PaymentPage() {
                     <div style={{ fontSize: '0.9rem', color: 'var(--text-main)', lineHeight: '1.5' }}>
                       <strong>Autenticación de Compra Segura:</strong>
                       <br />
-                      Al hacer clic en "Confirmar y Pagar", se enviará un código de seguridad a tu correo <strong>{user?.correo || 'registrado'}</strong> para autorizar el despacho y emitir tu factura electrónica de venta.
+                      Al hacer clic en "Confirmar y Pagar", se enviará un código de seguridad a tu correo <strong>{user?.correo || shippingInfo?.correo || 'registrado'}</strong> para autorizar el despacho y emitir tu factura electrónica de venta oficial.
                     </div>
                   </div>
                 </div>
@@ -464,7 +424,7 @@ export default function PaymentPage() {
                     onClick={handleInitiatePayment}
                     disabled={sendingOtp || processing}
                     className="btn btn-primary btn-block btn-lg"
-                    style={{ marginTop: '1.5rem', padding: '1rem' }}
+                    style={{ marginTop: '1.5rem', padding: '1rem', fontWeight: 700 }}
                   >
                     {sendingOtp ? (
                       <>
@@ -472,7 +432,7 @@ export default function PaymentPage() {
                       </>
                     ) : (
                       <>
-                        <i className="fa fa-shield-alt" /> Confirmar y Pagar
+                        <i className="fa fa-shield-alt" /> Confirmar y Pagar (Contra Entrega)
                       </>
                     )}
                   </button>
@@ -522,7 +482,6 @@ export default function PaymentPage() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close button */}
             <button
               type="button"
               onClick={() => setShowOtpModal(false)}
@@ -542,7 +501,6 @@ export default function PaymentPage() {
               <i className="fa fa-times" />
             </button>
 
-            {/* Shield Icon */}
             <div
               style={{
                 width: '70px',
@@ -557,132 +515,119 @@ export default function PaymentPage() {
                 fontSize: '2rem',
               }}
             >
-              <i className="fa fa-shield-alt" />
+              <i className="fa fa-envelope-open-text" />
             </div>
 
-            <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-main)' }}>
-              Código de Verificación
+            <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.4rem' }}>
+              Código de Seguridad Requerido
             </h3>
-
-            <p style={{ fontSize: '0.92rem', color: 'var(--text-muted)', lineHeight: '1.5', margin: '0 0 1.5rem' }}>
-              Hemos enviado un código de seguridad a tu correo:
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+              Hemos enviado un código de 6 dígitos a:
               <br />
-              <strong style={{ color: 'var(--text-main)', fontSize: '0.98rem' }}>{user?.correo}</strong>
+              <strong style={{ color: 'var(--text-main)', fontSize: '0.95rem' }}>
+                {user?.correo || shippingInfo?.correo}
+              </strong>
             </p>
 
             {otpError && (
               <div
-                className="alert alert-danger"
+                className="alert alert-danger fade-in"
                 style={{
-                  marginBottom: '1.25rem',
-                  fontSize: '0.88rem',
-                  textAlign: 'left',
                   padding: '0.75rem 1rem',
-                  borderRadius: '10px',
+                  fontSize: '0.85rem',
+                  marginBottom: '1.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
                 }}
               >
-                <i className="fa fa-exclamation-circle" /> {otpError}
+                <i className="fa fa-exclamation-triangle" /> {otpError}
               </div>
             )}
 
             <form onSubmit={handleVerifyAndConfirmOrder}>
               <div style={{ marginBottom: '1.5rem' }}>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    color: 'var(--text-muted)',
-                    marginBottom: '0.6rem',
-                  }}
-                >
-                  Ingresa el Código (6 dígitos)
-                </label>
                 <input
                   type="text"
                   maxLength={6}
-                  autoFocus
-                  required
-                  placeholder="Ej: 123456"
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="000000"
+                  autoFocus
                   style={{
-                    width: '100%',
-                    textAlign: 'center',
+                    width: '220px',
+                    height: '56px',
                     fontSize: '1.8rem',
-                    fontWeight: 800,
+                    textAlign: 'center',
                     letterSpacing: '8px',
-                    padding: '0.85rem 1rem',
+                    fontWeight: 800,
                     borderRadius: '12px',
-                    border: '2px solid var(--border-color)',
-                    backgroundColor: 'var(--bg-main, #ffffff)',
+                    border: '2px solid var(--primary-color, #16a34a)',
+                    backgroundColor: 'var(--input-bg, #f8fafc)',
                     color: 'var(--text-main)',
-                    boxSizing: 'border-box',
-                    fontFamily: 'monospace',
+                    outline: 'none',
+                    boxShadow: '0 4px 12px rgba(46, 125, 50, 0.15)',
                   }}
                 />
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <button
+                type="submit"
+                disabled={verifyingOtp || otpCode.length !== 6}
+                className="btn btn-primary btn-block btn-lg"
+                style={{
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  padding: '0.9rem',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 14px rgba(46, 125, 50, 0.3)',
+                }}
+              >
+                {verifyingOtp ? (
+                  <>
+                    <i className="fa fa-spinner fa-spin" /> Verificando y Generando Factura...
+                  </>
+                ) : (
+                  <>
+                    <i className="fa fa-check-circle" /> Confirmar Orden de Compra
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div style={{ marginTop: '1.25rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+              ¿No recibiste el código?{' '}
+              {resendTimer > 0 ? (
+                <span style={{ fontWeight: 600, color: 'var(--primary-color)' }}>
+                  Reenviar en {resendTimer}s
+                </span>
+              ) : (
                 <button
-                  type="submit"
-                  disabled={verifyingOtp || otpCode.length < 4}
-                  className="btn btn-primary btn-lg"
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={sendingOtp}
                   style={{
-                    width: '100%',
-                    padding: '0.95rem',
-                    fontSize: '1.05rem',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--primary-color)',
                     fontWeight: 700,
-                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    padding: 0,
                   }}
                 >
-                  {verifyingOtp ? (
-                    <>
-                      <i className="fa fa-spinner fa-spin" /> Verificando y Emitiendo Factura...
-                    </>
-                  ) : (
-                    <>
-                      <i className="fa fa-check-circle" /> Verificar Código y Confirmar
-                    </>
-                  )}
+                  {sendingOtp ? 'Enviando...' : 'Reenviar código'}
                 </button>
-
-                <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                  ¿No recibiste el correo?{' '}
-                  {resendTimer > 0 ? (
-                    <span>Reenviar en <strong>{resendTimer}s</strong></span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleResendOtp}
-                      disabled={sendingOtp}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: 'var(--primary-color, #16a34a)',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        textDecoration: 'underline',
-                        padding: 0,
-                      }}
-                    >
-                      Reenviar código ahora
-                    </button>
-                  )}
-                </div>
-              </div>
-            </form>
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* ── Modal de Factura Electrónica en Pantalla ── */}
+      {/* ── Modal de Factura Electrónica Oficial ── */}
       {showInvoice && orderSuccess && (
         <InvoiceModal
           idCompra={orderSuccess.id_compra}
-          userEmail={user?.correo}
           onClose={() => setShowInvoice(false)}
         />
       )}

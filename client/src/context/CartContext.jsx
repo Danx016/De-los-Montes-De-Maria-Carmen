@@ -6,7 +6,24 @@ const CART_KEY = 'cart'
 
 function loadCart() {
   try {
-    return JSON.parse(localStorage.getItem(CART_KEY)) || []
+    const raw = JSON.parse(localStorage.getItem(CART_KEY)) || []
+    if (!Array.isArray(raw)) return []
+    return raw
+      .filter((i) => i && (i.id_producto || i.id))
+      .map((i) => {
+        const prodId = Number(i.id_producto || i.id) || 1
+        const precio = parseFloat(i.precio) || 0
+        const cantidad = parseInt(i.cantidad, 10) > 0 ? parseInt(i.cantidad, 10) : 1
+        return {
+          ...i,
+          id_producto: prodId,
+          id: prodId,
+          nombre: i.nombre || i.nombre_producto || 'Producto Campesino',
+          nombre_producto: i.nombre || i.nombre_producto || 'Producto Campesino',
+          precio,
+          cantidad,
+        }
+      })
   } catch {
     return []
   }

@@ -18,23 +18,6 @@ class CompraController {
     this.generateWompiSignature = new GenerateWompiSignature(paymentService);
   }
 
-  async crearStripeIntent(req, res) {
-    try {
-      const { total, descripcion } = req.body;
-      const totalNum = Number(total) || 0;
-      if (totalNum <= 0) {
-        return res.status(400).json({ error: 'Monto total inválido' });
-      }
-      if (!this.paymentService) {
-        return res.status(500).json({ error: 'Servicio de pago no configurado' });
-      }
-      const intentData = await this.paymentService.crearStripePaymentIntent(totalNum, descripcion);
-      res.json(intentData);
-    } catch (error) {
-      console.error('Error al crear Stripe Intent:', error);
-      res.status(500).json({ error: error.message || 'Error al inicializar pago con Stripe' });
-    }
-  }
 
   async wompiFirma(req, res) {
     try {

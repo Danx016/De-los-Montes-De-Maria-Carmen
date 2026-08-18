@@ -5,7 +5,6 @@ export const crearCompra = (data) => api.post('/compra', data)
 export const obtenerCreditos = () => api.get('/compra/creditos')
 
 export const wompiFirma = (data) => api.post('/compra/wompi-firma', data)
-export const crearStripeIntent = (data) => api.post('/compra/stripe-intent', data)
 
 export const historialUsuario = (idUsuario) =>
   api.get(`/compra/usuario/${idUsuario}`)

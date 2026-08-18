@@ -29,10 +29,7 @@ module.exports = {
     publicKey: process.env.WOMPI_PUBLIC_KEY,
     integrityKey: process.env.WOMPI_INTEGRITY_KEY
   },
-  stripe: {
-    secretKey: process.env.STRIPE_SECRET_KEY,
-    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY
-  },
+
   smtp: {
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.SMTP_PORT, 10) || 465,
