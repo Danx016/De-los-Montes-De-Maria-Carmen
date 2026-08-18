@@ -598,6 +598,33 @@ class EmailService {
   async sendOtpEmail(email, name, code) {
     return this.sendPurchaseOtpEmail(email, name, code);
   }
+
+  async enviarCodigoVerificacionTelegram({ correo, nombre, codigo }) {
+    const contentHtml = `
+      <p>Hola <strong>${nombre || 'Usuario'}</strong>,</p>
+      <p>Has solicitado vincular tu cuenta de <strong>De los Montes de María</strong> con nuestro bot oficial de Telegram (<code>@montesdemariabot</code>).</p>
+      <div style="background-color: #f8fafc; border: 2px dashed #2e7d32; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0;">
+        <span style="font-size: 13px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;">Tu Código de Seguridad</span>
+        <span style="font-size: 36px; font-weight: 900; color: #1b5e20; letter-spacing: 6px; font-family: monospace;">${codigo}</span>
+      </div>
+      <p style="font-size: 13.5px; color: #64748b;">Ingresa este código de 6 dígitos en el chat de Telegram para confirmar tu identidad. Este código vencerá en 10 minutos.</p>
+    `;
+
+    const html = this.buildEmailLayout({
+      badge: '🔐 Seguridad & Vinculación Telegram',
+      title: 'Tu Código de Verificación',
+      subtitle: 'Acceso seguro al Bot de Telegram',
+      contentHtml,
+      footerNote: 'Si tú no solicitaste este código, puedes ignorar este correo de forma segura.'
+    });
+
+    return await this.sendMailSafe({
+      to: correo,
+      subject: `🔐 Tu código de verificación Telegram: ${codigo}`,
+      html,
+      fallbackLog: `CÓDIGO TELEGRAM: ${codigo} para ${correo}`
+    });
+  }
 }
 
 module.exports = EmailService;

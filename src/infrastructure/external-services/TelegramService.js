@@ -31,8 +31,14 @@ class TelegramService {
     this.socketHandler = null;
 
     // Memoria de sesiones interactivas por chatId
-    // { state: 'IDLE' | 'FORM_NOMBRE' | 'FORM_CORREO' | 'FORM_TELEFONO' | 'FORM_CATEGORIA' | 'FORM_MENSAJE' | 'CHAT_ACTIVO', data: {}, activeTicket: null }
+    // { state: 'IDLE' | 'FORM_NOMBRE' | 'FORM_CORREO' | 'FORM_TELEFONO' | 'FORM_CATEGORIA' | 'FORM_MENSAJE' | 'CHAT_ACTIVO' | 'LOGIN_WAIT_EMAIL' | 'LOGIN_WAIT_CODE', data: {}, activeTicket: null }
     this.sessions = new Map();
+
+    // Memoria de usuarios autenticados: chatId -> { id_usuario, nombre, apodo, correo, telefono, id_rol, rolNombre }
+    this.authenticatedUsers = new Map();
+
+    // Memoria de códigos OTP pendientes: chatId -> { code, userObj, expiresAt }
+    this.pendingAuth = new Map();
 
     if (this.adminChatId) {
       this.subscribers.add(String(this.adminChatId));
@@ -266,6 +272,167 @@ Asunto: <b>${ticket.asunto}</b>
   }
 
   /**
+   * Generar menú interactivo según el rol del usuario autenticado
+   */
+  generarMenuRol(authUser, chatId) {
+    if (!authUser) {
+      return `
+👋 <b>¡Bienvenido al Bot de De los Montes de María!</b> 🌾
+━━━━━━━━━━━━━━━━━━
+Tu <b>Chat ID:</b> <code>${chatId}</code>
+Estado: 👤 <i>Usuario Invitado</i>
+
+🔐 <b>Conecta tu cuenta para desbloquear funciones:</b>
+👉 Escribe <code>/login tu_correo@gmail.com</code>
+
+<b>Comandos generales:</b>
+💬 <code>/soporte</code> - Consulta con IA y soporte humano
+🛒 <code>/tienda</code> - Catálogo de cosechas y productos
+📦 <code>/pedidos</code> - Información sobre envíos
+🆔 <code>/id</code> - Ver tu Chat ID
+`;
+    }
+
+    const rolId = Number(authUser.id_rol);
+    const nombre = authUser.nombre || authUser.username || 'Usuario';
+
+    // 1. Administrador (id_rol = 1) o Asesor (id_rol = 4)
+    if (rolId === 1 || rolId === 4) {
+      const badge = rolId === 1 ? '👑 ADMINISTRADOR' : '👨‍🌾 ASESOR DE SOPORTE';
+      return `
+🌾 <b>PANEL DE CONTROL TELEGRAM</b> 🌾
+━━━━━━━━━━━━━━━━━━
+👤 <b>Sesión:</b> ${nombre} (${badge})
+📧 <b>Correo:</b> <code>${authUser.correo}</code>
+━━━━━━━━━━━━━━━━━━
+<b>Comandos de Gestión:</b>
+📊 <code>/admin</code> o <code>/resumen</code> - Métricas en tiempo real
+🎫 <code>/tickets</code> - Lista de tickets pendientes
+💬 <code>/responder [CÓDIGO] [MENSAJE]</code> - Responder a un cliente
+🔒 <code>/cerrarticket [CÓDIGO]</code> - Finalizar un ticket
+🛒 <code>/ventas</code> - Últimas ventas registradas
+📦 <code>/stock</code> - Inventario y alertas de stock bajo
+🌾 <code>/misproductos</code> - Cosechas activas en el catálogo
+👤 <code>/perfil</code> - Datos de tu cuenta
+🚪 <code>/logout</code> - Cerrar sesión en Telegram
+
+💡 <i>Consejo: Para responder a un cliente rápidamente, desliza/cita el mensaje de alerta de soporte en Telegram y escribe tu respuesta directamente.</i>
+`;
+    }
+
+    // 2. Campesino / Vendedor (id_rol = 2)
+    if (rolId === 2) {
+      return `
+🌱 <b>PANEL DE PRODUCTOR CAMPESINO</b> 🌱
+━━━━━━━━━━━━━━━━━━
+👨‍🌾 <b>Productor:</b> ${nombre}
+📧 <b>Correo:</b> <code>${authUser.correo}</code>
+━━━━━━━━━━━━━━━━━━
+<b>Tus Herramientas:</b>
+🌾 <code>/misproductos</code> - Ver tus cosechas publicadas y stock
+💰 <code>/misventas</code> - Resumen de pedidos de tus cosechas
+💬 <code>/soporte</code> - Contactar asistencia directa
+🛒 <code>/tienda</code> - Ver catálogo general
+👤 <code>/perfil</code> - Datos de tu cuenta
+🚪 <code>/logout</code> - Cerrar sesión en Telegram
+`;
+    }
+
+    // 3. Comprador / Cliente (id_rol = 3)
+    return `
+🛒 <b>PANEL DEL COMPRADOR</b> 🛒
+━━━━━━━━━━━━━━━━━━
+👤 <b>Hola:</b> ${nombre}
+📧 <b>Correo:</b> <code>${authUser.correo}</code>
+━━━━━━━━━━━━━━━━━━
+<b>Tus Opciones:</b>
+📦 <code>/mispedidos</code> - Consultar tus compras y estado de envío
+💬 <code>/soporte</code> - Consulta rápida (tus datos ya están listos)
+🛒 <code>/tienda</code> - Ver catálogo de cosechas frescas
+👤 <code>/perfil</code> - Datos de tu cuenta
+🚪 <code>/logout</code> - Cerrar sesión en Telegram
+`;
+  }
+
+  /**
+   * Responder a un ticket desde Telegram (por Admin o Asesor)
+   */
+  async responderTicket(chatId, ticketCode, replyText, authUser) {
+    if (!this.soporteRepository) {
+      await this.sendMessage(chatId, '❌ El repositorio de soporte no está disponible.');
+      return;
+    }
+
+    try {
+      const cleanCode = ticketCode.toUpperCase().trim();
+      const ticket = await this.soporteRepository.buscarTicketPorCodigo(cleanCode);
+
+      if (!ticket) {
+        await this.sendMessage(chatId, `❌ No se encontró ningún ticket con el código <code>${cleanCode}</code>.`);
+        return;
+      }
+
+      const nombreAsesor = authUser?.nombre || authUser?.username || 'Equipo de Soporte';
+      const idUsuario = authUser?.id_usuario || null;
+
+      // 1. Guardar mensaje en la base de datos
+      await this.soporteRepository.agregarMensaje({
+        ticket_id: ticket.id,
+        session_id: ticket.session_id,
+        id_usuario: idUsuario,
+        nombre_remitente: nombreAsesor,
+        rol: 'agente',
+        mensaje: replyText,
+        leido: 0
+      });
+
+      // 2. Actualizar estado del ticket a agente asignado
+      await this.soporteRepository.actualizarTicket(ticket.id, {
+        estado: 'agente',
+        nombre_agente: nombreAsesor,
+        id_agente: idUsuario
+      });
+
+      // 3. Emitir por Socket.IO al panel web en tiempo real
+      if (this.socketHandler) {
+        this.socketHandler.emitirNuevoMensaje(ticket.session_id, {
+          ticket_id: ticket.id,
+          session_id: ticket.session_id,
+          remitente: 'agente',
+          nombre_remitente: nombreAsesor,
+          mensaje: replyText,
+          fecha: new Date().toISOString()
+        });
+      }
+
+      // 4. Si el ticket fue creado por un usuario desde Telegram, reenviarle la respuesta
+      if (ticket.session_id && ticket.session_id.startsWith('tg_')) {
+        const parts = ticket.session_id.split('_');
+        const clientChatId = parts[1];
+        if (clientChatId) {
+          const clientMsg = `
+👨‍🌾 <b>Asesor (${nombreAsesor}):</b>
+━━━━━━━━━━━━━━━━━━
+${replyText}
+━━━━━━━━━━━━━━━━━━
+<i>Puedes responder directamente en este chat para continuar la conversación.</i>
+`;
+          await this.sendMessage(clientChatId, clientMsg);
+        }
+      }
+
+      // 5. Confirmar al Admin/Asesor que envió el mensaje
+      await this.sendMessage(
+        chatId,
+        `✅ <b>Respuesta enviada con éxito al cliente</b>\n━━━━━━━━━━━━━━━━━━\n🎫 <b>Ticket:</b> <code>#${cleanCode}</code>\n👤 <b>Cliente:</b> ${ticket.nombre_cliente}\n📝 <b>Mensaje:</b> <i>"${replyText}"</i>`
+      );
+    } catch (err) {
+      console.error('[Telegram responderTicket Error]:', err);
+      await this.sendMessage(chatId, `⚠️ Error al enviar respuesta: ${err.message}`);
+    }
+  }
+
+  /**
    * PROCESADOR PRINCIPAL DE ACTUALIZACIONES (WEBHOOK)
    * Gestiona el flujo interactivo de formularios, tickets, IA y asesores.
    */
@@ -281,7 +448,7 @@ Asunto: <b>${ticket.asunto}</b>
 
       if (!chatId) return { ok: true };
 
-      // Registrar chat para alertas
+      // Registrar chat para alertas base
       this.registerSubscriber(chatId);
 
       // Obtener o inicializar sesión conversacional
@@ -291,9 +458,25 @@ Asunto: <b>${ticket.asunto}</b>
         this.sessions.set(chatId, session);
       }
 
+      const authUser = this.authenticatedUsers.get(chatId) || null;
+      const rolId = authUser ? Number(authUser.id_rol) : null;
+      const isAdminOrAdvisor = rolId === 1 || rolId === 4;
+
+      // ── RESPUESTA CITADA / SWIPE-TO-REPLY (PARA ADMINS Y ASESORES) ──
+      if (message.reply_to_message && text && (isAdminOrAdvisor || chatId === String(this.adminChatId))) {
+        const quotedText = message.reply_to_message.text || '';
+        const ticketMatch = quotedText.match(/TK-[A-Z0-9]{6}/i) || quotedText.match(/#([A-Z0-9]{6,8})/i);
+        if (ticketMatch) {
+          const ticketCode = ticketMatch[0].replace('#', '');
+          await this.responderTicket(chatId, ticketCode, text, authUser);
+          return { ok: true };
+        }
+      }
+
       // ── COMANDOS GLOBALES DE REINICIO O SALIDA ──
       if (text === '/cancelar' || text === '/reset') {
         this.sessions.set(chatId, { state: 'IDLE', data: {}, activeTicket: null, activeSessionId: null });
+        this.pendingAuth.delete(chatId);
         await this.sendMessage(chatId, '🔄 Proceso reiniciado. Si necesitas ayuda escribe /soporte.');
         return { ok: true };
       }
@@ -309,6 +492,200 @@ Asunto: <b>${ticket.asunto}</b>
         }
         this.sessions.set(chatId, { state: 'IDLE', data: {}, activeTicket: null, activeSessionId: null });
         await this.sendMessage(chatId, '✅ <b>Ticket de soporte cerrado exitosamente.</b>\n\n¡Muchas gracias por contactar a <b>De los Montes de María</b>! 🌾\nSi requieres nueva asistencia, escribe /soporte.');
+        return { ok: true };
+      }
+
+      // ── GESTIÓN DE SESIÓN Y AUTENTICACIÓN (/LOGIN, /LOGOUT, /PERFIL) ──
+      if (text === '/logout' || text === '/desconectar' || text === '/salir') {
+        this.authenticatedUsers.delete(chatId);
+        this.pendingAuth.delete(chatId);
+        this.sessions.set(chatId, { state: 'IDLE', data: {}, activeTicket: null, activeSessionId: null });
+        await this.sendMessage(chatId, '👋 <b>Sesión cerrada exitosamente.</b>\nHas vuelto al modo invitado. Escribe /login cuando desees volver a identificarte.');
+        return { ok: true };
+      }
+
+      if (text === '/perfil' || text === '/cuenta' || text === '/mi_cuenta') {
+        if (!authUser) {
+          await this.sendMessage(chatId, '🔒 No has iniciado sesión.\nEscribe <code>/login tu_correo@gmail.com</code> para vincular tu cuenta.');
+        } else {
+          const rolTexto = rolId === 1 ? '👑 Administrador' : rolId === 2 ? '🌾 Campesino / Vendedor' : rolId === 4 ? '👨‍🌾 Asesor de Soporte' : '🛒 Comprador / Cliente';
+          const perfilMsg = `
+👤 <b>PERFIL DE USUARIO</b>
+━━━━━━━━━━━━━━━━━━
+📛 <b>Nombre:</b> ${authUser.nombre || authUser.username}
+📧 <b>Correo:</b> <code>${authUser.correo}</code>
+📞 <b>Teléfono:</b> <code>${authUser.telefono || 'Sin registrar'}</code>
+🏷️ <b>Rol:</b> <b>${rolTexto}</b>
+🆔 <b>Chat ID:</b> <code>${chatId}</code>
+━━━━━━━━━━━━━━━━━━
+<i>Para cerrar tu sesión escribe /logout.</i>
+`;
+          await this.sendMessage(chatId, perfilMsg);
+        }
+        return { ok: true };
+      }
+
+      // Iniciar proceso de Login
+      if (text.startsWith('/login') || text.startsWith('/conectar') || text.startsWith('/identificar')) {
+        const parts = text.split(' ');
+        const emailArg = parts[1] ? parts[1].trim() : '';
+
+        if (emailArg && emailArg.includes('@')) {
+          await this.iniciarLoginConEmail(chatId, emailArg, session);
+        } else {
+          session.state = 'LOGIN_WAIT_EMAIL';
+          await this.sendMessage(chatId, '📧 Por favor escribe tu <b>Correo Electrónico</b> registrado en De los Montes de María:\n<i>(O escribe /cancelar para salir)</i>');
+        }
+        return { ok: true };
+      }
+
+      if (session.state === 'LOGIN_WAIT_EMAIL') {
+        const emailInput = text.trim();
+        if (!emailInput.includes('@') || !emailInput.includes('.')) {
+          await this.sendMessage(chatId, '⚠️ Correo no válido. Por favor escribe un correo electrónico válido (ej: <code>correo@gmail.com</code>) o escribe /cancelar.');
+          return { ok: true };
+        }
+        await this.iniciarLoginConEmail(chatId, emailInput, session);
+        return { ok: true };
+      }
+
+      if (session.state === 'LOGIN_WAIT_CODE') {
+        const pending = this.pendingAuth.get(chatId);
+        if (!pending) {
+          session.state = 'IDLE';
+          await this.sendMessage(chatId, '⚠️ Tu solicitud de verificación expiró. Escribe /login para intentarlo nuevamente.');
+          return { ok: true };
+        }
+
+        if (Date.now() > pending.expiresAt) {
+          this.pendingAuth.delete(chatId);
+          session.state = 'IDLE';
+          await this.sendMessage(chatId, '⌛ El código de 6 dígitos ha vencido. Escribe /login para solicitar un código nuevo.');
+          return { ok: true };
+        }
+
+        const inputCode = text.replace(/\D/g, '').trim();
+        if (inputCode === pending.code) {
+          const user = pending.userObj;
+          this.authenticatedUsers.set(chatId, user);
+          this.pendingAuth.delete(chatId);
+          session.state = 'IDLE';
+
+          const userRolId = Number(user.id_rol);
+          if (userRolId === 1 || userRolId === 4) {
+            this.registerSubscriber(chatId);
+          }
+
+          const rolTexto = userRolId === 1 ? '👑 Administrador' : userRolId === 2 ? '🌾 Campesino / Vendedor' : userRolId === 4 ? '👨‍🌾 Asesor de Soporte' : '🛒 Comprador';
+          
+          await this.sendMessage(chatId, `🎉 <b>¡Identidad Verificada con Éxito!</b>\n━━━━━━━━━━━━━━━━━━\nBienvenido(a), <b>${user.nombre || user.username}</b>.\nTu cuenta ha sido vinculada como <b>${rolTexto}</b>.`);
+          
+          const menuMsg = this.generarMenuRol(user, chatId);
+          await this.sendMessage(chatId, menuMsg);
+          return { ok: true };
+        } else {
+          await this.sendMessage(chatId, '❌ <b>Código incorrecto.</b>\nPor favor verifica los 6 dígitos enviados a tu correo e ingrésalos nuevamente (o escribe /cancelar).');
+          return { ok: true };
+        }
+      }
+
+      // ── COMANDOS DE ROL: ADMINISTRADOR / ASESOR ──
+      if (text.startsWith('/responder')) {
+        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
+          await this.sendMessage(chatId, '🔒 Este comando requiere permisos de <b>Administrador</b> o <b>Asesor</b>. Escribe /login con tu cuenta de administrador.');
+          return { ok: true };
+        }
+        const parts = text.split(' ');
+        if (parts.length < 3) {
+          await this.sendMessage(chatId, '📝 <b>Uso correcto:</b> <code>/responder [CÓDIGO_TICKET] [MENSAJE]</code>\nEjemplo: <code>/responder TK-A1B2C3 Hola, con gusto te colaboramos...</code>');
+          return { ok: true };
+        }
+        const ticketCode = parts[1];
+        const replyText = parts.slice(2).join(' ');
+        await this.responderTicket(chatId, ticketCode, replyText, authUser);
+        return { ok: true };
+      }
+
+      if (text.startsWith('/cerrarticket')) {
+        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
+          await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
+          return { ok: true };
+        }
+        const parts = text.split(' ');
+        const ticketCode = parts[1];
+        if (!ticketCode) {
+          await this.sendMessage(chatId, '📝 <b>Uso correcto:</b> <code>/cerrarticket [CÓDIGO_TICKET]</code>');
+          return { ok: true };
+        }
+        if (this.soporteRepository) {
+          const t = await this.soporteRepository.buscarTicketPorCodigo(ticketCode.toUpperCase());
+          if (t) {
+            await this.soporteRepository.actualizarTicket(t.id, { estado: 'cerrado' });
+            if (this.socketHandler) {
+              this.socketHandler.emitirTicketCerrado(t.session_id, t.id);
+            }
+            await this.sendMessage(chatId, `✅ Ticket <code>#${ticketCode}</code> cerrado correctamente.`);
+          } else {
+            await this.sendMessage(chatId, `❌ No se encontró el ticket <code>#${ticketCode}</code>.`);
+          }
+        }
+        return { ok: true };
+      }
+
+      if (text === '/admin' || text === '/resumen' || text === '/metricas') {
+        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
+          await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador. Escribe <code>/login</code>.');
+          return { ok: true };
+        }
+        await this.mostrarResumenAdmin(chatId);
+        return { ok: true };
+      }
+
+      if (text === '/tickets') {
+        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
+          await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
+          return { ok: true };
+        }
+        await this.mostrarTicketsPendientes(chatId);
+        return { ok: true };
+      }
+
+      if (text === '/ventas') {
+        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
+          await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
+          return { ok: true };
+        }
+        await this.mostrarUltimasVentas(chatId);
+        return { ok: true };
+      }
+
+      if (text === '/stock') {
+        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
+          await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
+          return { ok: true };
+        }
+        await this.mostrarStockCritico(chatId);
+        return { ok: true };
+      }
+
+      // ── COMANDOS DE ROL: CAMPESINO / VENDEDOR ──
+      if (text === '/misproductos') {
+        await this.mostrarProductosCampesino(chatId, authUser);
+        return { ok: true };
+      }
+
+      if (text === '/misventas') {
+        await this.mostrarVentasCampesino(chatId, authUser);
+        return { ok: true };
+      }
+
+      // ── COMANDOS DE ROL: COMPRADOR / CLIENTE ──
+      if (text === '/mispedidos') {
+        if (!authUser) {
+          await this.sendMessage(chatId, '🔒 Para consultar tus pedidos personales, primero inicia sesión escribiendo <code>/login tu_correo@gmail.com</code>.');
+          return { ok: true };
+        }
+        await this.mostrarPedidosComprador(chatId, authUser);
         return { ok: true };
       }
 
@@ -371,7 +748,7 @@ Asunto: <b>${ticket.asunto}</b>
             ticket = await this.soporteRepository.crearTicket({
               ticket_code: ticketCode,
               session_id: sessionId,
-              id_usuario: null,
+              id_usuario: authUser ? authUser.id_usuario : null,
               nombre_cliente: session.data.nombre || userName,
               correo_cliente: session.data.correo || 'telegram_user@montesdemaria.com',
               telefono_cliente: session.data.telefono || 'Sin registrar',
@@ -383,7 +760,7 @@ Asunto: <b>${ticket.asunto}</b>
             await this.soporteRepository.agregarMensaje({
               ticket_id: ticket.id,
               session_id: sessionId,
-              id_usuario: null,
+              id_usuario: authUser ? authUser.id_usuario : null,
               nombre_remitente: session.data.nombre || userName,
               rol: 'user',
               mensaje: userMsg
@@ -401,7 +778,7 @@ Asunto: <b>${ticket.asunto}</b>
               session_id: sessionId,
               ticket,
               mensaje: userMsg,
-              id_usuario: null,
+              id_usuario: authUser ? authUser.id_usuario : null,
               repositories: {
                 usuarioRepository: this.usuarioRepository,
                 productoRepository: this.productoRepository,
@@ -512,7 +889,7 @@ ${aiReply}
           await this.soporteRepository.agregarMensaje({
             ticket_id: ticket.id,
             session_id: sessionId,
-            id_usuario: null,
+            id_usuario: authUser ? authUser.id_usuario : null,
             nombre_remitente: session.data.nombre || userName,
             rol: 'user',
             mensaje: text
@@ -538,7 +915,6 @@ ${aiReply}
         }
 
         if (currentTicket.estado === 'agente') {
-          // El ticket está en manos de un asesor humano
           await this.sendMessage(chatId, `📨 <i>Tu mensaje fue recibido y enviado a tu asesor asignado. Te responderemos en breve por aquí.</i>`);
           return { ok: true };
         }
@@ -550,7 +926,7 @@ ${aiReply}
               session_id: sessionId,
               ticket: currentTicket,
               mensaje: text,
-              id_usuario: null,
+              id_usuario: authUser ? authUser.id_usuario : null,
               repositories: {
                 usuarioRepository: this.usuarioRepository,
                 productoRepository: this.productoRepository,
@@ -597,6 +973,31 @@ ${aiReply}
         lowerText.includes('reclamo') || lowerText.includes('problema') || lowerText.includes('asesor');
 
       if (wantsSupport) {
+        if (authUser) {
+          // Autocompletar datos del usuario autenticado
+          session.data = {
+            nombre: authUser.nombre || authUser.username,
+            correo: authUser.correo,
+            telefono: authUser.telefono || 'Sin registrar'
+          };
+          session.state = 'FORM_CATEGORIA';
+          const catMenu = `
+👋 <b>Centro de Soporte - De los Montes de María</b> 🌾
+━━━━━━━━━━━━━━━━━━
+Sesión activa: <b>${authUser.nombre || authUser.username}</b> (<code>${authUser.correo}</code>)
+
+🏷️ Selecciona la <b>Categoría</b> de tu consulta (escribe del <b>1 al 5</b>):
+
+1️⃣ 📦 Estado de Pedidos y Envíos
+2️⃣ 🌱 Productos y Cosechas
+3️⃣ 💳 Pagos y Facturación
+4️⃣ 🌾 Registro de Campesino / Vendedor
+5️⃣ ❓ Otra Consulta
+`;
+          await this.sendMessage(chatId, catMenu);
+          return { ok: true };
+        }
+
         session.state = 'FORM_NOMBRE';
         session.data = {};
         const welcomeForm = `
@@ -638,20 +1039,9 @@ Escribe <b>/soporte</b> para iniciar una consulta asistida por IA o explora el c
       }
 
       // Comandos Estándar
-      if (text.startsWith('/start')) {
-        const welcome = `
-👋 <b>¡Hola ${userName}!</b> Bienvenido al bot oficial de <b>De los Montes de María</b> 🌾
-
-Tu <b>Chat ID</b> es: <code>${chatId}</code>
-
-<b>Opciones disponibles:</b>
-💬 <code>/soporte</code> - Iniciar formulario de soporte y consultar con IA
-🛒 <code>/tienda</code> - Ver catálogo de cosechas en la web
-📦 <code>/pedidos</code> - Información sobre envíos
-🌾 <code>/campesinos</code> - Conocer a nuestros productores
-🆔 <code>/id</code> - Ver tu Chat ID
-`;
-        await this.sendMessage(chatId, welcome);
+      if (text.startsWith('/start') || text === '/menu' || text === '/ayuda_comandos') {
+        const menu = this.generarMenuRol(authUser, chatId);
+        await this.sendMessage(chatId, menu);
       } else if (text.startsWith('/id')) {
         await this.sendMessage(chatId, `Tu Chat ID de Telegram es: <code>${chatId}</code>`);
       } else if (text.startsWith('/tienda') || text.startsWith('/catalogo')) {
@@ -659,13 +1049,254 @@ Tu <b>Chat ID</b> es: <code>${chatId}</code>
       } else if (text.startsWith('/pedidos')) {
         await this.sendMessage(chatId, `📦 Realizamos envíos directos desde los Montes de María hasta tu hogar con frescura garantizada.`);
       } else {
-        await this.sendMessage(chatId, `¡Hola ${userName}! Recibimos tu mensaje.\n\nEscribe <b>/soporte</b> para iniciar una consulta asistida con nuestra IA y asesores, o ingresa a https://delosmontesdemaria.onrender.com.`);
+        const fallback = authUser
+          ? `¡Hola ${authUser.nombre || userName}! Recibimos tu mensaje.\n\nEscribe <b>/menu</b> para ver tus opciones o <b>/soporte</b> para crear una consulta.`
+          : `¡Hola ${userName}! Recibimos tu mensaje.\n\nEscribe <b>/soporte</b> para iniciar una consulta o <b>/login tu_correo@gmail.com</b> para conectar tu cuenta.`;
+        await this.sendMessage(chatId, fallback);
       }
 
       return { ok: true };
     } catch (err) {
       console.error('[Telegram Webhook Error]:', err);
       return { ok: false, error: err.message };
+    }
+  }
+
+  /**
+   * Métodos auxiliares de autenticación y vistas por rol
+   */
+  async iniciarLoginConEmail(chatId, email, session) {
+    if (!this.usuarioRepository) {
+      await this.sendMessage(chatId, '❌ El servicio de usuarios no está disponible en este momento.');
+      return;
+    }
+
+    try {
+      const emailClean = email.trim().toLowerCase();
+      const user = await this.usuarioRepository.buscarPorCorreo(emailClean);
+
+      if (!user) {
+        await this.sendMessage(
+          chatId,
+          `❌ No encontramos ninguna cuenta registrada con el correo <b>${emailClean}</b>.\n\nPor favor verifica tu correo o regístrate en nuestra plataforma web:\n👉 https://delosmontesdemaria.onrender.com/registro`
+        );
+        session.state = 'IDLE';
+        return;
+      }
+
+      // Generar código OTP de 6 dígitos
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      this.pendingAuth.set(chatId, {
+        code: otpCode,
+        userObj: user,
+        expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutos
+      });
+      session.state = 'LOGIN_WAIT_CODE';
+
+      // Enviar correo con código
+      if (this.emailService && typeof this.emailService.enviarCodigoVerificacionTelegram === 'function') {
+        this.emailService.enviarCodigoVerificacionTelegram({
+          correo: user.correo,
+          nombre: user.nombre || user.username,
+          codigo: otpCode
+        }).catch((err) => console.error('[Telegram OTP Email Error]:', err));
+      }
+
+      const otpPrompt = `
+🔐 <b>¡CÓDIGO DE SEGURIDAD ENVIADO!</b>
+━━━━━━━━━━━━━━━━━━
+Hemos enviado un código de 6 dígitos a tu correo:
+📧 <b>${user.correo}</b>
+
+✍️ <b>Escribe el código de 6 dígitos aquí</b> para confirmar tu identidad:
+<i>(El código vence en 10 minutos. Escribe /cancelar para salir)</i>
+`;
+      await this.sendMessage(chatId, otpPrompt);
+    } catch (err) {
+      console.error('[Telegram Login Error]:', err);
+      await this.sendMessage(chatId, `⚠️ Error al procesar tu solicitud: ${err.message}`);
+    }
+  }
+
+  async mostrarResumenAdmin(chatId) {
+    try {
+      let totalVentas = 0;
+      let montoTotal = 0;
+      let stockCriticoCount = 0;
+      let ticketsAbiertos = 0;
+
+      if (this.compraRepository) {
+        try {
+          const compras = await this.compraRepository.listarTodas();
+          if (Array.isArray(compras)) {
+            totalVentas = compras.length;
+            montoTotal = compras.reduce((acc, c) => acc + Number(c.total || 0), 0);
+          }
+        } catch (_) {}
+      }
+
+      if (this.productoRepository) {
+        try {
+          const prods = await this.productoRepository.buscarTodos();
+          if (Array.isArray(prods)) {
+            stockCriticoCount = prods.filter((p) => Number(p.stock || 0) <= 5).length;
+          }
+        } catch (_) {}
+      }
+
+      if (this.soporteRepository) {
+        try {
+          const tickets = await this.soporteRepository.listarTickets();
+          if (Array.isArray(tickets)) {
+            ticketsAbiertos = tickets.filter((t) => t.estado !== 'cerrado').length;
+          }
+        } catch (_) {}
+      }
+
+      const msg = `
+📊 <b>RESUMEN GENERAL DEL SISTEMA</b> 🌾
+━━━━━━━━━━━━━━━━━━
+💰 <b>Ventas Totales:</b> <code>${totalVentas} pedidos</code> ($${montoTotal.toLocaleString('es-CO')} COP)
+🎫 <b>Tickets Abiertos:</b> <code>${ticketsAbiertos}</code> en atención
+⚠️ <b>Productos con Stock Bajo (≤5):</b> <code>${stockCriticoCount}</code>
+
+<b>Accesos Rápidos:</b>
+👉 <code>/tickets</code> - Ver y atender consultas
+👉 <code>/ventas</code> - Ver últimos pedidos
+👉 <code>/stock</code> - Ver inventario crítico
+👉 Panel Web: https://delosmontesdemaria.onrender.com/admin
+`;
+      await this.sendMessage(chatId, msg);
+    } catch (err) {
+      await this.sendMessage(chatId, `⚠️ Error al cargar resumen: ${err.message}`);
+    }
+  }
+
+  async mostrarTicketsPendientes(chatId) {
+    if (!this.soporteRepository) return;
+    try {
+      const tickets = await this.soporteRepository.listarTickets();
+      const pendientes = (tickets || []).filter((t) => t.estado !== 'cerrado').slice(0, 8);
+
+      if (pendientes.length === 0) {
+        await this.sendMessage(chatId, '🎉 <b>¡Excelente!</b> No hay tickets de soporte pendientes en este momento.');
+        return;
+      }
+
+      let lista = '🎫 <b>TICKETS DE SOPORTE PENDIENTES:</b>\n━━━━━━━━━━━━━━━━━━\n';
+      pendientes.forEach((t, idx) => {
+        const code = t.ticket_code || t.id;
+        const estadoTag = t.estado === 'agente' ? '👨‍🌾 En Atención' : '🤖 IA / Bot';
+        lista += `\n<b>${idx + 1}.</b> <code>#${code}</code> | ${estadoTag}\n   👤 <b>${t.nombre_cliente}</b>\n   📝 <i>${t.asunto}</i>\n`;
+      });
+
+      lista += '\n━━━━━━━━━━━━━━━━━━\n👉 <b>Para responder a un cliente escribe:</b>\n<code>/responder [CÓDIGO] [Tu respuesta]</code>\n<i>Ejemplo: <code>/responder TK-123456 Hola, tu pedido ya salió</code></i>';
+      await this.sendMessage(chatId, lista);
+    } catch (err) {
+      await this.sendMessage(chatId, `⚠️ Error al listar tickets: ${err.message}`);
+    }
+  }
+
+  async mostrarUltimasVentas(chatId) {
+    if (!this.compraRepository) return;
+    try {
+      const compras = await this.compraRepository.listarTodas();
+      const ultimas = (compras || []).slice(0, 5);
+
+      if (ultimas.length === 0) {
+        await this.sendMessage(chatId, '📦 Aún no hay compras registradas en el sistema.');
+        return;
+      }
+
+      let lista = '🛒 <b>ÚLTIMAS VENTAS REGISTRADAS:</b>\n━━━━━━━━━━━━━━━━━━\n';
+      ultimas.forEach((c) => {
+        const id = c.id_compra || c.id;
+        const total = Number(c.total || 0).toLocaleString('es-CO');
+        const estado = (c.estado || 'Recibido').toUpperCase();
+        lista += `\n🧾 <b>#ORD-${id}</b> | <b>$${total} COP</b>\n   🚚 Estado: <code>${estado}</code>\n   💳 Pago: ${c.metodo_pago || 'Contra Entrega'}\n`;
+      });
+
+      await this.sendMessage(chatId, lista);
+    } catch (err) {
+      await this.sendMessage(chatId, `⚠️ Error al listar ventas: ${err.message}`);
+    }
+  }
+
+  async mostrarStockCritico(chatId) {
+    if (!this.productoRepository) return;
+    try {
+      const productos = await this.productoRepository.buscarTodos();
+      const criticos = (productos || []).filter((p) => Number(p.stock || 0) <= 5);
+
+      if (criticos.length === 0) {
+        await this.sendMessage(chatId, '✅ <b>¡Todo el inventario está en niveles óptimos!</b> No hay cosechas con menos de 5 unidades.');
+        return;
+      }
+
+      let lista = '⚠️ <b>COSECHAS CON STOCK BAJO (≤5 unidades):</b>\n━━━━━━━━━━━━━━━━━━\n';
+      criticos.forEach((p) => {
+        lista += `\n📦 <b>${p.nombre}</b>\n   🌾 Stock: <b>${p.stock} unidades</b> (Precio: $${Number(p.precio || 0).toLocaleString('es-CO')})\n`;
+      });
+      lista += '\n👉 <a href="https://delosmontesdemaria.onrender.com/admin">Actualizar en el Panel Web</a>';
+
+      await this.sendMessage(chatId, lista);
+    } catch (err) {
+      await this.sendMessage(chatId, `⚠️ Error al consultar stock: ${err.message}`);
+    }
+  }
+
+  async mostrarProductosCampesino(chatId, authUser) {
+    if (!this.productoRepository) return;
+    try {
+      const productos = await this.productoRepository.buscarTodos();
+      let misProds = productos || [];
+      if (authUser && authUser.id_rol === 2) {
+        misProds = misProds.filter((p) => p.id_vendedor === authUser.id_usuario);
+      }
+
+      if (misProds.length === 0) {
+        await this.sendMessage(chatId, '🌾 No se encontraron productos registrados para tu cuenta de productor.');
+        return;
+      }
+
+      let lista = `🌾 <b>COSECHAS Y PRODUCTOS PUBLICADOS (${misProds.length}):</b>\n━━━━━━━━━━━━━━━━━━\n`;
+      misProds.slice(0, 8).forEach((p) => {
+        lista += `\n🌱 <b>${p.nombre}</b>\n   📦 Stock: <code>${p.stock} unidades</code> | 💵 <b>$${Number(p.precio || 0).toLocaleString('es-CO')} COP</b>\n`;
+      });
+
+      await this.sendMessage(chatId, lista);
+    } catch (err) {
+      await this.sendMessage(chatId, `⚠️ Error al consultar productos: ${err.message}`);
+    }
+  }
+
+  async mostrarVentasCampesino(chatId, authUser) {
+    await this.sendMessage(chatId, `🌾 <b>Mis Ventas como Productor</b>\nPuedes consultar el balance y liquidaciones detalladas en tu panel web:\n👉 https://delosmontesdemaria.onrender.com/perfil`);
+  }
+
+  async mostrarPedidosComprador(chatId, authUser) {
+    if (!this.compraRepository || !authUser) return;
+    try {
+      const pedidos = await this.compraRepository.listarPorUsuario(authUser.id_usuario);
+      const misPedidos = (pedidos || []).slice(0, 5);
+
+      if (misPedidos.length === 0) {
+        await this.sendMessage(chatId, '🛒 No tienes compras registradas aún.\n\n🌾 ¡Explora nuestras cosechas frescas en https://delosmontesdemaria.onrender.com/catalogo!');
+        return;
+      }
+
+      let lista = `📦 <b>TUS ÚLTIMOS PEDIDOS (#${misPedidos.length}):</b>\n━━━━━━━━━━━━━━━━━━\n`;
+      misPedidos.forEach((p) => {
+        const id = p.id_compra || p.id;
+        const total = Number(p.total || 0).toLocaleString('es-CO');
+        const estado = (p.estado || 'En preparación').toUpperCase();
+        lista += `\n🧾 <b>Pedido #ORD-${id}</b>\n   🚚 Estado: <b>${estado}</b>\n   💰 Total: $${total} COP\n`;
+      });
+
+      lista += '\n💡 <i>Te avisaremos por aquí automáticamente cuando tu pedido cambie de estado.</i>';
+      await this.sendMessage(chatId, lista);
+    } catch (err) {
+      await this.sendMessage(chatId, `⚠️ Error al consultar tus pedidos: ${err.message}`);
     }
   }
 }
