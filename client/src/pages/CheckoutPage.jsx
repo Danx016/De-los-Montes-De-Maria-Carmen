@@ -16,9 +16,9 @@ export default function CheckoutPage() {
   const [selectedDir, setSelectedDir] = useState(null)
   const [showNewDir, setShowNewDir] = useState(false)
   const [newDir, setNewDir] = useState({
-    departamento: 'Bolívar',
-    municipio: 'El Carmen de Bolívar',
-    direccion: '',
+    departamento: user?.departamento || 'Bolívar',
+    municipio: user?.municipio || 'El Carmen de Bolívar',
+    direccion: user?.direccion || '',
     barrio: '',
     indicaciones: '',
   })
@@ -37,26 +37,66 @@ export default function CheckoutPage() {
     if (userId) {
       listarDirecciones(userId)
         .then((res) => {
-          const list = res.data?.direcciones || res.data || []
-          setDirecciones(list)
+          const list = Array.isArray(res.data) ? res.data : (res.data?.direcciones || [])
+          
           if (list.length > 0) {
+            setDirecciones(list)
             setSelectedDir(list[0].id_direccion || list[0].id)
+            setShowNewDir(false)
+          } else if (user?.direccion && user.direccion.trim() !== '') {
+            // Usar la dirección guardada en el perfil del usuario
+            const profileAddr = {
+              id_direccion: 'perfil_usuario',
+              id: 'perfil_usuario',
+              titulo: 'Mi Dirección Registrada',
+              direccion_principal: user.direccion,
+              direccion: user.direccion,
+              departamento: user.departamento || 'Bolívar',
+              ciudad: user.municipio || 'El Carmen de Bolívar',
+              municipio: user.municipio || 'El Carmen de Bolívar',
+              telefono: user.telefono || '',
+              notas: '',
+            }
+            setDirecciones([profileAddr])
+            setSelectedDir('perfil_usuario')
+            setShowNewDir(false)
           } else {
             setShowNewDir(true)
           }
         })
-        .catch(() => setShowNewDir(true))
+        .catch(() => {
+          if (user?.direccion && user.direccion.trim() !== '') {
+            const profileAddr = {
+              id_direccion: 'perfil_usuario',
+              id: 'perfil_usuario',
+              titulo: 'Mi Dirección Registrada',
+              direccion_principal: user.direccion,
+              direccion: user.direccion,
+              departamento: user.departamento || 'Bolívar',
+              ciudad: user.municipio || 'El Carmen de Bolívar',
+              municipio: user.municipio || 'El Carmen de Bolívar',
+              telefono: user.telefono || '',
+              notas: '',
+            }
+            setDirecciones([profileAddr])
+            setSelectedDir('perfil_usuario')
+            setShowNewDir(false)
+          } else {
+            setShowNewDir(true)
+          }
+        })
         .finally(() => setLoading(false))
     } else {
       setLoading(false)
+      setShowNewDir(true)
     }
-  }, [userId, items, navigate])
+  }, [userId, user, items, navigate])
 
   const handleAddAddress = async (e) => {
-    e.preventDefault()
+    if (e) e.preventDefault()
     if (!newDir.municipio || !newDir.direccion) {
-      setError('Por favor completa el municipio y dirección.')
-      return
+      setError('Por favor completa el departamento, municipio y dirección de entrega.')
+      return false
     }
 
     setSavingDir(true)
@@ -70,36 +110,58 @@ export default function CheckoutPage() {
         telefono: user?.telefono || '',
         codigo_postal: '',
         notas: newDir.indicaciones || (newDir.barrio ? `Barrio: ${newDir.barrio}` : ''),
-        // aliases
         direccion: newDir.direccion,
         municipio: newDir.municipio,
         barrio: newDir.barrio || '',
         indicaciones: newDir.indicaciones || '',
       }
-      const res = await agregarDireccion(userId, payload)
-      const created = res.data?.direccion || { ...payload, id_direccion: res.data?.id_direccion || Date.now() }
-      const newId = created.id_direccion || created.id
-      setDirecciones((prev) => [...prev, created])
-      setSelectedDir(newId)
+
+      if (userId) {
+        const res = await agregarDireccion(userId, payload)
+        const created = res.data?.direccion || { ...payload, id_direccion: res.data?.id_direccion || Date.now() }
+        const newId = created.id_direccion || created.id
+        setDirecciones((prev) => [...prev, created])
+        setSelectedDir(newId)
+      } else {
+        const localAddr = { ...payload, id_direccion: Date.now() }
+        setDirecciones((prev) => [...prev, localAddr])
+        setSelectedDir(localAddr.id_direccion)
+      }
+
       setShowNewDir(false)
-      setNewDir({ departamento: 'Bolívar', municipio: '', direccion: '', barrio: '', indicaciones: '' })
+      return true
     } catch (err) {
-      setError('Error al guardar la dirección.')
+      setError('No se pudo guardar la dirección. Intenta de nuevo.')
+      return false
     } finally {
       setSavingDir(false)
     }
   }
 
-  const handleProceedToPayment = () => {
-    if (!selectedDir && !showNewDir) {
-      setError('Por favor selecciona o añade una dirección de entrega.')
+  const handleProceedToPayment = async () => {
+    setError('')
+
+    // Si el usuario está llenando una dirección nueva y hace clic en continuar
+    if (showNewDir) {
+      const ok = await handleAddAddress()
+      if (!ok) return
+    }
+
+    const currentAddress = direcciones.find((d) => (d.id_direccion || d.id) === selectedDir) || newDir
+
+    if (!currentAddress || (!currentAddress.direccion_principal && !currentAddress.direccion)) {
+      setError('Por favor selecciona o ingresa una dirección de entrega válida.')
       return
     }
+
     // Guardar selección de envío en sessionStorage
-    sessionStorage.setItem('checkout_shipping', JSON.stringify({
-      id_direccion: selectedDir,
-      direccion: direcciones.find((d) => (d.id_direccion || d.id) === selectedDir) || newDir,
-    }))
+    sessionStorage.setItem(
+      'checkout_shipping',
+      JSON.stringify({
+        id_direccion: selectedDir,
+        direccion: currentAddress,
+      })
+    )
     navigate('/pago')
   }
 
@@ -297,11 +359,11 @@ export default function CheckoutPage() {
 
                 <button
                   onClick={handleProceedToPayment}
-                  disabled={showNewDir || !selectedDir}
+                  disabled={savingDir}
                   className="btn btn-primary btn-block btn-lg"
                   style={{ marginTop: '1.5rem' }}
                 >
-                  Continuar al Método de Pago <i className="fa fa-arrow-right" />
+                  {savingDir ? <i className="fa fa-spinner fa-spin" /> : <>Continuar al Método de Pago <i className="fa fa-arrow-right" /></>}
                 </button>
               </div>
             </div>
