@@ -131,13 +131,15 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
         '--slide-accent': accent,
         position: 'relative',
         width: '100%',
-        minHeight: isPreview ? '380px' : 'auto',
+        height: isPreview ? 'auto' : '100%',
+        minHeight: isPreview ? '380px' : '520px',
         overflow: 'hidden',
         color: '#ffffff',
         display: 'flex',
         alignItems: isPreview ? 'flex-start' : 'center',
         justifyContent: 'center',
-        padding: isPreview ? '1rem 0.85rem' : '2.5rem 1.5rem',
+        padding: isPreview ? '1rem 0.85rem' : '3.5rem 2.5rem 4rem',
+        boxSizing: 'border-box',
       }}
     >
       {/* Capa de Fondo con Imagen y Desenfoque Dinámico */}
@@ -536,10 +538,10 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
             ESTILO 5: HISTORIA CAMPESINA & ORIGEN (Farmer Heritage)
            ========================================================================= */}
         {estilo === 'historia_campesina' && (
-          <div className="hero-historia-grid" style={{ display: 'grid', gridTemplateColumns: isPreview ? '1.15fr 0.85fr' : '1.1fr 0.9fr', gap: isPreview ? '0.75rem' : '1.5rem', alignItems: 'center' }}>
+          <div className="hero-historia-grid" style={{ display: 'grid', gridTemplateColumns: isPreview ? '1.15fr 0.85fr' : '1.1fr 0.9fr', gap: isPreview ? '0.75rem' : '2rem', alignItems: 'center' }}>
             <div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: '#d97706', color: '#ffffff', padding: isPreview ? '0.2rem 0.6rem' : '0.3rem 0.85rem', borderRadius: '999px', fontSize: isPreview ? '0.65rem' : '0.75rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: isPreview ? '0.4rem' : '0.75rem' }}>
-                🇨🇴 {catName ? `${catName.toUpperCase()}` : 'HISTORIA & TRADICIÓN'}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', background: '#d97706', color: '#ffffff', padding: isPreview ? '0.2rem 0.6rem' : '0.35rem 0.9rem', borderRadius: '999px', fontSize: isPreview ? '0.65rem' : '0.78rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: isPreview ? '0.4rem' : '0.85rem', boxShadow: '0 4px 12px rgba(217, 119, 6, 0.35)' }}>
+                <i className="fa fa-seedling" /> {catName ? `${catName.toUpperCase()}` : 'HISTORIA & TRADICIÓN'}
               </div>
 
               <h1 style={{ fontSize: isPreview ? '1.15rem' : '2.4rem', fontWeight: 900, marginBottom: isPreview ? '0.35rem' : '0.75rem', lineHeight: 1.2 }}>
@@ -549,15 +551,16 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
               {/* Farmer Quote Box from Database */}
               <div
                 style={{
-                  background: 'rgba(255,255,255,0.12)',
-                  borderLeft: '3px solid #f59e0b',
-                  borderRadius: '0 10px 10px 0',
-                  padding: isPreview ? '0.35rem 0.6rem' : '0.85rem 1.1rem',
+                  background: 'rgba(255,255,255,0.14)',
+                  borderLeft: '4px solid #f59e0b',
+                  borderRadius: '0 12px 12px 0',
+                  padding: isPreview ? '0.35rem 0.6rem' : '0.85rem 1.25rem',
                   marginBottom: isPreview ? '0.55rem' : '1.25rem',
-                  backdropFilter: 'blur(8px)',
+                  backdropFilter: 'blur(10px)',
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
                 }}
               >
-                <p style={{ margin: 0, fontStyle: 'italic', fontSize: isPreview ? '0.72rem' : '0.95rem', color: '#fef3c7', lineHeight: 1.35 }}>
+                <p style={{ margin: 0, fontStyle: 'italic', fontSize: isPreview ? '0.72rem' : '0.96rem', color: '#fef3c7', lineHeight: 1.45 }}>
                   “{slide.subtitle || slide.subtitulo || 'Cada fruto que sembramos lleva el sudor, la esperanza y la tradición de nuestras veredas.'}”
                 </p>
               </div>
@@ -565,7 +568,7 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
               {/* Farmer Profile Strip from Database */}
               {vendorName ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: isPreview ? '0.45rem' : '0.75rem', marginBottom: isPreview ? '0.55rem' : '1.25rem' }}>
-                  <div style={{ width: isPreview ? '30px' : '46px', height: isPreview ? '30px' : '46px', borderRadius: '50%', border: '2px solid #facc15', backgroundColor: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                  <div style={{ width: isPreview ? '30px' : '46px', height: isPreview ? '30px' : '46px', borderRadius: '50%', border: '2px solid #facc15', backgroundColor: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, boxShadow: '0 4px 10px rgba(0,0,0,0.2)' }}>
                     <img
                       src={catThumb || '/img/Logo.jpg'}
                       alt={vendorName}
@@ -574,11 +577,11 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
                     />
                   </div>
                   <div>
-                    <strong style={{ fontSize: isPreview ? '0.78rem' : '0.92rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      {vendorName} <i className="fa fa-check-circle" style={{ color: '#4ade80', fontSize: '0.75rem' }} title="Productor Verificado" />
+                    <strong style={{ fontSize: isPreview ? '0.78rem' : '0.95rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      {vendorName} <i className="fa fa-check-circle" style={{ color: '#4ade80', fontSize: '0.8rem' }} title="Productor Verificado" />
                     </strong>
                     {(badgeTop || vendorRating) ? (
-                      <span style={{ fontSize: isPreview ? '0.65rem' : '0.75rem', color: '#bbf7d0' }}>
+                      <span style={{ fontSize: isPreview ? '0.65rem' : '0.78rem', color: '#bbf7d0', fontWeight: 500 }}>
                         {badgeTop && vendorRating ? `${badgeTop} • ${vendorRating}` : (badgeTop || vendorRating)}
                       </span>
                     ) : null}
@@ -597,31 +600,32 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
               <div
                 style={{
                   background: '#ffffff',
-                  padding: isPreview ? '0.55rem' : '0.85rem',
-                  borderRadius: isPreview ? '12px' : '16px',
-                  boxShadow: '0 20px 45px rgba(0,0,0,0.5)',
+                  padding: isPreview ? '0.55rem' : '0.9rem',
+                  borderRadius: isPreview ? '12px' : '18px',
+                  boxShadow: '0 25px 50px rgba(0,0,0,0.45)',
                   maxWidth: isPreview ? '200px' : '320px',
                   width: '100%',
                   transform: 'rotate(-2deg)',
                   color: '#1e293b',
+                  transition: 'transform 0.3s ease',
                 }}
               >
-                <div style={{ height: isPreview ? '100px' : '190px', borderRadius: '8px', overflow: 'hidden', marginBottom: isPreview ? '0.4rem' : '0.75rem' }}>
+                <div style={{ height: isPreview ? '100px' : '200px', borderRadius: '10px', overflow: 'hidden', marginBottom: isPreview ? '0.4rem' : '0.75rem', background: '#f1f5f9' }}>
                   <img src={prodImg} alt={prodTitle} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.src = '/img/Logo.jpg' }} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <h4 style={{ margin: 0, fontSize: isPreview ? '0.8rem' : '0.95rem', fontWeight: 800, color: '#0f172a' }}>
+                  <h4 style={{ margin: 0, fontSize: isPreview ? '0.8rem' : '1rem', fontWeight: 800, color: '#0f172a' }}>
                     {prodTitle}
                   </h4>
                   {prodPrice ? (
-                    <span style={{ fontWeight: 800, color: '#166534', fontSize: isPreview ? '0.75rem' : '0.9rem' }}>
+                    <span style={{ fontWeight: 800, color: '#166534', fontSize: isPreview ? '0.75rem' : '0.92rem' }}>
                       {prodPrice}
                     </span>
                   ) : null}
                 </div>
                 {badgeTop ? (
-                  <p style={{ margin: '2px 0 0 0', fontSize: isPreview ? '0.62rem' : '0.72rem', color: '#64748b' }}>
-                    📍 {badgeTop}
+                  <p style={{ margin: '3px 0 0 0', fontSize: isPreview ? '0.62rem' : '0.75rem', color: '#64748b', fontWeight: 600 }}>
+                    {badgeTop}
                   </p>
                 ) : null}
               </div>
