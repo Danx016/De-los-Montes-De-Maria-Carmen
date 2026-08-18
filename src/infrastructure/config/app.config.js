@@ -33,8 +33,8 @@ module.exports = {
   smtp: {
     host: sanitize(process.env.SMTP_HOST) || 'smtp.gmail.com',
     port: parseInt(process.env.SMTP_PORT, 10) || 465,
-    user: sanitize(process.env.SMTP_USER),
-    pass: sanitize(process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : '')
+    user: sanitize(process.env.SMTP_USER) || 'danilorodelo355@gmail.com',
+    pass: sanitize(process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : '') || 'gszsvbqujjebrlgk'
   }
 };
 

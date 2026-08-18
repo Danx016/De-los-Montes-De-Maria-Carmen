@@ -60,6 +60,9 @@ class EmailService {
   }
 
   async sendMailSafe({ to, subject, html, attachments, fallbackLog }) {
+    if (!this.transporter) {
+      this.inicializarTransporter();
+    }
     if (this.transporter) {
       try {
         const logoPath = path.resolve(__dirname, '../../../public/img/Logo.jpg');
