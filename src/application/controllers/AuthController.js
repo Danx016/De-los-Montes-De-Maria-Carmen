@@ -64,7 +64,7 @@ class AuthController {
         username: user.apodo,
         id_rol: rolId,
         rolUser: rolId,
-        avatar: user.avatar || '../img/logo vaca.png',
+        avatar: user.avatar || null,
         token,
         message: 'Inicio de sesión exitoso'
       });
@@ -102,7 +102,7 @@ class AuthController {
         username: user.apodo,
         id_rol: rolId,
         rolUser: rolId,
-        avatar: user.avatar || '../img/logo vaca.png',
+        avatar: user.avatar || null,
         token: result.token,
         usuario: {
           ...user,

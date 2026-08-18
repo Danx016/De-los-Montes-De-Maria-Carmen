@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import MediaRenderer from '../components/MediaRenderer'
 import HeroSlideRenderer from '../components/HeroSlideRenderer'
+import { getAvatarUrl, handleAvatarError } from '../utils/avatar'
 import {
   obtenerEstadisticas,
   listarUsuarios,
@@ -3435,7 +3436,7 @@ export default function AdminPage() {
                             {usuarios.map((u) => {
                               const uId = u.id_usuario || u.id
                               const isSelected = Number(bannerForm.tarjeta_vendedor_id) === uId || bannerForm.tarjeta_vendedor_nombre === u.nombre
-                              const uAvatar = u.avatar?.startsWith('http') || u.avatar?.startsWith('/') ? u.avatar : u.avatar ? `/uploads/avatars/${u.avatar}` : '/img/Logo.jpg'
+                              const uAvatar = getAvatarUrl(u)
 
                               return (
                                 <div
@@ -3466,7 +3467,7 @@ export default function AdminPage() {
                                     src={uAvatar}
                                     alt={u.nombre}
                                     style={{ width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover', border: isSelected ? '2px solid var(--primary-color)' : '1px solid var(--border-color)' }}
-                                    onError={(e) => { e.target.src = '/img/Logo.jpg' }}
+                                    onError={(e) => handleAvatarError(e, u.nombre || u.apodo)}
                                   />
                                   <div style={{ flex: 1, minWidth: 0 }}>
                                     <strong style={{ fontSize: '0.78rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: isSelected ? 'var(--primary-color)' : 'inherit' }}>

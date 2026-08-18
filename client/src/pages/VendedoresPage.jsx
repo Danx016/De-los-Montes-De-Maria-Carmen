@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { listarVendedores } from '../api/usuario.api'
+import { getAvatarUrl, handleAvatarError } from '../utils/avatar'
 
 export default function VendedoresPage() {
   const [vendedores, setVendedores] = useState([])
@@ -147,11 +148,7 @@ export default function VendedoresPage() {
                   ? (vendedor.foto_portada.startsWith('/uploads') ? vendedor.foto_portada : `/uploads/${vendedor.foto_portada}`)
                   : 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80'
 
-                const avatarImg = vendedor.avatar?.startsWith('http')
-                  ? vendedor.avatar
-                  : vendedor.avatar
-                  ? (vendedor.avatar.startsWith('/uploads') ? vendedor.avatar : `/uploads/${vendedor.avatar}`)
-                  : '/img/Logo.jpg'
+                const avatarImg = getAvatarUrl(vendedor)
 
                 return (
                   <div key={vendedor.id || vendedor.id_usuario} className="card rich-vendor-card fade-in">
@@ -178,7 +175,7 @@ export default function VendedoresPage() {
                           src={avatarImg}
                           alt={vendedor.nombre}
                           className="rich-vendor-avatar"
-                          onError={(e) => { e.target.src = '/img/Logo.jpg' }}
+                          onError={(e) => handleAvatarError(e, vendedor.nombre)}
                         />
                       </div>
 

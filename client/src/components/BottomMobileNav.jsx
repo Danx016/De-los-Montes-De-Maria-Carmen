@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
+import { getAvatarUrl, handleAvatarError } from '../utils/avatar'
 
 export default function BottomMobileNav() {
   const location = useLocation()
@@ -80,10 +81,10 @@ export default function BottomMobileNav() {
           <div className="bottom-nav-icon-wrap">
             {isAuthenticated ? (
               <img
-                src={user?.avatar || '/img/Logo.jpg'}
+                src={getAvatarUrl(user)}
                 alt={user?.nombre || 'Usuario'}
                 className="bottom-nav-avatar"
-                onError={(e) => { e.target.src = '/img/Logo.jpg' }}
+                onError={(e) => handleAvatarError(e, user?.nombre || user?.username)}
               />
             ) : (
               <i className="fa fa-user-circle" />

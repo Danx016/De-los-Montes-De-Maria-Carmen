@@ -5,6 +5,7 @@ import Footer from '../components/Footer'
 import ProductCard from '../components/ProductCard'
 import { listarProductos } from '../api/productos.api'
 import { obtenerPerfilVendedor } from '../api/usuario.api'
+import { getAvatarUrl, handleAvatarError } from '../utils/avatar'
 
 export default function VendedorPerfilPage() {
   const { id } = useParams()
@@ -64,11 +65,7 @@ export default function VendedorPerfilPage() {
     ? (vendedor.foto_portada.startsWith('/uploads') ? vendedor.foto_portada : `/uploads/${vendedor.foto_portada}`)
     : 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1400&q=80'
 
-  const avatarImg = vendedor?.avatar?.startsWith('http')
-    ? vendedor.avatar
-    : vendedor?.avatar
-    ? (vendedor.avatar.startsWith('/uploads') ? vendedor.avatar : `/uploads/${vendedor.avatar}`)
-    : '/img/Logo.jpg'
+  const avatarImg = getAvatarUrl(vendedor)
 
   return (
     <>
@@ -114,7 +111,7 @@ export default function VendedorPerfilPage() {
                         src={avatarImg}
                         alt={vendedor.nombre}
                         className="vendor-profile-avatar-img"
-                        onError={(e) => { e.target.src = '/img/Logo.jpg' }}
+                        onError={(e) => handleAvatarError(e, vendedor.nombre)}
                       />
                     </div>
 

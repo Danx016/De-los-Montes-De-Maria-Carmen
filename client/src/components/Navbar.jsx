@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext'
 import { buscarProductos, listarCategoriasPublicas } from '../api/productos.api'
 import MediaRenderer from './MediaRenderer'
 import PromoCouponBanner from './PromoCouponBanner'
+import { getAvatarUrl, handleAvatarError } from '../utils/avatar'
 
 export default function Navbar() {
   const { user, isAuthenticated, isAdmin, isVendedor, logout } = useAuth()
@@ -235,20 +236,10 @@ export default function Navbar() {
                   className="user-dropdown-trigger"
                 >
                   <img
-                    src={
-                      user?.avatar
-                        ? (user.avatar.startsWith('http') || user.avatar.startsWith('/')
-                            ? user.avatar
-                            : `/uploads/profiles/${user.avatar}`)
-                        : (user?.foto_perfil
-                            ? (user.foto_perfil.startsWith('http') || user.foto_perfil.startsWith('/')
-                                ? user.foto_perfil
-                                : `/uploads/profiles/${user.foto_perfil}`)
-                            : '/img/Logo.jpg')
-                    }
+                    src={getAvatarUrl(user)}
                     alt="Perfil"
                     className="user-dropdown-avatar"
-                    onError={(e) => { e.target.src = '/img/Logo.jpg' }}
+                    onError={(e) => handleAvatarError(e, user?.nombre || user?.username)}
                   />
                   <span className="user-dropdown-name">{user?.nombre?.split(' ')[0] || user?.username || 'Cuenta'}</span>
                   <i className="fa fa-caret-down" />

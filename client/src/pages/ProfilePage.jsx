@@ -17,6 +17,7 @@ import { useToast } from '../context/ToastContext'
 import { useConfirm } from '../context/ConfirmContext'
 import InvoiceModal from '../components/InvoiceModal'
 import { COLOMBIAN_DEPARTMENTS, getMunicipiosPorDepartamento } from '../data/colombiaData'
+import { getAvatarUrl, handleAvatarError } from '../utils/avatar'
 
 export default function ProfilePage() {
   const toast = useToast()
@@ -313,13 +314,7 @@ export default function ProfilePage() {
       : 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1400&q=80'
   )
 
-  const avatarImg = localAvatarPreview || (
-    user?.avatar?.startsWith('http')
-      ? user.avatar
-      : user?.avatar
-      ? (user.avatar.startsWith('/uploads') ? user.avatar : `/uploads/${user.avatar}`) + `?t=${imgKey}`
-      : '/img/Logo.jpg'
-  )
+  const avatarImg = localAvatarPreview || getAvatarUrl(user)
 
   const isVendorUser = user?.id_rol === 2
   const roleLabel =
@@ -370,7 +365,7 @@ export default function ProfilePage() {
                     src={avatarImg}
                     alt={user?.nombre || 'Mi Perfil'}
                     className="vendor-profile-avatar-img"
-                    onError={(e) => { e.target.src = '/img/Logo.jpg' }}
+                    onError={(e) => handleAvatarError(e, user?.nombre)}
                   />
 
                   {/* Botón Tipo Lápiz Semitransparente para Subir Foto de Perfil */}
