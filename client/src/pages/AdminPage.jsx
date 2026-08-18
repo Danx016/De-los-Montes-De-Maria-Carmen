@@ -3501,10 +3501,135 @@ export default function AdminPage() {
                       </div>
                     </div>
 
-                    {/* Section 5: Orden & Activación */}
+                    {/* Section 5: Imagen y Estilo de Fondo del Slide */}
+                    <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <i className="fa fa-image" /> 5. Personalizar Fondo del Banner (Foto o Paisaje)
+                      </h4>
+                      <p className="text-muted" style={{ fontSize: '0.8rem', margin: '0 0 0.85rem 0' }}>
+                        Puedes subir una fotografía de tu finca/cultivos, pegar un enlace de imagen o elegir uno de los paisajes campestres:
+                      </p>
+
+                      {/* Subir archivo de imagen de fondo */}
+                      <div className="form-group" style={{ marginBottom: '0.75rem' }}>
+                        <label className="form-label" style={{ fontWeight: 700 }}>
+                          📁 Subir Imagen de Fondo desde tu Computador
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*,.avif,.webp,.png,.jpg,.jpeg"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              setBannerBgFile(file)
+                              setBannerBgPreview(URL.createObjectURL(file))
+                            }
+                          }}
+                          className="form-input"
+                          style={{ padding: '0.35rem' }}
+                        />
+                      </div>
+
+                      {/* O pegar URL de imagen */}
+                      <div className="form-group" style={{ marginBottom: '0.85rem' }}>
+                        <label className="form-label" style={{ fontWeight: 700 }}>
+                          🔗 O Pegar URL de Imagen de Fondo
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ej: https://images.unsplash.com/... o /img/montes-de-maria-paisaje.jpg"
+                          value={bannerForm.imagen_fondo || ''}
+                          onChange={(e) => {
+                            setBannerForm({ ...bannerForm, imagen_fondo: e.target.value })
+                            setBannerBgPreview(e.target.value)
+                            setBannerBgFile(null)
+                          }}
+                          className="form-input"
+                          style={{ fontSize: '0.82rem' }}
+                        />
+                      </div>
+
+                      {/* Fondos Predeterminados Campesinos en 1 Clic */}
+                      <div>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                          🌄 Paisajes Recomendados de Montes de María (1 Clic):
+                        </span>
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(105px, 1fr))',
+                            gap: '0.5rem',
+                            marginTop: '0.35rem',
+                          }}
+                        >
+                          {[
+                            { label: 'Montes de María', img: '/img/montes-de-maria-paisaje.jpg' },
+                            { label: 'Cultivos y Cosechas', img: '/img/verduras.avif' },
+                            { label: 'Finca Tradicional', img: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80' },
+                            { label: 'Amanecer en el Campo', img: 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1200&q=80' },
+                            { label: 'Siembra Verde', img: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=1200&q=80' },
+                            { label: 'Palmeras & Valle', img: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=1200&q=80' },
+                          ].map((bg, idx) => {
+                            const isSelected =
+                              (bannerBgPreview === bg.img) ||
+                              (!bannerBgPreview && bannerForm.imagen_fondo === bg.img)
+
+                            return (
+                              <button
+                                type="button"
+                                key={idx}
+                                onClick={() => {
+                                  setBannerForm((prev) => ({ ...prev, imagen_fondo: bg.img }))
+                                  setBannerBgPreview(bg.img)
+                                  setBannerBgFile(null)
+                                }}
+                                style={{
+                                  position: 'relative',
+                                  height: '52px',
+                                  borderRadius: '8px',
+                                  overflow: 'hidden',
+                                  border: isSelected ? '2.5px solid var(--primary-color)' : '1px solid var(--border-color)',
+                                  padding: 0,
+                                  cursor: 'pointer',
+                                  boxShadow: isSelected ? '0 0 0 2px rgba(46, 125, 50, 0.3)' : 'none',
+                                }}
+                                title={`Seleccionar fondo: ${bg.label}`}
+                              >
+                                <img
+                                  src={bg.img}
+                                  alt={bg.label}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                  onError={(e) => { e.target.src = '/img/montes-de-maria-paisaje.jpg' }}
+                                />
+                                <span
+                                  style={{
+                                    position: 'absolute',
+                                    bottom: 0,
+                                    left: 0,
+                                    right: 0,
+                                    backgroundColor: 'rgba(0,0,0,0.65)',
+                                    color: '#ffffff',
+                                    fontSize: '0.65rem',
+                                    fontWeight: 700,
+                                    padding: '2px 4px',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                  }}
+                                >
+                                  {bg.label}
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 6: Orden & Activación */}
                     <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
                       <h4 style={{ margin: '0 0 0.75rem 0', color: 'var(--primary-color)' }}>
-                        <i className="fa fa-sliders-h" /> 5. Orden & Activación
+                        <i className="fa fa-sliders-h" /> 6. Orden & Activación
                       </h4>
                       <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', alignItems: 'center' }}>
                         <div className="form-group">
@@ -3555,6 +3680,13 @@ export default function AdminPage() {
                       className="banner-admin-preview-card"
                       style={{
                         '--slide-accent': bannerForm.color_acento,
+                        backgroundImage: `linear-gradient(rgba(10, 30, 15, 0.78), rgba(10, 30, 15, 0.88)), url('${bannerBgPreview || bannerForm.imagen_fondo || '/img/montes-de-maria-paisaje.jpg'}')`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        borderRadius: '16px',
+                        overflow: 'hidden',
+                        padding: '1.25rem',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.25)',
                       }}
                     >
                       <div className="banner-admin-preview-grid">
