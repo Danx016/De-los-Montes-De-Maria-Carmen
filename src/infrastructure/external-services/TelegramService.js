@@ -892,6 +892,16 @@ ${replyText}
           return { ok: true };
         }
 
+        if (lower === '1' || lower === 'opcion 1' || lower === 'opción 1' || lower === '1️⃣') {
+          await this.sendMessage(chatId, '🔑 Por favor escribe directamente tu <b>contraseña de la plataforma web</b>:\n<i>(Se borrará de inmediato del chat por tu seguridad)</i>');
+          return { ok: true };
+        }
+
+        if (lower === '2' || lower === 'opcion 2' || lower === 'opción 2' || lower === '2️⃣') {
+          await this.sendMessage(chatId, `📩 Por favor escribe el <b>código de 6 dígitos</b> que enviamos a <code>${user.correo}</code>:\n<i>(O pulsa "Reenviar código" abajo si no lo has recibido)</i>`);
+          return { ok: true };
+        }
+
         let loginSuccess = false;
 
         // 1. Código OTP de 6 dígitos
@@ -961,7 +971,7 @@ ${replyText}
 
           await this.sendMessage(
             chatId,
-            `❌ <b>Datos incorrectos</b>\n━━━━━━━━━━━━━━━━━━\nPuedes ingresar de cualquiera de estas dos formas:\n1️⃣ Escribe tu <b>contraseña</b> de la plataforma web.\n2️⃣ O escribe el código de 6 dígitos que llegó a tu correo.\n\n<i>(Escribe /cancelar para salir)</i>`,
+            `❌ <b>Datos no válidos</b>\n━━━━━━━━━━━━━━━━━━\nEscribe directamente:\n🔑 Tu <b>contraseña de la web</b>\n— o —\n📩 El <b>código de 6 dígitos</b> que llegó a tu correo.\n\n<i>(Escribe /cancelar para salir)</i>`,
             retryKeyboard
           );
           return { ok: true };
@@ -1440,16 +1450,14 @@ ${aiReply}
 ━━━━━━━━━━━━━━━━━━
 👤 <b>Usuario:</b> ${user.nombre || user.username}
 📧 <b>Correo:</b> <code>${user.correo}</code>
+━━━━━━━━━━━━━━━━━━
+Para autenticarte, escribe en este chat:
 
-Puedes ingresar de cualquiera de estas dos formas:
+🔑 <b>Tu contraseña</b> de la plataforma web.
+— o —
+📩 <b>El código de 6 dígitos</b> que enviamos a tu correo.
 
-1️⃣ <b>Opción 1: Contraseña de la web (Directo)</b>
-👉 Escribe tu <b>contraseña de la plataforma web</b> en este chat <i>(se borrará de inmediato por privacidad)</i>.
-
-2️⃣ <b>Opción 2: Código de 6 dígitos por Correo</b>
-👉 Enviamos un código a tu correo. Escríbelo aquí o pulsa el botón de abajo.
-
-<i>(Escribe /cancelar para salir)</i>
+<i>(Escribe tu clave o los 6 dígitos directamente en el mensaje)</i>
 `;
 
       const resendKeyboard = {
