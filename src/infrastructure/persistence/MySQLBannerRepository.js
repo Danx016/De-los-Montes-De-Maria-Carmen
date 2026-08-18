@@ -40,8 +40,8 @@ class MySQLBannerRepository extends BannerRepository {
           imagen_fondo, color_acento, features, boton_principal_texto, boton_principal_link,
           boton_secundario_texto, boton_secundario_link, tarjeta_badge_top, tarjeta_imagen,
           tarjeta_titulo, tarjeta_precio, tarjeta_vendedor_nombre, tarjeta_vendedor_rating,
-          tarjeta_vendedor_id, cupon_codigo, cupon_texto, orden, activo
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          tarjeta_vendedor_id, cupon_codigo, cupon_texto, estilo_plantilla, filtro_blur, orden, activo
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       const featuresJson = typeof banner.features === 'string' ? banner.features : JSON.stringify(banner.features || []);
@@ -68,6 +68,8 @@ class MySQLBannerRepository extends BannerRepository {
         banner.tarjeta_vendedor_id || 47,
         banner.cupon_codigo || null,
         banner.cupon_texto || null,
+        banner.estilo_plantilla || 'clasico',
+        Number(banner.filtro_blur) || 0,
         Number(banner.orden) || 0,
         banner.activo !== undefined ? Number(banner.activo) : 1
       ];
@@ -87,7 +89,7 @@ class MySQLBannerRepository extends BannerRepository {
           imagen_fondo = ?, color_acento = ?, features = ?, boton_principal_texto = ?, boton_principal_link = ?,
           boton_secundario_texto = ?, boton_secundario_link = ?, tarjeta_badge_top = ?, tarjeta_imagen = ?,
           tarjeta_titulo = ?, tarjeta_precio = ?, tarjeta_vendedor_nombre = ?, tarjeta_vendedor_rating = ?,
-          tarjeta_vendedor_id = ?, cupon_codigo = ?, cupon_texto = ?, orden = ?, activo = ?
+          tarjeta_vendedor_id = ?, cupon_codigo = ?, cupon_texto = ?, estilo_plantilla = ?, filtro_blur = ?, orden = ?, activo = ?
         WHERE id_banner = ?
       `;
 
@@ -115,6 +117,8 @@ class MySQLBannerRepository extends BannerRepository {
         banner.tarjeta_vendedor_id || 47,
         banner.cupon_codigo || null,
         banner.cupon_texto || null,
+        banner.estilo_plantilla || 'clasico',
+        Number(banner.filtro_blur) || 0,
         Number(banner.orden) || 0,
         banner.activo !== undefined ? Number(banner.activo) : 1,
         id

@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import ProductCard from '../components/ProductCard'
 import MediaRenderer from '../components/MediaRenderer'
+import HeroSlideRenderer from '../components/HeroSlideRenderer'
 import { listarProductos, listarCategoriasPublicas } from '../api/productos.api'
 import { listarBannersPublicos } from '../api/banners.api'
 import { useToast } from '../context/ToastContext'
@@ -43,6 +44,8 @@ export default function HomePage() {
   const DEFAULT_SLIDES = useMemo(() => [
     {
       id: 1,
+      estilo_plantilla: 'clasico',
+      filtro_blur: 0,
       bgClass: 'slide-bg-1',
       accentColor: '#22c55e',
       categoryName: 'Cosechas Frescas',
@@ -68,6 +71,8 @@ export default function HomePage() {
     },
     {
       id: 2,
+      estilo_plantilla: 'inmersivo',
+      filtro_blur: 2,
       bgClass: 'slide-bg-2',
       accentColor: '#f59e0b',
       categoryName: 'Semillas Certificadas',
@@ -93,16 +98,18 @@ export default function HomePage() {
     },
     {
       id: 3,
+      estilo_plantilla: 'oferta_flash',
+      filtro_blur: 0,
       bgClass: 'slide-bg-3',
-      accentColor: '#06b6d4',
+      accentColor: '#ea580c',
       categoryName: 'Lácteos de la Finca',
       categoryThumb: '/img/fondo vaca2.png',
       categorySlug: 'lacteos',
-      title: 'Queso Costeño y Lácteos Campesinos',
-      subtitle: 'Queso costeño fresco, cuajada y suero tradicional elaborado artesanalmente con leche 100% pura en San Jacinto.',
+      title: 'Queso Costeño Artesanal y Lácteos del Campo',
+      subtitle: 'Queso fresco, cuajada y suero tradicional elaborado artesanalmente con leche 100% pura de ordeño.',
       features: ['Queso Costeño Fresco', 'Suero Tradicional Costeño', 'Leche Pura de Ordeño'],
-      primaryBtn: { text: 'Ver Lácteos', link: '/categoria/lacteos', icon: 'fa-cheese' },
-      secondaryBtn: { text: 'Conoce los Productores', link: '/vendedores', icon: 'fa-users' },
+      primaryBtn: { text: '¡Aprovechar Descuento!', link: '/categoria/lacteos', icon: 'fa-bolt' },
+      secondaryBtn: { text: 'Conoce Productores', link: '/vendedores', icon: 'fa-users' },
       showcaseImage: '/img/fondo vaca2.png',
       showcaseOrigin: '🇨🇴 San Jacinto, Bolívar',
       showcasePrice: '$15.000 COP / Libra',
@@ -114,10 +121,14 @@ export default function HomePage() {
       targetCategory: '/categoria/lacteos',
       floatPillTop: '🧀 100% Artesanal',
       floatPillBottom: '🚚 Envío Inmediato',
+      cupon_codigo: 'QUESO15',
+      cupon_texto: '⚡ ¡Usa el cupón QUESO15 y obtén 15% OFF en lácteos artesanales!',
       vendorId: 47
     },
     {
       id: 4,
+      estilo_plantilla: 'mosaico',
+      filtro_blur: 0,
       bgClass: 'slide-bg-4',
       accentColor: '#0284c7',
       categoryName: 'Herramientas & AgroEquipos',
@@ -140,6 +151,33 @@ export default function HomePage() {
       floatPillTop: '🚜 Trabajo Pesado',
       floatPillBottom: '🛡️ Garantía de Campo',
       vendorId: 47
+    },
+    {
+      id: 5,
+      estilo_plantilla: 'historia_campesina',
+      filtro_blur: 0,
+      bgClass: 'slide-bg-1',
+      accentColor: '#15803d',
+      categoryName: 'Tradición Campesina',
+      categoryThumb: '/img/verduras.avif',
+      categorySlug: 'cosechas',
+      title: 'Raíces y Tradición de los Montes de María',
+      subtitle: 'Cada fruto que sembramos lleva el sudor, la esperanza y la memoria de nuestras familias montemarianas.',
+      features: ['Comercio Justo y Solidario', 'Productores Verificados', 'Apoyo Directo a la Paz y el Campo'],
+      primaryBtn: { text: 'Apoyar al Productor', link: '/vendedores', icon: 'fa-heart' },
+      secondaryBtn: { text: 'Ver Todas las Fincas', link: '/catalogo', icon: 'fa-store' },
+      showcaseImage: '/img/Ñame.avif',
+      showcaseOrigin: '🇨🇴 San Jacinto & El Carmen de Bolívar',
+      showcasePrice: '$6.000 COP / Kilo',
+      farmerAvatar: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=150&q=80',
+      farmerName: 'Roberto Carlos Salcedo',
+      farmerLocation: 'Productor de Montes de María',
+      showcaseTitle: 'Cosechas Agroecológicas',
+      showcaseDesc: 'Cultivos tradicionales de los Montes de María.',
+      targetCategory: '/categoria/cosechas',
+      floatPillTop: '🌾 Herencia Campesina',
+      floatPillBottom: '⭐ 5.0 Productor',
+      vendorId: 47
     }
   ], [])
 
@@ -147,6 +185,8 @@ export default function HomePage() {
     if (dbBanners && dbBanners.length > 0) {
       return dbBanners.map((b, idx) => ({
         id: b.id_banner || idx + 1,
+        estilo_plantilla: b.estilo_plantilla || 'clasico',
+        filtro_blur: b.filtro_blur !== undefined ? b.filtro_blur : 0,
         bgClass: `slide-bg-${(idx % 4) + 1}`,
         accentColor: b.color_acento || '#22c55e',
         categoryName: b.categoria_nombre || 'Cosechas Frescas',
@@ -195,17 +235,6 @@ export default function HomePage() {
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length)
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
 
-  const handleCopyCouponCode = (e, code) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(code)
-      toast.success(`¡Cupón "${code}" copiado al portapapeles! Úsalo al pagar para obtener tu descuento.`)
-    } else {
-      toast.info(`Cupón: ${code}`)
-    }
-  }
-
   const filteredProducts = selectedCat === 'all'
     ? productos
     : productos.filter((p) => {
@@ -219,102 +248,18 @@ export default function HomePage() {
       <Navbar />
 
       <main className="main-content-wrap">
-        {/* Ofercampo-style Dynamic Multi-Slide Animated Hero */}
+        {/* Dynamic Multi-Style Hero Carousel */}
         <section className="ofercampo-hero-wrapper">
           {slides.map((slide, idx) => {
             const isActive = idx === currentSlide
-            const bgImg = slide.backgroundImage || '/img/montes-de-maria-paisaje.jpg'
-            const accent = slide.accentColor || '#22c55e'
-            const slideStyle = {
-              '--slide-accent': accent,
-              background: `linear-gradient(135deg, ${accent}cc 0%, #06140ce6 100%), url('${bgImg}') center/cover no-repeat`,
-            }
 
             return (
               <div
                 key={slide.id}
                 className={`ofercampo-hero-slide ${isActive ? 'active' : ''}`}
-                style={slideStyle}
+                style={{ padding: 0 }}
               >
-                <div className="ofercampo-hero-grid">
-                  {/* Left Column */}
-                  <div className="ofercampo-hero-left">
-                    <Link to={`/categoria/${slide.categorySlug}`} className="ofercampo-badge">
-                      <img
-                        src={slide.categoryThumb}
-                        alt={slide.categoryName}
-                        className="ofercampo-badge-thumb"
-                        onError={(e) => {
-                          e.target.style.display = 'none'
-                        }}
-                      />
-                      <span className="ofercampo-badge-title">{slide.categoryName}</span>
-                    </Link>
-
-                    <h1 className="ofercampo-title">{slide.title}</h1>
-
-                    <p className="ofercampo-subtitle">{slide.subtitle}</p>
-
-                    <div className="ofercampo-features">
-                      {slide.features.map((feat, fIdx) => (
-                        <span key={fIdx} className="ofercampo-feature-item">
-                          <i className="fa fa-check-circle" /> {feat}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="ofercampo-actions">
-                      {slide.primaryBtn.link.startsWith('#') ? (
-                        <a href={slide.primaryBtn.link} className="btn-ofercampo-primary">
-                          <i className={`fa ${slide.primaryBtn.icon}`} /> {slide.primaryBtn.text}
-                        </a>
-                      ) : (
-                        <Link to={slide.primaryBtn.link} className="btn-ofercampo-primary">
-                          <i className={`fa ${slide.primaryBtn.icon}`} /> {slide.primaryBtn.text}
-                        </Link>
-                      )}
-
-                      <Link to={slide.secondaryBtn.link} className="btn-ofercampo-secondary">
-                        <i className={`fa ${slide.secondaryBtn.icon}`} /> {slide.secondaryBtn.text}
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* Right Column: Visual Showcase Card */}
-                  <div className="ofercampo-hero-right">
-                    <div className="ofercampo-visual-card">
-                      <div className="ofercampo-product-preview-box">
-                        <img
-                          src={slide.showcaseImage}
-                          alt={slide.showcaseTitle}
-                          onError={(e) => {
-                            e.currentTarget.src = 'https://carnesoasis.com/wp-content/uploads/2020/09/Queso-fresco.jpg'
-                          }}
-                        />
-                      </div>
-
-                      <div className="ofercampo-card-details">
-                        <div className="ofercampo-card-title-row">
-                          <h4 className="ofercampo-card-title">
-                            {slide.showcaseTitle}
-                          </h4>
-                          <span className="ofercampo-card-price">
-                            {slide.showcasePrice}
-                          </span>
-                        </div>
-
-                        {/* Real Vendor Link */}
-                        <Link
-                          to={`/vendedor/${slide.vendorId}`}
-                          className="ofercampo-card-vendor"
-                        >
-                          <i className="fa fa-user-check" style={{ color: '#4ade80' }} />
-                          <span>Vendido por {slide.farmerName} • {slide.floatPillBottom}</span>
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <HeroSlideRenderer slide={slide} isPreview={false} />
               </div>
             )
           })}

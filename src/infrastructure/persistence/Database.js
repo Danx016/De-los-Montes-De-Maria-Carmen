@@ -262,6 +262,8 @@ function initializeDatabaseTables() {
       tarjeta_vendedor_id INT DEFAULT 47,
       cupon_codigo VARCHAR(50) DEFAULT NULL,
       cupon_texto VARCHAR(255) DEFAULT NULL,
+      estilo_plantilla VARCHAR(50) DEFAULT 'clasico',
+      filtro_blur INT DEFAULT 0,
       orden INT DEFAULT 0,
       activo TINYINT(1) DEFAULT 1,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -281,6 +283,18 @@ function initializeDatabaseTables() {
 }
 
 function syncMissingColumnsAndSeed() {
+  // Asegurar columnas para banners_hero
+  pool.query("SHOW COLUMNS FROM banners_hero LIKE 'estilo_plantilla'", (err, rows) => {
+    if (!err && rows && rows.length === 0) {
+      pool.query("ALTER TABLE banners_hero ADD COLUMN estilo_plantilla VARCHAR(50) DEFAULT 'clasico'", () => {});
+    }
+  });
+
+  pool.query("SHOW COLUMNS FROM banners_hero LIKE 'filtro_blur'", (err, rows) => {
+    if (!err && rows && rows.length === 0) {
+      pool.query("ALTER TABLE banners_hero ADD COLUMN filtro_blur INT DEFAULT 0", () => {});
+    }
+  });
   // Asegurar que la columna 'created_at' exista en usuarios
   pool.query("SHOW COLUMNS FROM usuarios LIKE 'created_at'", (err, rows) => {
     if (!err && rows && rows.length === 0) {

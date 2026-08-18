@@ -953,6 +953,62 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ==========================================================================
+   MULTI-STYLE CAROUSEL & HERO TEMPLATE ENHANCEMENTS
+   ========================================================================== */
+.hero-slide-container {
+  box-sizing: border-box;
+  transition: all 0.4s ease;
+}
+
+.hero-slide-container.template-inmersivo h1 {
+  background: linear-gradient(180deg, #ffffff 40%, #86efac 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-slide-container.template-oferta_flash h1 {
+  background: linear-gradient(180deg, #ffffff 40%, #fef08a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-slide-container.template-historia_campesina h1 {
+  background: linear-gradient(180deg, #ffffff 50%, #fef3c7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.btn-lg-pulse {
+  animation: pulseGlow 2.5s infinite;
+}
+
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+@media (max-width: 900px) {
+  .hero-oferta-flash-grid,
+  .hero-mosaico-grid,
+  .hero-historia-grid {
+    grid-template-columns: 1fr !important;
+    text-align: center;
+  }
+  .hero-oferta-flash-grid .ofercampo-actions,
+  .hero-mosaico-grid .ofercampo-actions,
+  .hero-historia-grid .ofercampo-actions {
+    justify-content: center;
+  }
+}
+
+/* ==========================================================================
    BEST SELLERS SECTION (LOS MÁS VENDIDOS)
    ========================================================================== */
 .bestsellers-section {

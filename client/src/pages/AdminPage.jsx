@@ -5,6 +5,7 @@ import { useConfirm } from '../context/ConfirmContext'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import MediaRenderer from '../components/MediaRenderer'
+import HeroSlideRenderer from '../components/HeroSlideRenderer'
 import {
   obtenerEstadisticas,
   listarUsuarios,
@@ -202,6 +203,7 @@ export default function AdminPage() {
   const [bannerProdImgPreview, setBannerProdImgPreview] = useState('')
   const [bannerSaving, setBannerSaving] = useState(false)
   const [bannerError, setBannerError] = useState('')
+  const [bannerModalTab, setBannerModalTab] = useState('estilo')
 
   // IA Chat Admin
   const [iaPrompt, setIaPrompt] = useState('')
@@ -268,13 +270,15 @@ export default function AdminPage() {
   const handleOpenCreateBanner = () => {
     setEditingBanner(null)
     setBannerForm({
-      titulo: '',
-      subtitulo: '',
+      titulo: 'Cosechas Frescas de los Montes de María',
+      subtitulo: 'Ñame espino, yuca campesina, plátano hartón y aguacate cultivados con amor.',
       categoria_nombre: 'Cosechas Frescas',
       categoria_slug: 'cosechas',
       categoria_thumb: '/img/verduras.avif',
       imagen_fondo: '/img/montes-de-maria-paisaje.jpg',
       color_acento: '#22c55e',
+      estilo_plantilla: 'clasico',
+      filtro_blur: 0,
       features: ['100% Campo Colombiano Directo', 'Pago 100% Directo al Productor', 'Envíos Seguros a Bolívar y Sucre'],
       boton_principal_texto: 'Explorar Catálogo',
       boton_principal_link: '/catalogo',
@@ -300,6 +304,7 @@ export default function AdminPage() {
     setBannerProdImgFile(null)
     setBannerProdImgPreview('/img/Ñame.avif')
     setBannerError('')
+    setBannerModalTab('estilo')
     setShowBannerModal(true)
   }
 
@@ -314,6 +319,8 @@ export default function AdminPage() {
       categoria_thumb: b.categoria_thumb || '',
       imagen_fondo: b.imagen_fondo || '',
       color_acento: b.color_acento || '#22c55e',
+      estilo_plantilla: b.estilo_plantilla || 'clasico',
+      filtro_blur: b.filtro_blur !== undefined ? Number(b.filtro_blur) : 0,
       features: feats,
       boton_principal_texto: b.boton_principal_texto || 'Ver Catálogo',
       boton_principal_link: b.boton_principal_link || '/catalogo',
@@ -339,6 +346,7 @@ export default function AdminPage() {
     setBannerProdImgFile(null)
     setBannerProdImgPreview(b.tarjeta_imagen || '')
     setBannerError('')
+    setBannerModalTab('estilo')
     setShowBannerModal(true)
   }
 
@@ -358,6 +366,8 @@ export default function AdminPage() {
       formData.append('categoria_nombre', bannerForm.categoria_nombre.trim())
       formData.append('categoria_slug', bannerForm.categoria_slug.trim())
       formData.append('color_acento', bannerForm.color_acento)
+      formData.append('estilo_plantilla', bannerForm.estilo_plantilla || 'clasico')
+      formData.append('filtro_blur', bannerForm.filtro_blur !== undefined ? bannerForm.filtro_blur : 0)
       formData.append('boton_principal_texto', bannerForm.boton_principal_texto.trim())
       formData.append('boton_principal_link', bannerForm.boton_principal_link.trim())
       formData.append('boton_secundario_texto', bannerForm.boton_secundario_texto.trim())
@@ -2440,6 +2450,7 @@ export default function AdminPage() {
                     <thead>
                       <tr>
                         <th>Orden</th>
+                        <th>Estilo / Plantilla</th>
                         <th>Insignia de Categoría</th>
                         <th>Título Principal & Subtítulo</th>
                         <th>Tarjeta de Producto Destacado</th>
@@ -2459,13 +2470,39 @@ export default function AdminPage() {
                             (b.tarjeta_titulo && b.tarjeta_titulo.toLowerCase().includes(q))
                           )
                         })
-                        .map((b) => (
-                          <tr key={b.id_banner}>
-                            <td>
-                              <span className="badge badge-info" style={{ fontWeight: 800 }}>
-                                #{b.orden || 0}
-                              </span>
-                            </td>
+                        .map((b) => {
+                          const styleLabels = {
+                            clasico: { label: '🌿 Clásico', bg: '#16a34a' },
+                            inmersivo: { label: '🌌 Inmersivo', bg: '#8b5cf6' },
+                            oferta_flash: { label: '⚡ Oferta Flash', bg: '#ea580c' },
+                            mosaico: { label: '🏛️ Mosaico', bg: '#0284c7' },
+                            historia_campesina: { label: '👨‍🌾 Historia', bg: '#b45309' },
+                          }
+                          const curStyle = styleLabels[b.estilo_plantilla] || styleLabels.clasico
+
+                          return (
+                            <tr key={b.id_banner}>
+                              <td>
+                                <span className="badge badge-info" style={{ fontWeight: 800 }}>
+                                  #{b.orden || 0}
+                                </span>
+                              </td>
+                              <td>
+                                <span
+                                  style={{
+                                    backgroundColor: curStyle.bg,
+                                    color: '#ffffff',
+                                    padding: '0.25rem 0.6rem',
+                                    borderRadius: '999px',
+                                    fontSize: '0.74rem',
+                                    fontWeight: 800,
+                                    whiteSpace: 'nowrap',
+                                    display: 'inline-block',
+                                  }}
+                                >
+                                  {curStyle.label}
+                                </span>
+                              </td>
                             <td>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', backgroundColor: '#f1f5f9', border: '1px solid var(--border-color)', flexShrink: 0 }}>
@@ -2543,7 +2580,8 @@ export default function AdminPage() {
                               </div>
                             </td>
                           </tr>
-                        ))}
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -2910,761 +2948,440 @@ export default function AdminPage() {
 
           {/* Modal Crear / Editar Banner con Vista Previa en Vivo */}
           {showBannerModal && (
-            <div className="modal-overlay fade-in" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-              <div className="modal-content card" style={{ maxWidth: '1240px', width: '96%', maxHeight: '92vh', overflowY: 'auto', padding: '2rem', borderRadius: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
-                  <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <i className="fa fa-sliders-h text-primary" />
-                    {editingBanner ? `Editar Slide de Carrusel: "${bannerForm.titulo}"` : 'Crear Nueva Diapositiva / Banner Hero'}
-                  </h3>
-                  <button onClick={() => setShowBannerModal(false)} className="btn-icon">
+            <div className="modal-overlay fade-in" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+              <div className="modal-content card" style={{ maxWidth: '1360px', width: '96vw', maxHeight: '94vh', display: 'flex', flexDirection: 'column', padding: '0', borderRadius: '18px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 25px 60px rgba(0,0,0,0.5)' }}>
+                
+                {/* Modal Top Header */}
+                <div style={{ background: 'var(--card-bg)', padding: '1.15rem 1.75rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '1.2rem', fontWeight: 800 }}>
+                      <span style={{ width: '34px', height: '34px', borderRadius: '10px', backgroundColor: 'rgba(34,197,94,0.15)', color: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <i className="fa fa-sliders-h" />
+                      </span>
+                      {editingBanner ? `Editar Slide de Carrusel: "${bannerForm.titulo}"` : 'Crear Nueva Diapositiva / Banner Hero'}
+                    </h3>
+                    <p style={{ margin: '3px 0 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      Elige entre 5 estilos visuales, conecta productos campesinos reales y previsualiza los cambios en tiempo real.
+                    </p>
+                  </div>
+                  <button onClick={() => setShowBannerModal(false)} className="btn-icon" style={{ width: '36px', height: '36px', borderRadius: '50%', fontSize: '1.1rem' }}>
                     <i className="fa fa-times" />
                   </button>
                 </div>
 
+                {/* Steps / Tabs Navigation Bar */}
+                <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-alt)', padding: '0.5rem 1.25rem', gap: '0.45rem', overflowX: 'auto' }}>
+                  {[
+                    { id: 'estilo', label: '1. Estilos de Diseño (5)', icon: 'fa-palette', badge: 'Nuevo' },
+                    { id: 'textos', label: '2. Textos & Categoría', icon: 'fa-heading' },
+                    { id: 'producto', label: '3. Producto & Campesino', icon: 'fa-box-open' },
+                    { id: 'fondo', label: '4. Fondo & Efectos Blur', icon: 'fa-magic' },
+                    { id: 'botones', label: '5. Botones, Cupón & Orden', icon: 'fa-mouse-pointer' },
+                  ].map((tab) => {
+                    const isActive = bannerModalTab === tab.id
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setBannerModalTab(tab.id)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.45rem',
+                          padding: '0.6rem 1rem',
+                          borderRadius: '10px',
+                          border: isActive ? '1.5px solid var(--primary-color)' : '1px solid transparent',
+                          backgroundColor: isActive ? 'var(--card-bg)' : 'transparent',
+                          color: isActive ? 'var(--primary-color)' : 'var(--text-muted)',
+                          fontWeight: isActive ? 800 : 600,
+                          fontSize: '0.84rem',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <i className={`fa ${tab.icon}`} /> {tab.label}
+                        {tab.badge && (
+                          <span style={{ fontSize: '0.68rem', background: '#22c55e', color: '#fff', padding: '1px 6px', borderRadius: '999px', fontWeight: 800 }}>
+                            {tab.badge}
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+
                 {bannerError && (
-                  <div className="alert alert-danger" style={{ marginBottom: '1.25rem' }}>
+                  <div className="alert alert-danger" style={{ margin: '0.75rem 1.75rem 0', borderRadius: '8px' }}>
                     <i className="fa fa-exclamation-circle" /> {bannerError}
                   </div>
                 )}
 
-                <div className="banner-modal-layout">
-                  {/* Left: Form Controls */}
-                  <form onSubmit={handleSaveBanner} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '78vh', overflowY: 'auto', paddingRight: '0.5rem' }}>
-                    {/* Section 1: Texts */}
-                    <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                      <h4 style={{ margin: '0 0 0.75rem 0', color: 'var(--primary-color)' }}>
-                        <i className="fa fa-heading" /> 1. Textos Principales del Banner
-                      </h4>
-                      <div className="form-group">
-                        <label className="form-label">Título Principal *</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Ej: Cosechas Frescas y Tubérculos Tradicionales"
-                          value={bannerForm.titulo}
-                          onChange={(e) => setBannerForm({ ...bannerForm, titulo: e.target.value })}
-                          className="form-input"
-                        />
-                      </div>
-                      <div className="form-group" style={{ marginTop: '0.6rem' }}>
-                        <label className="form-label">Subtítulo Descriptivo</label>
-                        <textarea
-                          rows="2"
-                          placeholder="Descripción breve que motive a la compra..."
-                          value={bannerForm.subtitulo}
-                          onChange={(e) => setBannerForm({ ...bannerForm, subtitulo: e.target.value })}
-                          className="form-input"
-                        />
-                      </div>
-                      <div className="form-group" style={{ marginTop: '0.6rem' }}>
-                        <label className="form-label">Características / Puntos Clave (1 por línea)</label>
-                        <textarea
-                          rows="3"
-                          placeholder="Ñame Espino y Criollo&#10;Yuca Campesina Fresca&#10;Pago 100% Directo al Productor"
-                          value={featuresInput}
-                          onChange={(e) => setFeaturesInput(e.target.value)}
-                          className="form-input"
-                        />
-                        <small className="text-muted">Aparecerán con icono de verificación verde en el banner.</small>
-                      </div>
-                    </div>
+                {/* Main 2-Column Area: Form on Left, Sticky Live Preview on Right */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1.05fr 0.95fr', flex: 1, overflowY: 'auto', minHeight: 0 }}>
+                  
+                  {/* Left Column: Tabbed Form */}
+                  <form onSubmit={handleSaveBanner} style={{ padding: '1.25rem 1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', borderRight: '1px solid var(--border-color)' }}>
+                    
+                    {/* ══════════════════════════════════════════════════════════
+                        TAB 1: ESTILOS DE DISEÑO (5 PLANTILLAS)
+                       ══════════════════════════════════════════════════════════ */}
+                    {bannerModalTab === 'estilo' && (
+                      <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                        <div>
+                          <h4 style={{ margin: '0 0 0.25rem 0', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <i className="fa fa-palette" /> Selecciona la Plantilla de Diseño
+                          </h4>
+                          <p className="text-muted" style={{ fontSize: '0.82rem', margin: 0 }}>
+                            Elige cómo se presentará este banner en la página de inicio. La vista previa a la derecha se adaptará inmediatamente:
+                          </p>
+                        </div>
 
-                    {/* Section 2: Visual Category Selector with Real Dynamic Images from DB */}
-                    <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                        <h4 style={{ margin: 0, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <i className="fa fa-tags" /> 2. Seleccionar Categoría Real con Foto
-                        </h4>
-                        <span className="badge badge-primary" style={{ fontSize: '0.72rem' }}>
-                          {categorias.length} Categorías en Base de Datos
-                        </span>
-                      </div>
-                      <p className="text-muted" style={{ fontSize: '0.8rem', margin: '0 0 0.75rem 0' }}>
-                        Selecciona cualquier categoría activa del sistema. Se sincroniza en tiempo real al agregar, editar o eliminar categorías:
-                      </p>
-
-                      {/* Visual Category Card Grid */}
-                      <div
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-                          gap: '0.65rem',
-                          maxHeight: '240px',
-                          overflowY: 'auto',
-                          padding: '4px',
-                          marginBottom: '0.9rem',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: '8px',
-                          background: 'var(--card-bg)',
-                        }}
-                      >
-                        {categorias.length === 0 ? (
-                          <div style={{ gridColumn: '1 / -1', padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                            <i className="fa fa-spinner fa-spin" style={{ marginRight: '0.5rem' }} /> Cargando categorías de la base de datos...
-                          </div>
-                        ) : (
-                          categorias.map((cat) => {
-                            const catSlug = cat.slug || cat.nombre_categoria?.toLowerCase().replace(/\s+/g, '-')
-                            const isSelected =
-                              bannerForm.categoria_slug === catSlug ||
-                              bannerForm.categoria_nombre === cat.nombre_categoria
-                            
-                            // Image resolution
-                            let catImg = null
-                            if (cat.imagen && cat.imagen.trim() !== '') {
-                              if (cat.imagen.startsWith('http://') || cat.imagen.startsWith('https://') || cat.imagen.startsWith('/')) {
-                                catImg = cat.imagen
-                              } else {
-                                catImg = `/uploads/categories/${cat.imagen}`
-                              }
-                            }
-
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
+                          {[
+                            {
+                              id: 'clasico',
+                              name: '🌿 Clásico Agro & Tarjeta Flotante',
+                              badge: 'Estándar',
+                              badgeBg: '#16a34a',
+                              desc: 'Diseño dividido clásico con textos a la izquierda y tarjeta flotante con efecto vidrio (glassmorphism) con foto del producto y vendedor a la derecha.',
+                              features: ['Badge de categoría con foto', 'Lista de puntos clave con checks', 'Tarjeta de producto con precio y vendedor'],
+                            },
+                            {
+                              id: 'inmersivo',
+                              name: '🌌 Inmersivo & Tipografía Gigante',
+                              badge: 'Moderno / Impacto',
+                              badgeBg: '#8b5cf6',
+                              desc: 'Diseño centrado de alto impacto visual, tipografía gigante con gradiente, cinta de 3 pilares horizontales y botones de llamada a la acción centrados.',
+                              features: ['Texto centrado imponente', 'Cinta horizontal de características', 'Efecto resplandor en botones'],
+                            },
+                            {
+                              id: 'oferta_flash',
+                              name: '⚡ Oferta Flash & Cuponera Interactiva',
+                              badge: 'Promocional',
+                              badgeBg: '#ea580c',
+                              desc: 'Especialmente diseñado para descuentos y ofertas: incluye cinta diagonal de oferta, caja interactiva para copiar cupón con 1 clic y precio anterior tachado.',
+                              features: ['Caja de cupón con botón copiar', 'Cinta diagonal 🔥 OFERTA', 'Precio anterior vs precio con descuento'],
+                            },
+                            {
+                              id: 'mosaico',
+                              name: '🏛️ Mosaico Campesino (3 Pilares del Campo)',
+                              badge: 'Visual / Pilares',
+                              badgeBg: '#0284c7',
+                              desc: 'Destaca 3 pilares esenciales del campo (100% orgánico, despachos rápidos, pago justo) en tarjetas visuales ilustradas con iconos y fondos traslúcidos.',
+                              features: ['3 Tarjetas ilustradas con iconos', 'Enfoque en beneficios del campo', 'Diseño limpio y ordenado'],
+                            },
+                            {
+                              id: 'historia_campesina',
+                              name: '👨‍🌾 Historia & Tradición Campesina',
+                              badge: 'Identidad / Campo',
+                              badgeBg: '#b45309',
+                              desc: 'Pone en primer plano al campesino productor: incluye su foto de perfil con sello de verificación, una cita inspiradora de su cosecha y tarjeta tipo postal.',
+                              features: ['Tarjeta de perfil del campesino', 'Cita testimonial con comillas', 'Marco de foto de cosecha tipo postal'],
+                            },
+                          ].map((tpl) => {
+                            const isSelected = (bannerForm.estilo_plantilla || 'clasico') === tpl.id
                             return (
                               <div
-                                key={cat.id_categoria || cat.id || catSlug}
-                                onClick={() => {
-                                  setBannerForm((prev) => ({
-                                    ...prev,
-                                    categoria_nombre: cat.nombre_categoria || cat.nombre,
-                                    categoria_slug: catSlug,
-                                    categoria_thumb: catImg || '',
-                                    color_acento: cat.color || prev.color_acento,
-                                    boton_principal_link: `/categoria/${catSlug}`,
-                                  }))
-                                  setBannerThumbPreview(catImg || '')
-                                  setBannerThumbFile(null)
-                                }}
+                                key={tpl.id}
+                                onClick={() => setBannerForm({ ...bannerForm, estilo_plantilla: tpl.id })}
                                 style={{
-                                  border: isSelected
-                                    ? '2px solid var(--primary-color)'
-                                    : '1px solid var(--border-color)',
-                                  borderRadius: '10px',
-                                  padding: '0.65rem 0.4rem',
-                                  backgroundColor: isSelected
-                                    ? 'rgba(34, 197, 94, 0.1)'
-                                    : 'var(--bg-alt)',
+                                  border: isSelected ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
+                                  borderRadius: '12px',
+                                  padding: '0.9rem 1.1rem',
+                                  backgroundColor: isSelected ? 'rgba(34, 197, 94, 0.08)' : 'var(--bg-alt)',
                                   cursor: 'pointer',
                                   display: 'flex',
                                   flexDirection: 'column',
-                                  alignItems: 'center',
-                                  textAlign: 'center',
-                                  gap: '0.4rem',
+                                  gap: '0.35rem',
                                   position: 'relative',
-                                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                  boxShadow: isSelected
-                                    ? '0 0 0 2px rgba(34, 197, 94, 0.3)'
-                                    : 'none',
-                                  transform: isSelected ? 'scale(1.02)' : 'scale(1)',
+                                  transition: 'all 0.2s ease',
+                                  boxShadow: isSelected ? '0 0 0 2px rgba(34, 197, 94, 0.25)' : 'none',
                                 }}
                               >
-                                {isSelected && (
-                                  <span
-                                    style={{
-                                      position: 'absolute',
-                                      top: '4px',
-                                      right: '4px',
-                                      background: '#22c55e',
-                                      color: '#fff',
-                                      borderRadius: '50%',
-                                      width: '18px',
-                                      height: '18px',
-                                      fontSize: '11px',
-                                      fontWeight: 900,
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
-                                    }}
-                                  >
-                                    ✓
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <input
+                                      type="radio"
+                                      name="estilo_plantilla"
+                                      checked={isSelected}
+                                      onChange={() => setBannerForm({ ...bannerForm, estilo_plantilla: tpl.id })}
+                                      style={{ width: '18px', height: '18px', accentColor: 'var(--primary-color)' }}
+                                    />
+                                    <strong style={{ fontSize: '0.95rem', color: isSelected ? 'var(--primary-color)' : 'inherit' }}>
+                                      {tpl.name}
+                                    </strong>
+                                  </div>
+                                  <span style={{ fontSize: '0.72rem', backgroundColor: tpl.badgeBg, color: '#fff', padding: '2px 8px', borderRadius: '999px', fontWeight: 800 }}>
+                                    {tpl.badge}
                                   </span>
-                                )}
-                                <div
-                                  style={{
-                                    width: '46px',
-                                    height: '46px',
-                                    borderRadius: '50%',
-                                    overflow: 'hidden',
-                                    backgroundColor: `${cat.color || '#22c55e'}18`,
-                                    border: `2px solid ${cat.color || '#22c55e'}`,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  {catImg ? (
-                                    <img
-                                      src={catImg}
-                                      alt={cat.nombre_categoria}
-                                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                    />
-                                  ) : (
-                                    <i
-                                      className={`fa ${cat.icono || 'fa-seedling'}`}
-                                      style={{ color: cat.color || '#22c55e', fontSize: '1.2rem' }}
-                                    />
-                                  )}
                                 </div>
-                                <span
-                                  style={{
-                                    fontSize: '0.78rem',
-                                    fontWeight: 700,
-                                    lineHeight: 1.2,
-                                    color: isSelected ? 'var(--primary-color)' : 'inherit',
-                                  }}
-                                >
-                                  {cat.nombre_categoria || cat.nombre}
-                                </span>
+                                <p style={{ margin: '0.2rem 0 0.35rem 1.65rem', fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.35 }}>
+                                  {tpl.desc}
+                                </p>
+                                <div style={{ display: 'flex', gap: '0.4rem', marginLeft: '1.65rem', flexWrap: 'wrap' }}>
+                                  {tpl.features.map((f, fIdx) => (
+                                    <span key={fIdx} style={{ fontSize: '0.72rem', background: 'var(--card-bg)', border: '1px solid var(--border-color)', padding: '2px 7px', borderRadius: '6px', color: 'var(--text-color)' }}>
+                                      ✓ {f}
+                                    </span>
+                                  ))}
+                                </div>
                               </div>
-                            )
-                          })
-                        )}
-                      </div>
-
-                      {/* Selected Category Info Preview Pill */}
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.75rem',
-                          padding: '0.5rem 0.75rem',
-                          background: 'var(--card-bg)',
-                          borderRadius: '8px',
-                          border: '1px solid var(--border-color)',
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: '34px',
-                            height: '34px',
-                            borderRadius: '50%',
-                            overflow: 'hidden',
-                            border: `2px solid ${bannerForm.color_acento || '#22c55e'}`,
-                            backgroundColor: `${bannerForm.color_acento || '#22c55e'}18`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {bannerThumbPreview ? (
-                            <img
-                              src={bannerThumbPreview}
-                              alt={bannerForm.categoria_nombre}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
-                          ) : (
-                            <i
-                              className="fa fa-seedling"
-                              style={{ color: bannerForm.color_acento || '#22c55e', fontSize: '0.95rem' }}
-                            />
-                          )}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            Categoría Seleccionada:
-                          </span>
-                          <br />
-                          <strong style={{ fontSize: '0.85rem' }}>
-                            {bannerForm.categoria_nombre || 'Ninguna seleccionada'}
-                          </strong>{' '}
-                          <code style={{ fontSize: '0.75rem' }}>
-                            (/categoria/{bannerForm.categoria_slug || '...'})
-                          </code>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Section 3: Action Buttons */}
-                    <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                      <h4 style={{ margin: '0 0 0.75rem 0', color: 'var(--primary-color)' }}>
-                        <i className="fa fa-mouse-pointer" /> 3. Botones de Acción & Color
-                      </h4>
-
-                      {/* Button Color Picker */}
-                      <div className="form-group" style={{ marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-color)' }}>
-                        <label className="form-label" style={{ fontWeight: 700 }}>
-                          🎨 Color de los Botones y Acento
-                        </label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-                          <input
-                            type="color"
-                            value={bannerForm.color_acento}
-                            onChange={(e) => setBannerForm({ ...bannerForm, color_acento: e.target.value })}
-                            style={{ width: '45px', height: '36px', padding: '2px', border: '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer' }}
-                          />
-                          <input
-                            type="text"
-                            value={bannerForm.color_acento}
-                            onChange={(e) => setBannerForm({ ...bannerForm, color_acento: e.target.value })}
-                            className="form-input"
-                            style={{ width: '120px' }}
-                          />
-                          <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-                            {[
-                              { label: 'Verde Campo', color: '#22c55e' },
-                              { label: 'Ámbar Cosecha', color: '#f59e0b' },
-                              { label: 'Cyan Finca', color: '#06b6d4' },
-                              { label: 'Azul Agro', color: '#0284c7' },
-                              { label: 'Esmeralda', color: '#16a34a' },
-                              { label: 'Tierra', color: '#92400e' },
-                            ].map((c) => (
-                              <button
-                                key={c.color}
-                                type="button"
-                                onClick={() => setBannerForm({ ...bannerForm, color_acento: c.color })}
-                                style={{
-                                  backgroundColor: c.color,
-                                  color: '#fff',
-                                  border: bannerForm.color_acento === c.color ? '2px solid #000' : '1px solid rgba(0,0,0,0.1)',
-                                  padding: '0.2rem 0.55rem',
-                                  borderRadius: '6px',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 700,
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                {c.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Button 1 */}
-                      <div style={{ marginBottom: '0.9rem' }}>
-                        <strong style={{ fontSize: '0.88rem', color: 'var(--text-color)' }}>Botón 1 (Principal Destacado)</strong>
-                        <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.4rem' }}>
-                          <div className="form-group">
-                            <label className="form-label">Texto del Botón 1</label>
-                            <input
-                              type="text"
-                              placeholder="Ej: Ver Cosechas"
-                              value={bannerForm.boton_principal_texto}
-                              onChange={(e) => setBannerForm({ ...bannerForm, boton_principal_texto: e.target.value })}
-                              className="form-input"
-                            />
-                          </div>
-                          <div className="form-group">
-                            <label className="form-label">Dirección / Enlace de Destino</label>
-                            <select
-                              className="form-select"
-                              value={bannerForm.boton_principal_link}
-                              onChange={(e) => setBannerForm({ ...bannerForm, boton_principal_link: e.target.value })}
-                              style={{ marginBottom: '0.35rem' }}
-                            >
-                              <option value={`/categoria/${bannerForm.categoria_slug}`}>📁 Categoría Actual: {bannerForm.categoria_nombre || 'Seleccionada'}</option>
-                              <option value="/catalogo">📦 Todo el Catálogo (/catalogo)</option>
-                              <option value="/vendedor">🌾 Vender mis Productos (/vendedor)</option>
-                              <option value="/vendedores">👥 Productores de la Región (/vendedores)</option>
-                              <option value="/registro">✨ Registrarme Gratis (/registro)</option>
-                              {categorias.map((cat) => {
-                                const slug = cat.slug || cat.nombre_categoria?.toLowerCase().replace(/\s+/g, '-')
-                                return (
-                                  <option key={cat.id_categoria || cat.id || slug} value={`/categoria/${slug}`}>
-                                    🌾 {cat.nombre_categoria || cat.nombre} (/categoria/{slug})
-                                  </option>
-                                )
-                              })}
-                            </select>
-                            <input
-                              type="text"
-                              placeholder="Ej: /categoria/cosechas o URL completa"
-                              value={bannerForm.boton_principal_link}
-                              onChange={(e) => setBannerForm({ ...bannerForm, boton_principal_link: e.target.value })}
-                              className="form-input"
-                              style={{ fontSize: '0.82rem' }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Button 2 */}
-                      <div>
-                        <strong style={{ fontSize: '0.88rem', color: 'var(--text-color)' }}>Botón 2 (Secundario)</strong>
-                        <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.4rem' }}>
-                          <div className="form-group">
-                            <label className="form-label">Texto del Botón 2</label>
-                            <input
-                              type="text"
-                              placeholder="Ej: Vender mis Productos"
-                              value={bannerForm.boton_secundario_texto}
-                              onChange={(e) => setBannerForm({ ...bannerForm, boton_secundario_texto: e.target.value })}
-                              className="form-input"
-                            />
-                          </div>
-                          <div className="form-group">
-                            <label className="form-label">Dirección / Enlace de Destino</label>
-                            <select
-                              className="form-select"
-                              value={bannerForm.boton_secundario_link}
-                              onChange={(e) => setBannerForm({ ...bannerForm, boton_secundario_link: e.target.value })}
-                              style={{ marginBottom: '0.35rem' }}
-                            >
-                              <option value="/vendedor">🌾 Vender mis Productos (/vendedor)</option>
-                              <option value="/catalogo">📦 Explorar Catálogo (/catalogo)</option>
-                              <option value="/registro">✨ Registrarme Gratis (/registro)</option>
-                              <option value="/vendedores">👥 Directorio de Vendedores (/vendedores)</option>
-                              <option value={`/categoria/${bannerForm.categoria_slug}`}>📁 Categoría Actual: {bannerForm.categoria_nombre || 'Seleccionada'}</option>
-                              {categorias.map((cat) => {
-                                const slug = cat.slug || cat.nombre_categoria?.toLowerCase().replace(/\s+/g, '-')
-                                return (
-                                  <option key={cat.id_categoria || cat.id || slug} value={`/categoria/${slug}`}>
-                                    🌾 {cat.nombre_categoria || cat.nombre} (/categoria/{slug})
-                                  </option>
-                                )
-                              })}
-                            </select>
-                            <input
-                              type="text"
-                              placeholder="Ej: /vendedor o URL completa"
-                              value={bannerForm.boton_secundario_link}
-                              onChange={(e) => setBannerForm({ ...bannerForm, boton_secundario_link: e.target.value })}
-                              className="form-input"
-                              style={{ fontSize: '0.82rem' }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Section 4: Floating Product Showcase Card */}
-                    <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                        <h4 style={{ margin: 0, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <i className="fa fa-box-open" /> 4. Seleccionar Producto Real Destacado
-                        </h4>
-                        <span className="badge badge-success" style={{ fontSize: '0.72rem' }}>
-                          {productos.length} Productos Disponibles
-                        </span>
-                      </div>
-                      <p className="text-muted" style={{ fontSize: '0.8rem', margin: '0 0 0.75rem 0' }}>
-                        Selecciona un producto del catálogo para cargar su foto real, nombre, precio y origen automáticamente:
-                      </p>
-
-                      {/* Real Product Dropdown Selector */}
-                      <div className="form-group" style={{ marginBottom: '0.75rem' }}>
-                        <label className="form-label" style={{ fontWeight: 700 }}>
-                          🛒 Elegir Producto del Catálogo Real
-                        </label>
-                        <select
-                          className="form-select"
-                          onChange={(e) => {
-                            const prodId = Number(e.target.value)
-                            const found = productos.find((p) => (p.id_producto || p.id) === prodId)
-                            if (found) {
-                              const prodImg = found.imagen?.startsWith('http') || found.imagen?.startsWith('/')
-                                ? found.imagen
-                                : found.imagen
-                                ? `/uploads/products/${found.imagen}`
-                                : '/img/Ñame.avif'
-                              
-                              const formattedPrice = found.precio
-                                ? `$${Number(found.precio).toLocaleString('es-CO')} COP / ${found.unidad_medida || found.presentacion || 'Unidad'}`
-                                : '$6.000 COP / Kilo'
-
-                              const vendorName = found.origen
-                                ? `${found.origen} • Productor Local`
-                                : (found.vendedor_nombre || 'Productor de Montes de María')
-
-                              setBannerForm((prev) => ({
-                                ...prev,
-                                tarjeta_titulo: found.nombre_producto || found.nombre || '',
-                                tarjeta_precio: formattedPrice,
-                                tarjeta_vendedor_nombre: vendorName,
-                                tarjeta_vendedor_id: found.id_vendedor || found.id_usuario || 47,
-                                tarjeta_imagen: prodImg,
-                              }))
-                              setBannerProdImgPreview(prodImg)
-                              setBannerProdImgFile(null)
-                            }
-                          }}
-                        >
-                          <option value="">-- Seleccionar producto real de la tienda --</option>
-                          {productos.map((prod) => (
-                            <option key={prod.id_producto || prod.id} value={prod.id_producto || prod.id}>
-                              📦 {prod.nombre_producto || prod.nombre} — ${Number(prod.precio || 0).toLocaleString('es-CO')} COP ({prod.categoria || 'Cat'})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Quick Visual Product Chips */}
-                      {productos && productos.length > 0 && (
-                        <div style={{ marginBottom: '0.9rem' }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-                            Productos destacados rápidos:
-                          </span>
-                          <div
-                            style={{
-                              display: 'flex',
-                              gap: '0.45rem',
-                              overflowX: 'auto',
-                              padding: '0.35rem 0',
-                              marginTop: '0.25rem',
-                            }}
-                          >
-                            {productos.slice(0, 8).map((p) => {
-                              const pImg = p.imagen?.startsWith('http') || p.imagen?.startsWith('/')
-                                ? p.imagen
-                                : p.imagen
-                                ? `/uploads/products/${p.imagen}`
-                                : '/img/Ñame.avif'
-
-                              return (
-                                <button
-                                  type="button"
-                                  key={p.id_producto || p.id}
-                                  onClick={() => {
-                                    const formattedPrice = p.precio
-                                      ? `$${Number(p.precio).toLocaleString('es-CO')} COP / ${p.unidad_medida || p.presentacion || 'Unidad'}`
-                                      : '$6.000 COP / Kilo'
-                                    const vendorName = p.origen
-                                      ? `${p.origen} • Productor Local`
-                                      : (p.vendedor_nombre || 'Productor de Montes de María')
-                                    setBannerForm((prev) => ({
-                                      ...prev,
-                                      tarjeta_titulo: p.nombre_producto || p.nombre || '',
-                                      tarjeta_precio: formattedPrice,
-                                      tarjeta_vendedor_nombre: vendorName,
-                                      tarjeta_vendedor_id: p.id_vendedor || p.id_usuario || 47,
-                                      tarjeta_imagen: pImg,
-                                    }))
-                                    setBannerProdImgPreview(pImg)
-                                    setBannerProdImgFile(null)
-                                  }}
-                                  className="btn btn-outline-primary btn-sm"
-                                  style={{
-                                    fontSize: '0.72rem',
-                                    padding: '0.25rem 0.6rem',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.35rem',
-                                    whiteSpace: 'nowrap',
-                                  }}
-                                >
-                                  <img
-                                    src={pImg}
-                                    alt={p.nombre_producto}
-                                    style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover' }}
-                                    onError={(e) => {
-                                      e.target.src = '/img/Ñame.avif'
-                                    }}
-                                  />
-                                  <span>{p.nombre_producto || p.nombre}</span>
-                                </button>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                        <div className="form-group">
-                          <label className="form-label">Nombre del Producto</label>
-                          <input
-                            type="text"
-                            placeholder="Ej: Ñame Criollo Espino"
-                            value={bannerForm.tarjeta_titulo}
-                            onChange={(e) => setBannerForm({ ...bannerForm, tarjeta_titulo: e.target.value })}
-                            className="form-input"
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Precio en COP</label>
-                          <input
-                            type="text"
-                            placeholder="Ej: $6.000 COP / Kilo"
-                            value={bannerForm.tarjeta_precio}
-                            onChange={(e) => setBannerForm({ ...bannerForm, tarjeta_precio: e.target.value })}
-                            className="form-input"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="form-group" style={{ marginTop: '0.6rem' }}>
-                        <label className="form-label">Nombre del Vendedor / Origen</label>
-                        <input
-                          type="text"
-                          placeholder="Ej: Roberto Carlos Salcedo • Montes de María"
-                          value={bannerForm.tarjeta_vendedor_nombre}
-                          onChange={(e) => setBannerForm({ ...bannerForm, tarjeta_vendedor_nombre: e.target.value })}
-                          className="form-input"
-                        />
-                      </div>
-
-                      <div className="form-group" style={{ marginTop: '0.6rem' }}>
-                        <label className="form-label">Foto del Producto (Subir o Personalizar)</label>
-                        <input
-                          type="file"
-                          accept="image/*,.avif,.webp,.png,.jpg,.jpeg"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) {
-                              setBannerProdImgFile(file)
-                              setBannerProdImgPreview(URL.createObjectURL(file))
-                            }
-                          }}
-                          className="form-input"
-                          style={{ padding: '0.35rem' }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Section 5: Imagen y Estilo de Fondo del Slide */}
-                    <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <i className="fa fa-image" /> 5. Personalizar Fondo del Banner (Foto o Paisaje)
-                      </h4>
-                      <p className="text-muted" style={{ fontSize: '0.8rem', margin: '0 0 0.85rem 0' }}>
-                        Puedes subir una fotografía de tu finca/cultivos, pegar un enlace de imagen o elegir uno de los paisajes campestres:
-                      </p>
-
-                      {/* Subir archivo de imagen de fondo */}
-                      <div className="form-group" style={{ marginBottom: '0.75rem' }}>
-                        <label className="form-label" style={{ fontWeight: 700 }}>
-                          📁 Subir Imagen de Fondo desde tu Computador
-                        </label>
-                        <input
-                          type="file"
-                          accept="image/*,.avif,.webp,.png,.jpg,.jpeg"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) {
-                              setBannerBgFile(file)
-                              setBannerBgPreview(URL.createObjectURL(file))
-                            }
-                          }}
-                          className="form-input"
-                          style={{ padding: '0.35rem' }}
-                        />
-                      </div>
-
-                      {/* O pegar URL de imagen */}
-                      <div className="form-group" style={{ marginBottom: '0.85rem' }}>
-                        <label className="form-label" style={{ fontWeight: 700 }}>
-                          🔗 O Pegar URL de Imagen de Fondo
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Ej: https://images.unsplash.com/... o /img/montes-de-maria-paisaje.jpg"
-                          value={bannerForm.imagen_fondo || ''}
-                          onChange={(e) => {
-                            setBannerForm({ ...bannerForm, imagen_fondo: e.target.value })
-                            setBannerBgPreview(e.target.value)
-                            setBannerBgFile(null)
-                          }}
-                          className="form-input"
-                          style={{ fontSize: '0.82rem' }}
-                        />
-                      </div>
-
-                      {/* Fondos Predeterminados Campesinos en 1 Clic */}
-                      <div style={{ marginBottom: '0.9rem' }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                          🌄 Paisajes Recomendados de Montes de María (1 Clic):
-                        </span>
-                        <div
-                          style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fill, minmax(105px, 1fr))',
-                            gap: '0.5rem',
-                            marginTop: '0.35rem',
-                          }}
-                        >
-                          {[
-                            { label: 'Montes de María', img: '/img/montes-de-maria-paisaje.jpg' },
-                            { label: 'Cultivos y Cosechas', img: '/img/verduras.avif' },
-                            { label: 'Finca Tradicional', img: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80' },
-                            { label: 'Amanecer en el Campo', img: 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=1200&q=80' },
-                            { label: 'Siembra Verde', img: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=1200&q=80' },
-                            { label: 'Palmeras & Valle', img: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=1200&q=80' },
-                          ].map((bg, idx) => {
-                            const isSelected =
-                              (bannerBgPreview === bg.img) ||
-                              (!bannerBgPreview && bannerForm.imagen_fondo === bg.img)
-
-                            return (
-                              <button
-                                type="button"
-                                key={idx}
-                                onClick={() => {
-                                  setBannerForm((prev) => ({ ...prev, imagen_fondo: bg.img }))
-                                  setBannerBgPreview(bg.img)
-                                  setBannerBgFile(null)
-                                }}
-                                style={{
-                                  position: 'relative',
-                                  height: '52px',
-                                  borderRadius: '8px',
-                                  overflow: 'hidden',
-                                  border: isSelected ? '2.5px solid var(--primary-color)' : '1px solid var(--border-color)',
-                                  padding: 0,
-                                  cursor: 'pointer',
-                                  boxShadow: isSelected ? '0 0 0 2px rgba(46, 125, 50, 0.3)' : 'none',
-                                }}
-                                title={`Seleccionar fondo: ${bg.label}`}
-                              >
-                                <img
-                                  src={bg.img}
-                                  alt={bg.label}
-                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                  onError={(e) => { e.target.src = '/img/montes-de-maria-paisaje.jpg' }}
-                                />
-                                <span
-                                  style={{
-                                    position: 'absolute',
-                                    bottom: 0,
-                                    left: 0,
-                                    right: 0,
-                                    backgroundColor: 'rgba(0,0,0,0.65)',
-                                    color: '#ffffff',
-                                    fontSize: '0.65rem',
-                                    fontWeight: 700,
-                                    padding: '2px 4px',
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                  }}
-                                >
-                                  {bg.label}
-                                </span>
-                              </button>
                             )
                           })}
                         </div>
                       </div>
+                    )}
 
-                      {/* Selector de Filtro de Color / Tinte */}
-                      <div className="form-group" style={{ marginBottom: '0.85rem', paddingTop: '0.75rem', borderTop: '1px dashed var(--border-color)' }}>
-                        <label className="form-label" style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <i className="fa fa-palette" /> 🎨 Filtro de Color / Tinte sobre la Imagen
-                        </label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.4rem' }}>
-                          <input
-                            type="color"
-                            value={bannerForm.color_acento || '#22c55e'}
-                            onChange={(e) => setBannerForm({ ...bannerForm, color_acento: e.target.value })}
-                            style={{ width: '42px', height: '34px', padding: '2px', border: '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer' }}
-                            title="Elegir color personalizado de filtro"
-                          />
-                          <input
-                            type="text"
-                            value={bannerForm.color_acento || '#22c55e'}
-                            onChange={(e) => setBannerForm({ ...bannerForm, color_acento: e.target.value })}
-                            className="form-input"
-                            style={{ width: '110px', fontSize: '0.82rem' }}
-                          />
-                          <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                    {/* ══════════════════════════════════════════════════════════
+                        TAB 2: TEXTOS & CATEGORÍA
+                       ══════════════════════════════════════════════════════════ */}
+                    {bannerModalTab === 'textos' && (
+                      <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                          <h4 style={{ margin: '0 0 0.75rem 0', color: 'var(--primary-color)' }}>
+                            <i className="fa fa-heading" /> Textos Principales
+                          </h4>
+                          <div className="form-group">
+                            <label className="form-label">Título Principal *</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="Ej: Cosechas Frescas y Tubérculos Tradicionales"
+                              value={bannerForm.titulo}
+                              onChange={(e) => setBannerForm({ ...bannerForm, titulo: e.target.value })}
+                              className="form-input"
+                            />
+                          </div>
+                          <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                            <label className="form-label">Subtítulo / Cita Descriptiva</label>
+                            <textarea
+                              rows="2"
+                              placeholder="Descripción breve que motive la compra o frase del campesino..."
+                              value={bannerForm.subtitulo}
+                              onChange={(e) => setBannerForm({ ...bannerForm, subtitulo: e.target.value })}
+                              className="form-input"
+                            />
+                          </div>
+                          <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                            <label className="form-label">Características / Puntos Clave (1 por línea)</label>
+                            <textarea
+                              rows="3"
+                              placeholder="Ñame Espino y Criollo&#10;Yuca Campesina Fresca&#10;Pago 100% Directo al Productor"
+                              value={featuresInput}
+                              onChange={(e) => setFeaturesInput(e.target.value)}
+                              className="form-input"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Selector de Categoría Real */}
+                        <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                            <h4 style={{ margin: 0, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <i className="fa fa-tags" /> Categoría Real con Foto
+                            </h4>
+                            <span className="badge badge-primary" style={{ fontSize: '0.72rem' }}>
+                              {categorias.length} Categorías en Base de Datos
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(125px, 1fr))', gap: '0.55rem', maxHeight: '180px', overflowY: 'auto', padding: '4px', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--card-bg)' }}>
+                            {categorias.map((cat) => {
+                              const catSlug = cat.slug || cat.nombre_categoria?.toLowerCase().replace(/\s+/g, '-')
+                              const isSelected = bannerForm.categoria_slug === catSlug || bannerForm.categoria_nombre === cat.nombre_categoria
+                              let catImg = cat.imagen?.startsWith('http') || cat.imagen?.startsWith('/') ? cat.imagen : cat.imagen ? `/uploads/categories/${cat.imagen}` : null
+
+                              return (
+                                <div
+                                  key={cat.id_categoria || cat.id || catSlug}
+                                  onClick={() => {
+                                    setBannerForm((prev) => ({
+                                      ...prev,
+                                      categoria_nombre: cat.nombre_categoria || cat.nombre,
+                                      categoria_slug: catSlug,
+                                      categoria_thumb: catImg || '',
+                                      color_acento: cat.color || prev.color_acento,
+                                      boton_principal_link: `/categoria/${catSlug}`,
+                                    }))
+                                    setBannerThumbPreview(catImg || '')
+                                    setBannerThumbFile(null)
+                                  }}
+                                  style={{
+                                    border: isSelected ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
+                                    borderRadius: '8px',
+                                    padding: '0.5rem 0.35rem',
+                                    backgroundColor: isSelected ? 'rgba(34, 197, 94, 0.1)' : 'var(--bg-alt)',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    textAlign: 'center',
+                                    gap: '0.3rem',
+                                  }}
+                                >
+                                  <div style={{ width: '38px', height: '38px', borderRadius: '50%', overflow: 'hidden', backgroundColor: `${cat.color || '#22c55e'}18`, border: `2px solid ${cat.color || '#22c55e'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    {catImg ? <img src={catImg} alt={cat.nombre_categoria} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <i className={`fa ${cat.icono || 'fa-seedling'}`} style={{ color: cat.color || '#22c55e' }} />}
+                                  </div>
+                                  <span style={{ fontSize: '0.74rem', fontWeight: 700, lineHeight: 1.2, color: isSelected ? 'var(--primary-color)' : 'inherit' }}>
+                                    {cat.nombre_categoria || cat.nombre}
+                                  </span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ══════════════════════════════════════════════════════════
+                        TAB 3: PRODUCTO & CAMPESINO
+                       ══════════════════════════════════════════════════════════ */}
+                    {bannerModalTab === 'producto' && (
+                      <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
+                            <h4 style={{ margin: 0, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <i className="fa fa-box-open" /> Elegir Producto del Catálogo Real
+                            </h4>
+                            <span className="badge badge-success" style={{ fontSize: '0.72rem' }}>
+                              {productos.length} Disponibles
+                            </span>
+                          </div>
+
+                          <select
+                            className="form-select"
+                            onChange={(e) => {
+                              const prodId = Number(e.target.value)
+                              const found = productos.find((p) => (p.id_producto || p.id) === prodId)
+                              if (found) {
+                                const prodImg = found.imagen?.startsWith('http') || found.imagen?.startsWith('/') ? found.imagen : found.imagen ? `/uploads/products/${found.imagen}` : '/img/Ñame.avif'
+                                const formattedPrice = found.precio ? `$${Number(found.precio).toLocaleString('es-CO')} COP / ${found.unidad_medida || found.presentacion || 'Unidad'}` : '$6.000 COP / Kilo'
+                                const vendorName = found.origen ? `${found.origen} • Productor Local` : (found.vendedor_nombre || 'Productor de Montes de María')
+                                setBannerForm((prev) => ({
+                                  ...prev,
+                                  tarjeta_titulo: found.nombre_producto || found.nombre || '',
+                                  tarjeta_precio: formattedPrice,
+                                  tarjeta_vendedor_nombre: vendorName,
+                                  tarjeta_vendedor_id: found.id_vendedor || found.id_usuario || 47,
+                                  tarjeta_imagen: prodImg,
+                                }))
+                                setBannerProdImgPreview(prodImg)
+                                setBannerProdImgFile(null)
+                              }
+                            }}
+                          >
+                            <option value="">-- Autocompletar con producto de la tienda --</option>
+                            {productos.map((prod) => (
+                              <option key={prod.id_producto || prod.id} value={prod.id_producto || prod.id}>
+                                📦 {prod.nombre_producto || prod.nombre} — ${Number(prod.precio || 0).toLocaleString('es-CO')} COP
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                          <h4 style={{ margin: '0 0 0.75rem 0', color: 'var(--primary-color)' }}>
+                            <i className="fa fa-edit" /> Datos Mostrados del Producto & Productor
+                          </h4>
+
+                          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                            <div className="form-group">
+                              <label className="form-label">Nombre del Producto</label>
+                              <input
+                                type="text"
+                                value={bannerForm.tarjeta_titulo}
+                                onChange={(e) => setBannerForm({ ...bannerForm, tarjeta_titulo: e.target.value })}
+                                className="form-input"
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label className="form-label">Precio Visible</label>
+                              <input
+                                type="text"
+                                value={bannerForm.tarjeta_precio}
+                                onChange={(e) => setBannerForm({ ...bannerForm, tarjeta_precio: e.target.value })}
+                                className="form-input"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '0.75rem', marginTop: '0.6rem' }}>
+                            <div className="form-group">
+                              <label className="form-label">Nombre del Campesino / Vendedor</label>
+                              <input
+                                type="text"
+                                value={bannerForm.tarjeta_vendedor_nombre}
+                                onChange={(e) => setBannerForm({ ...bannerForm, tarjeta_vendedor_nombre: e.target.value })}
+                                className="form-input"
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label className="form-label">Badge Flotante (Píldora)</label>
+                              <input
+                                type="text"
+                                value={bannerForm.tarjeta_badge_top}
+                                onChange={(e) => setBannerForm({ ...bannerForm, tarjeta_badge_top: e.target.value })}
+                                className="form-input"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                            <label className="form-label">Subir Foto Personalizada de Producto</label>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files[0]
+                                if (file) {
+                                  setBannerProdImgFile(file)
+                                  setBannerProdImgPreview(URL.createObjectURL(file))
+                                }
+                              }}
+                              className="form-input"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ══════════════════════════════════════════════════════════
+                        TAB 4: FONDO & EFECTOS BLUR
+                       ══════════════════════════════════════════════════════════ */}
+                    {bannerModalTab === 'fondo' && (
+                      <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                          <h4 style={{ margin: '0 0 0.75rem 0', color: 'var(--primary-color)' }}>
+                            <i className="fa fa-palette" /> Color de Acento & Botones
+                          </h4>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+                            <input
+                              type="color"
+                              value={bannerForm.color_acento}
+                              onChange={(e) => setBannerForm({ ...bannerForm, color_acento: e.target.value })}
+                              style={{ width: '44px', height: '36px', padding: '2px', border: '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer' }}
+                            />
+                            <input
+                              type="text"
+                              value={bannerForm.color_acento}
+                              onChange={(e) => setBannerForm({ ...bannerForm, color_acento: e.target.value })}
+                              className="form-input"
+                              style={{ width: '120px', fontSize: '0.84rem' }}
+                            />
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                             {[
                               { label: '🌿 Verde Campo', color: '#16a34a' },
-                              { label: '🌑 Oscuro Carbón', color: '#090d16' },
-                              { label: '🌾 Ámbar Cosecha', color: '#b45309' },
+                              { label: '🌾 Ámbar Cosecha', color: '#f59e0b' },
+                              { label: '🍊 Naranja Fuego', color: '#ea580c' },
+                              { label: '🌊 Azul Caribe', color: '#0284c7' },
+                              { label: '🍇 Púrpura', color: '#7e22ce' },
                               { label: '☕ Café Tierra', color: '#78350f' },
-                              { label: '🌊 Azul Noche', color: '#0369a1' },
-                              { label: '🍇 Púrpura Andino', color: '#7e22ce' },
+                              { label: '🌑 Carbón Noche', color: '#0f172a' },
                             ].map((c) => (
                               <button
                                 key={c.color}
@@ -3675,9 +3392,9 @@ export default function AdminPage() {
                                   color: '#fff',
                                   border: bannerForm.color_acento === c.color ? '2px solid #fff' : '1px solid rgba(0,0,0,0.15)',
                                   outline: bannerForm.color_acento === c.color ? '2px solid var(--primary-color)' : 'none',
-                                  padding: '0.2rem 0.55rem',
+                                  padding: '0.3rem 0.65rem',
                                   borderRadius: '6px',
-                                  fontSize: '0.72rem',
+                                  fontSize: '0.74rem',
                                   fontWeight: 700,
                                   cursor: 'pointer',
                                 }}
@@ -3687,207 +3404,322 @@ export default function AdminPage() {
                             ))}
                           </div>
                         </div>
-                      </div>
 
-                      {/* Desenfoque y Nitidez (Blur Effect) */}
-                      <div className="form-group" style={{ marginBottom: '0.25rem' }}>
-                        <label className="form-label" style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <i className="fa fa-magic" /> 🌫️ Nivel de Desenfoque / Nitidez de la Imagen
-                        </label>
-                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          {[
-                            { label: '🔍 100% Nítido (0px)', blur: 0 },
-                            { label: '🌫️ Leve (2px)', blur: 2 },
-                            { label: '💨 Medio (4px)', blur: 4 },
-                            { label: '☁️ Suave / Borroso (8px)', blur: 8 },
-                          ].map((b) => {
-                            const currentBlur = bannerForm.filtro_blur !== undefined ? bannerForm.filtro_blur : 0
-                            const isSelected = currentBlur === b.blur
-                            return (
-                              <button
-                                key={b.blur}
-                                type="button"
-                                onClick={() => setBannerForm({ ...bannerForm, filtro_blur: b.blur })}
-                                className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-outline-primary'}`}
-                                style={{ fontSize: '0.74rem', padding: '0.3rem 0.65rem', fontWeight: 700 }}
-                              >
-                                {b.label}
-                              </button>
-                            )
-                          })}
+                        {/* Nivel de Desenfoque (Blur) */}
+                        <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                          <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <i className="fa fa-magic" /> 🌫️ Nivel de Desenfoque / Nitidez del Fondo
+                          </h4>
+                          <p className="text-muted" style={{ fontSize: '0.8rem', margin: '0 0 0.75rem 0' }}>
+                            Ajusta el efecto de desenfoque para dar mayor protagonismo al texto sobre la fotografía de fondo:
+                          </p>
+
+                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            {[
+                              { label: '🔍 100% Nítido (0px)', blur: 0 },
+                              { label: '🌫️ Leve (2px)', blur: 2 },
+                              { label: '💨 Medio (4px)', blur: 4 },
+                              { label: '☁️ Suave / Borroso (8px)', blur: 8 },
+                            ].map((b) => {
+                              const currentBlur = bannerForm.filtro_blur !== undefined ? Number(bannerForm.filtro_blur) : 0
+                              const isSelected = currentBlur === b.blur
+                              return (
+                                <button
+                                  key={b.blur}
+                                  type="button"
+                                  onClick={() => setBannerForm({ ...bannerForm, filtro_blur: b.blur })}
+                                  className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-outline-primary'}`}
+                                  style={{ fontSize: '0.78rem', padding: '0.4rem 0.8rem', fontWeight: 700 }}
+                                >
+                                  {b.label}
+                                </button>
+                              )
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    </div>
 
-                    {/* Section 6: Orden & Activación */}
-                    <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
-                      <h4 style={{ margin: '0 0 0.75rem 0', color: 'var(--primary-color)' }}>
-                        <i className="fa fa-sliders-h" /> 6. Orden & Activación
-                      </h4>
-                      <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', alignItems: 'center' }}>
-                        <div className="form-group">
-                          <label className="form-label">Orden en Carrusel</label>
+                        {/* Foto de Fondo */}
+                        <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                          <h4 style={{ margin: '0 0 0.75rem 0', color: 'var(--primary-color)' }}>
+                            <i className="fa fa-image" /> Imagen de Fondo
+                          </h4>
                           <input
-                            type="number"
-                            min="0"
-                            value={bannerForm.orden}
-                            onChange={(e) => setBannerForm({ ...bannerForm, orden: Number(e.target.value) })}
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files[0]
+                              if (file) {
+                                setBannerBgFile(file)
+                                setBannerBgPreview(URL.createObjectURL(file))
+                              }
+                            }}
                             className="form-input"
                           />
                         </div>
-                        <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.25rem' }}>
-                          <input
-                            type="checkbox"
-                            id="bannerActivo"
-                            checked={bannerForm.activo === 1}
-                            onChange={(e) => setBannerForm({ ...bannerForm, activo: e.target.checked ? 1 : 0 })}
-                            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                          />
-                          <label htmlFor="bannerActivo" style={{ cursor: 'pointer', fontWeight: 600 }}>
-                            Mostrar en el Carrusel Activo
-                          </label>
+                      </div>
+                    )}
+
+                    {/* ══════════════════════════════════════════════════════════
+                        TAB 5: BOTONES, CUPÓN & ORDEN
+                       ══════════════════════════════════════════════════════════ */}
+                    {bannerModalTab === 'botones' && (
+                      <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                          <h4 style={{ margin: '0 0 0.75rem 0', color: 'var(--primary-color)' }}>
+                            <i className="fa fa-mouse-pointer" /> Botones de Acción (Llamado a la Acción)
+                          </h4>
+
+                          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                            <div className="form-group">
+                              <label className="form-label">Texto Botón 1 (Principal)</label>
+                              <input
+                                type="text"
+                                value={bannerForm.boton_principal_texto}
+                                onChange={(e) => setBannerForm({ ...bannerForm, boton_principal_texto: e.target.value })}
+                                className="form-input"
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label className="form-label">Enlace Botón 1</label>
+                              <input
+                                type="text"
+                                value={bannerForm.boton_principal_link}
+                                onChange={(e) => setBannerForm({ ...bannerForm, boton_principal_link: e.target.value })}
+                                className="form-input"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
+                            <div className="form-group">
+                              <label className="form-label">Texto Botón 2 (Secundario)</label>
+                              <input
+                                type="text"
+                                value={bannerForm.boton_secundario_texto}
+                                onChange={(e) => setBannerForm({ ...bannerForm, boton_secundario_texto: e.target.value })}
+                                className="form-input"
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label className="form-label">Enlace Botón 2</label>
+                              <input
+                                type="text"
+                                value={bannerForm.boton_secundario_link}
+                                onChange={(e) => setBannerForm({ ...bannerForm, boton_secundario_link: e.target.value })}
+                                className="form-input"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Cupón Promocional Asociado */}
+                        <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                          <h4 style={{ margin: '0 0 0.75rem 0', color: 'var(--primary-color)' }}>
+                            <i className="fa fa-ticket-alt" /> Cupón de Descuento Promocional (Opcional)
+                          </h4>
+
+                          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '0.75rem' }}>
+                            <div className="form-group">
+                              <label className="form-label">Código del Cupón</label>
+                              <input
+                                type="text"
+                                placeholder="Ej: CAMPO20"
+                                value={bannerForm.cupon_codigo}
+                                onChange={(e) => setBannerForm({ ...bannerForm, cupon_codigo: e.target.value.toUpperCase() })}
+                                className="form-input"
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label className="form-label">Mensaje Promocional</label>
+                              <input
+                                type="text"
+                                placeholder="Ej: ⚡ ¡Usa CAMPO20 y obtén 20% OFF!"
+                                value={bannerForm.cupon_texto}
+                                onChange={(e) => setBannerForm({ ...bannerForm, cupon_texto: e.target.value })}
+                                className="form-input"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Orden y Activación */}
+                        <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                          <h4 style={{ margin: '0 0 0.75rem 0', color: 'var(--primary-color)' }}>
+                            <i className="fa fa-sort-numeric-down" /> Orden & Estado
+                          </h4>
+                          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', alignItems: 'center' }}>
+                            <div className="form-group">
+                              <label className="form-label">Orden de Aparición</label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={bannerForm.orden}
+                                onChange={(e) => setBannerForm({ ...bannerForm, orden: Number(e.target.value) })}
+                                className="form-input"
+                              />
+                            </div>
+                            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.25rem' }}>
+                              <input
+                                type="checkbox"
+                                id="bannerActivo"
+                                checked={bannerForm.activo === 1}
+                                onChange={(e) => setBannerForm({ ...bannerForm, activo: e.target.checked ? 1 : 0 })}
+                                style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'var(--primary-color)' }}
+                              />
+                              <label htmlFor="bannerActivo" style={{ cursor: 'pointer', fontWeight: 700 }}>
+                                Mostrar Activo en Carrusel
+                              </label>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '0.5rem' }}>
-                      <button type="button" onClick={() => setShowBannerModal(false)} className="btn btn-secondary">
-                        Cancelar
-                      </button>
-                      <button type="submit" disabled={bannerSaving} className="btn btn-primary" style={{ padding: '0.75rem 1.75rem', fontWeight: 700 }}>
-                        {bannerSaving ? <><i className="fa fa-spinner fa-spin" /> Guardando...</> : <><i className="fa fa-save" /> Guardar Banner</>}
-                      </button>
+                    {/* Step Navigation & Action Buttons */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        {bannerModalTab !== 'estilo' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const tabs = ['estilo', 'textos', 'producto', 'fondo', 'botones']
+                              const currIdx = tabs.indexOf(bannerModalTab)
+                              if (currIdx > 0) setBannerModalTab(tabs[currIdx - 1])
+                            }}
+                            className="btn btn-secondary btn-sm"
+                          >
+                            ← Anterior
+                          </button>
+                        )}
+                        {bannerModalTab !== 'botones' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const tabs = ['estilo', 'textos', 'producto', 'fondo', 'botones']
+                              const currIdx = tabs.indexOf(bannerModalTab)
+                              if (currIdx < tabs.length - 1) setBannerModalTab(tabs[currIdx + 1])
+                            }}
+                            className="btn btn-outline-primary btn-sm"
+                          >
+                            Siguiente Paso →
+                          </button>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <button type="button" onClick={() => setShowBannerModal(false)} className="btn btn-secondary">
+                          Cancelar
+                        </button>
+                        <button type="submit" disabled={bannerSaving} className="btn btn-primary" style={{ padding: '0.65rem 1.6rem', fontWeight: 800 }}>
+                          {bannerSaving ? <><i className="fa fa-spinner fa-spin" /> Guardando...</> : <><i className="fa fa-save" /> Guardar Banner</>}
+                        </button>
+                      </div>
                     </div>
                   </form>
 
-                  {/* Right: Real-time Live Preview */}
-                  <div className="banner-admin-preview-sticky">
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  {/* Right Column: Sticky Real-Time Live Preview */}
+                  <div style={{ padding: '1.25rem 1.5rem', backgroundColor: 'var(--bg-alt)', display: 'flex', flexDirection: 'column', gap: '0.85rem', overflowY: 'auto' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span style={{ fontWeight: 800, color: 'var(--primary-color)', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                         <i className="fa fa-eye" /> Vista Previa en Vivo (Tiempo Real)
                       </span>
-                      <span className="badge badge-success" style={{ fontSize: '0.75rem' }}>Exacto como lo ve el usuario</span>
+                      <span className="badge badge-success" style={{ fontSize: '0.72rem' }}>
+                        Plantilla: {(bannerForm.estilo_plantilla || 'clasico').toUpperCase()}
+                      </span>
                     </div>
 
+                    {/* Quick Style Switcher Pills for Live Testing */}
+                    <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                      {[
+                        { id: 'clasico', label: '🌿 Clásico' },
+                        { id: 'inmersivo', label: '🌌 Inmersivo' },
+                        { id: 'oferta_flash', label: '⚡ Oferta Flash' },
+                        { id: 'mosaico', label: '🏛️ Mosaico' },
+                        { id: 'historia_campesina', label: '👨‍🌾 Historia' },
+                      ].map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => setBannerForm({ ...bannerForm, estilo_plantilla: s.id })}
+                          style={{
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            padding: '3px 9px',
+                            borderRadius: '999px',
+                            border: (bannerForm.estilo_plantilla || 'clasico') === s.id ? '1.5px solid var(--primary-color)' : '1px solid var(--border-color)',
+                            backgroundColor: (bannerForm.estilo_plantilla || 'clasico') === s.id ? 'var(--primary-color)' : 'var(--card-bg)',
+                            color: (bannerForm.estilo_plantilla || 'clasico') === s.id ? '#ffffff' : 'var(--text-color)',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Live Render Card */}
                     <div
-                      className="banner-admin-preview-card"
                       style={{
-                        '--slide-accent': bannerForm.color_acento || '#22c55e',
-                        position: 'relative',
                         borderRadius: '16px',
                         overflow: 'hidden',
-                        padding: '1.25rem',
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.25)',
+                        boxShadow: '0 15px 35px rgba(0,0,0,0.3)',
+                        minHeight: '440px',
+                        display: 'flex',
+                        position: 'relative',
                       }}
                     >
-                      {/* Fondo con foto y desenfoque dinámico */}
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          backgroundImage: `url('${bannerBgPreview || bannerForm.imagen_fondo || '/img/montes-de-maria-paisaje.jpg'}')`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center',
-                          filter: bannerForm.filtro_blur ? `blur(${bannerForm.filtro_blur}px)` : 'none',
-                          transform: bannerForm.filtro_blur ? 'scale(1.06)' : 'none',
-                          zIndex: 0,
+                      <HeroSlideRenderer
+                        slide={{
+                          id: editingBanner?.id_banner || 999,
+                          estilo_plantilla: bannerForm.estilo_plantilla || 'clasico',
+                          filtro_blur: bannerForm.filtro_blur !== undefined ? Number(bannerForm.filtro_blur) : 0,
+                          accentColor: bannerForm.color_acento || '#22c55e',
+                          color_acento: bannerForm.color_acento || '#22c55e',
+                          categoryName: bannerForm.categoria_nombre || 'Cosechas Frescas',
+                          categoria_nombre: bannerForm.categoria_nombre || 'Cosechas Frescas',
+                          categoryThumb: bannerThumbPreview || bannerForm.categoria_thumb || '/img/verduras.avif',
+                          categoria_thumb: bannerThumbPreview || bannerForm.categoria_thumb || '/img/verduras.avif',
+                          categorySlug: bannerForm.categoria_slug || 'cosechas',
+                          categoria_slug: bannerForm.categoria_slug || 'cosechas',
+                          title: bannerForm.titulo || 'Título Principal del Banner',
+                          titulo: bannerForm.titulo || 'Título Principal del Banner',
+                          subtitle: bannerForm.subtitulo || 'Subtítulo descriptivo de cosechas y productos de los Montes de María...',
+                          subtitulo: bannerForm.subtitulo || 'Subtítulo descriptivo de cosechas y productos de los Montes de María...',
+                          features: featuresInput.split('\n').map((f) => f.trim()).filter(Boolean),
+                          primaryBtn: {
+                            text: bannerForm.boton_principal_texto || 'Ver Catálogo',
+                            link: bannerForm.boton_principal_link || '/catalogo',
+                            icon: 'fa-shopping-basket',
+                          },
+                          boton_principal_texto: bannerForm.boton_principal_texto || 'Ver Catálogo',
+                          boton_principal_link: bannerForm.boton_principal_link || '/catalogo',
+                          secondaryBtn: {
+                            text: bannerForm.boton_secundario_texto || 'Vender mis Productos',
+                            link: bannerForm.boton_secundario_link || '/vendedor',
+                            icon: 'fa-store',
+                          },
+                          boton_secundario_texto: bannerForm.boton_secundario_texto || 'Vender mis Productos',
+                          boton_secundario_link: bannerForm.boton_secundario_link || '/vendedor',
+                          showcaseImage: bannerProdImgPreview || bannerForm.tarjeta_imagen || '/img/Ñame.avif',
+                          tarjeta_imagen: bannerProdImgPreview || bannerForm.tarjeta_imagen || '/img/Ñame.avif',
+                          showcaseTitle: bannerForm.tarjeta_titulo || 'Nombre del Producto',
+                          tarjeta_titulo: bannerForm.tarjeta_titulo || 'Nombre del Producto',
+                          showcasePrice: bannerForm.tarjeta_precio || '$6.000 COP',
+                          tarjeta_precio: bannerForm.tarjeta_precio || '$6.000 COP',
+                          farmerName: bannerForm.tarjeta_vendedor_nombre || 'Roberto Carlos Salcedo',
+                          tarjeta_vendedor_nombre: bannerForm.tarjeta_vendedor_nombre || 'Roberto Carlos Salcedo',
+                          floatPillTop: bannerForm.tarjeta_badge_top || '🌿 100% Campo',
+                          tarjeta_badge_top: bannerForm.tarjeta_badge_top || '🌿 100% Campo',
+                          floatPillBottom: bannerForm.tarjeta_vendedor_rating || '⭐ 4.9/5 Calidad',
+                          tarjeta_vendedor_rating: bannerForm.tarjeta_vendedor_rating || '⭐ 4.9/5 Calidad',
+                          backgroundImage: bannerBgPreview || bannerForm.imagen_fondo || '/img/montes-de-maria-paisaje.jpg',
+                          imagen_fondo: bannerBgPreview || bannerForm.imagen_fondo || '/img/montes-de-maria-paisaje.jpg',
+                          cupon_codigo: bannerForm.cupon_codigo || '',
+                          cupon_texto: bannerForm.cupon_texto || '',
                         }}
+                        isPreview={true}
                       />
-                      {/* Tinte / Filtro de color superpuesto */}
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          background: `linear-gradient(135deg, ${bannerForm.color_acento || '#14532d'}cc 0%, #06140ce6 100%)`,
-                          zIndex: 1,
-                        }}
-                      />
-                      <div className="banner-admin-preview-grid" style={{ position: 'relative', zIndex: 2 }}>
-                        {/* Left Column in Preview */}
-                        <div className="ofercampo-hero-left" style={{ alignItems: 'flex-start' }}>
-                          <div className="ofercampo-badge" style={{ marginBottom: '0.85rem' }}>
-                            <img
-                              src={bannerThumbPreview || bannerForm.categoria_thumb || '/img/verduras.avif'}
-                              alt={bannerForm.categoria_nombre}
-                              className="ofercampo-badge-thumb"
-                              onError={(e) => { e.target.src = '/img/Logo.jpg' }}
-                            />
-                            <span className="ofercampo-badge-title">{bannerForm.categoria_nombre || 'Categoría'}</span>
-                          </div>
-
-                          <h2 className="ofercampo-title" style={{ fontSize: '1.45rem', marginBottom: '0.65rem', lineHeight: 1.25 }}>
-                            {bannerForm.titulo || 'Título Principal del Banner'}
-                          </h2>
-
-                          <p className="ofercampo-subtitle" style={{ fontSize: '0.84rem', marginBottom: '0.9rem', lineHeight: 1.4 }}>
-                            {bannerForm.subtitulo || 'Subtítulo descriptivo del producto o cosecha de los Montes de María...'}
-                          </p>
-
-                          <div className="ofercampo-features" style={{ marginBottom: '1rem', gap: '0.35rem' }}>
-                            {featuresInput
-                              .split('\n')
-                              .map((f) => f.trim())
-                              .filter(Boolean)
-                              .map((feat, fIdx) => (
-                                <span key={fIdx} className="ofercampo-feature-item" style={{ fontSize: '0.76rem' }}>
-                                  <i className="fa fa-check-circle" /> {feat}
-                                </span>
-                              ))}
-                          </div>
-
-                          <div className="ofercampo-actions" style={{ gap: '0.5rem' }}>
-                            <span
-                              className="btn-ofercampo-primary"
-                              style={{
-                                fontSize: '0.8rem',
-                                padding: '0.45rem 0.9rem',
-                                backgroundColor: bannerForm.color_acento || 'var(--primary-color)',
-                                borderColor: bannerForm.color_acento || 'var(--primary-color)',
-                              }}
-                            >
-                              <i className="fa fa-shopping-basket" /> {bannerForm.boton_principal_texto || 'Ver Catálogo'}
-                            </span>
-                            <span className="btn-ofercampo-secondary" style={{ fontSize: '0.8rem', padding: '0.45rem 0.9rem' }}>
-                              <i className="fa fa-store" /> {bannerForm.boton_secundario_texto || 'Vender'}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Right Column in Preview */}
-                        <div className="ofercampo-hero-right">
-                          <div className="ofercampo-visual-card" style={{ maxWidth: '260px', padding: '0.85rem' }}>
-                            <div className="ofercampo-product-preview-box" style={{ height: '145px', marginBottom: '0.65rem' }}>
-                              <img
-                                src={bannerProdImgPreview || bannerForm.tarjeta_imagen || '/img/Ñame.avif'}
-                                alt={bannerForm.tarjeta_titulo}
-                                onError={(e) => { e.target.src = '/img/Logo.jpg' }}
-                              />
-                            </div>
-
-                            <div className="ofercampo-card-details">
-                              <div className="ofercampo-card-title-row">
-                                <h4 className="ofercampo-card-title" style={{ fontSize: '0.9rem' }}>
-                                  {bannerForm.tarjeta_titulo || 'Nombre del Producto'}
-                                </h4>
-                                <span className="ofercampo-card-price" style={{ fontSize: '0.85rem' }}>
-                                  {bannerForm.tarjeta_precio || '$6.000 COP'}
-                                </span>
-                              </div>
-
-                              <div className="ofercampo-card-vendor" style={{ fontSize: '0.72rem', marginTop: '0.35rem' }}>
-                                <i className="fa fa-user-check" style={{ color: '#4ade80' }} />
-                                <span>Vendido por {bannerForm.tarjeta_vendedor_nombre || 'Roberto Carlos Salcedo'}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>
