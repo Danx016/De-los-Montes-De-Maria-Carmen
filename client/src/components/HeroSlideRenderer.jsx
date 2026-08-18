@@ -115,11 +115,11 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
   const catSlug = slide.categorySlug || slide.categoria_slug || 'cosechas'
 
   const prodImg = slide.showcaseImage || slide.tarjeta_imagen || 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=600&q=80'
-  const prodTitle = slide.showcaseTitle || slide.tarjeta_titulo || slide.title || slide.titulo || 'Cosecha Campesina'
-  const prodPrice = slide.showcasePrice || slide.tarjeta_precio || '$6.000 COP'
-  const vendorName = slide.farmerName || slide.tarjeta_vendedor_nombre || 'Roberto Carlos Salcedo'
-  const vendorRating = slide.floatPillBottom || slide.tarjeta_vendedor_rating || '⭐ 4.9/5 Calidad'
-  const badgeTop = slide.floatPillTop || slide.tarjeta_badge_top || '🌿 100% Campo'
+  const prodTitle = slide.showcaseTitle !== undefined ? slide.showcaseTitle : (slide.tarjeta_titulo !== undefined ? slide.tarjeta_titulo : (slide.title || slide.titulo || ''))
+  const prodPrice = slide.showcasePrice !== undefined ? slide.showcasePrice : (slide.tarjeta_precio !== undefined ? slide.tarjeta_precio : '')
+  const vendorName = slide.farmerName !== undefined ? slide.farmerName : (slide.tarjeta_vendedor_nombre !== undefined ? slide.tarjeta_vendedor_nombre : '')
+  const vendorRating = slide.floatPillBottom !== undefined ? slide.floatPillBottom : (slide.tarjeta_vendedor_rating !== undefined ? slide.tarjeta_vendedor_rating : '')
+  const badgeTop = slide.floatPillTop !== undefined ? slide.floatPillTop : (slide.tarjeta_badge_top !== undefined ? slide.tarjeta_badge_top : '')
   const vendorId = slide.vendorId || slide.tarjeta_vendedor_id || 47
   const cuponCod = slide.cupon_codigo || ''
   const cuponTxt = slide.cupon_texto || ''
@@ -563,24 +563,28 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
               </div>
 
               {/* Farmer Profile Strip from Database */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: isPreview ? '0.45rem' : '0.75rem', marginBottom: isPreview ? '0.55rem' : '1.25rem' }}>
-                <div style={{ width: isPreview ? '30px' : '46px', height: isPreview ? '30px' : '46px', borderRadius: '50%', border: '2px solid #facc15', backgroundColor: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-                  <img
-                    src={catThumb || '/img/Logo.jpg'}
-                    alt={vendorName}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onError={(e) => { e.target.src = '/img/Logo.jpg' }}
-                  />
+              {vendorName ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: isPreview ? '0.45rem' : '0.75rem', marginBottom: isPreview ? '0.55rem' : '1.25rem' }}>
+                  <div style={{ width: isPreview ? '30px' : '46px', height: isPreview ? '30px' : '46px', borderRadius: '50%', border: '2px solid #facc15', backgroundColor: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                    <img
+                      src={catThumb || '/img/Logo.jpg'}
+                      alt={vendorName}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => { e.target.src = '/img/Logo.jpg' }}
+                    />
+                  </div>
+                  <div>
+                    <strong style={{ fontSize: isPreview ? '0.78rem' : '0.92rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      {vendorName} <i className="fa fa-check-circle" style={{ color: '#4ade80', fontSize: '0.75rem' }} title="Productor Verificado" />
+                    </strong>
+                    {(badgeTop || vendorRating) ? (
+                      <span style={{ fontSize: isPreview ? '0.65rem' : '0.75rem', color: '#bbf7d0' }}>
+                        {badgeTop && vendorRating ? `${badgeTop} • ${vendorRating}` : (badgeTop || vendorRating)}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
-                <div>
-                  <strong style={{ fontSize: isPreview ? '0.78rem' : '0.92rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    {vendorName} <i className="fa fa-check-circle" style={{ color: '#4ade80', fontSize: '0.75rem' }} title="Productor Verificado" />
-                  </strong>
-                  <span style={{ fontSize: isPreview ? '0.65rem' : '0.75rem', color: '#bbf7d0' }}>
-                    {badgeTop} • {vendorRating}
-                  </span>
-                </div>
-              </div>
+              ) : null}
 
               <div className="ofercampo-actions" style={{ gap: isPreview ? '0.4rem' : undefined }}>
                 {renderPrimaryBtn(isPreview ? 'btn-sm' : '', slide.boton_principal_texto || 'Comprar Cosecha', 'fa-seedling')}
@@ -609,13 +613,17 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
                   <h4 style={{ margin: 0, fontSize: isPreview ? '0.8rem' : '0.95rem', fontWeight: 800, color: '#0f172a' }}>
                     {prodTitle}
                   </h4>
-                  <span style={{ fontWeight: 800, color: '#166534', fontSize: isPreview ? '0.75rem' : '0.9rem' }}>
-                    {prodPrice}
-                  </span>
+                  {prodPrice ? (
+                    <span style={{ fontWeight: 800, color: '#166534', fontSize: isPreview ? '0.75rem' : '0.9rem' }}>
+                      {prodPrice}
+                    </span>
+                  ) : null}
                 </div>
-                <p style={{ margin: '2px 0 0 0', fontSize: isPreview ? '0.62rem' : '0.72rem', color: '#64748b' }}>
-                  📍 {badgeTop}
-                </p>
+                {badgeTop ? (
+                  <p style={{ margin: '2px 0 0 0', fontSize: isPreview ? '0.62rem' : '0.72rem', color: '#64748b' }}>
+                    📍 {badgeTop}
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
