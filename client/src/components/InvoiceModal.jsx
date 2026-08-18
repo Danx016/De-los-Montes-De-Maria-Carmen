@@ -158,7 +158,7 @@ export default function InvoiceModal({ idCompra, onClose, userEmail }) {
                 <div class="inv-brand-info">
                   <h1>DE LOS MONTES DE MARÍA S.A.S</h1>
                   <p>NIT: 1050277880 • Tel: 3008723989</p>
-                  <p>Montes de María, Bolívar / Sucre, Colombia • agrocampo.co</p>
+                  <p>El Carmen de Bolívar, Bolívar, Colombia • montesdemaria.co</p>
                 </div>
               </div>
               <div class="inv-num-box">
@@ -389,7 +389,7 @@ export default function InvoiceModal({ idCompra, onClose, userEmail }) {
                       <strong>NIT:</strong> 1050277880<br />
                       <strong>Tel / WhatsApp:</strong> +57 300 872 3989<br />
                       <strong>Email:</strong> danilorodelo355@gmail.com<br />
-                      Montes de María, Bolívar / Sucre, Colombia
+                      El Carmen de Bolívar, Bolívar, Colombia
                     </div>
                   </div>
                   <div className="inv-party">

@@ -71,7 +71,7 @@ export default function Footer() {
           <p><i className="fa fa-id-card" /> <strong>NIT:</strong> 1050277880</p>
           <p><i className="fa fa-phone" /> <a href="tel:3008723989">+57 300 872 3989</a></p>
           <p><i className="fa fa-envelope" /> danilorodelo355@gmail.com</p>
-          <p><i className="fa fa-map-marker-alt" /> Montes de María, Bolívar / Sucre, Colombia</p>
+          <p><i className="fa fa-map-marker-alt" /> El Carmen de Bolívar, Bolívar, Colombia</p>
         </div>
       </div>
 
