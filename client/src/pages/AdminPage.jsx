@@ -174,8 +174,8 @@ export default function AdminPage() {
     subtitulo: '',
     categoria_nombre: 'Cosechas Frescas',
     categoria_slug: 'cosechas',
-    categoria_thumb: '/img/verduras.avif',
-    imagen_fondo: '/img/montes-de-maria-paisaje.jpg',
+    categoria_thumb: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
+    imagen_fondo: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=80',
     color_acento: '#22c55e',
     features: ['100% Campo Colombiano Directo', 'Pago 100% Directo al Productor', 'Envíos Seguros a Bolívar y Sucre'],
     boton_principal_texto: 'Explorar Catálogo',
@@ -183,7 +183,7 @@ export default function AdminPage() {
     boton_secundario_texto: 'Vender mis Productos',
     boton_secundario_link: '/vendedor',
     tarjeta_badge_top: '🌿 100% Campo',
-    tarjeta_imagen: '/img/Ñame.avif',
+    tarjeta_imagen: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=600&q=80',
     tarjeta_titulo: 'Ñame Criollo Espino',
     tarjeta_precio: '$6.000 COP / Kilo',
     tarjeta_vendedor_nombre: 'Roberto Carlos Salcedo',
@@ -274,11 +274,11 @@ export default function AdminPage() {
 
     const catSlug = defaultCat ? (defaultCat.slug || defaultCat.nombre_categoria?.toLowerCase().replace(/\s+/g, '-')) : 'cosechas'
     const catName = defaultCat ? (defaultCat.nombre_categoria || defaultCat.nombre) : 'Cosechas Frescas'
-    const catImg = defaultCat?.imagen ? (defaultCat.imagen.startsWith('http') || defaultCat.imagen.startsWith('/') ? defaultCat.imagen : `/uploads/categories/${defaultCat.imagen}`) : '/img/verduras.avif'
+    const catImg = defaultCat?.imagen ? (defaultCat.imagen.startsWith('http') || defaultCat.imagen.startsWith('/') ? defaultCat.imagen : `/uploads/categories/${defaultCat.imagen}`) : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80'
 
     const prodTitle = defaultProd ? (defaultProd.nombre_producto || defaultProd.nombre) : 'Ñame Criollo Espino'
     const prodPrice = defaultProd?.precio ? `$${Number(defaultProd.precio).toLocaleString('es-CO')} COP / ${defaultProd.unidad_medida || 'Kilo'}` : '$6.000 COP / Kilo'
-    const prodImg = defaultProd?.imagen ? (defaultProd.imagen.startsWith('http') || defaultProd.imagen.startsWith('/') ? defaultProd.imagen : `/uploads/products/${defaultProd.imagen}`) : '/img/Ñame.avif'
+    const prodImg = defaultProd?.imagen ? (defaultProd.imagen.startsWith('http') || defaultProd.imagen.startsWith('/') ? defaultProd.imagen : `/uploads/products/${defaultProd.imagen}`) : 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=600&q=80'
     const vendorName = defaultProd?.origen ? `${defaultProd.origen} • Productor Local` : (defaultProd?.vendedor_nombre || 'Roberto Carlos Salcedo')
 
     setBannerForm({
@@ -287,7 +287,7 @@ export default function AdminPage() {
       categoria_nombre: catName,
       categoria_slug: catSlug,
       categoria_thumb: catImg,
-      imagen_fondo: '/img/montes-de-maria-paisaje.jpg',
+      imagen_fondo: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=80',
       color_acento: defaultCat?.color || '#22c55e',
       estilo_plantilla: 'clasico',
       filtro_blur: 0,
@@ -312,7 +312,7 @@ export default function AdminPage() {
     setBannerThumbFile(null)
     setBannerThumbPreview(catImg)
     setBannerBgFile(null)
-    setBannerBgPreview('/img/montes-de-maria-paisaje.jpg')
+    setBannerBgPreview('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=80')
     setBannerProdImgFile(null)
     setBannerProdImgPreview(prodImg)
     setBannerError('')
@@ -3649,7 +3649,7 @@ export default function AdminPage() {
                           {/* Fotos de fondo predeterminadas */}
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.5rem', marginBottom: '0.85rem' }}>
                             {[
-                              { label: 'Panorámica Montes', img: '/img/montes-de-maria-paisaje.jpg' },
+                              { label: 'Panorámica Montes', img: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=80' },
                               { label: 'Cultivos y Finca', img: 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=800&q=80' },
                               { label: 'Montañas Campesinas', img: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80' },
                               { label: 'Cosecha de Tierra', img: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=800&q=80' },
@@ -3952,8 +3952,8 @@ export default function AdminPage() {
                           tarjeta_badge_top: bannerForm.tarjeta_badge_top || '🌿 100% Campo',
                           floatPillBottom: bannerForm.tarjeta_vendedor_rating || '⭐ 4.9/5 Calidad',
                           tarjeta_vendedor_rating: bannerForm.tarjeta_vendedor_rating || '⭐ 4.9/5 Calidad',
-                          backgroundImage: bannerBgPreview || bannerForm.imagen_fondo || '/img/montes-de-maria-paisaje.jpg',
-                          imagen_fondo: bannerBgPreview || bannerForm.imagen_fondo || '/img/montes-de-maria-paisaje.jpg',
+                          backgroundImage: bannerBgPreview || bannerForm.imagen_fondo || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=80',
+                          imagen_fondo: bannerBgPreview || bannerForm.imagen_fondo || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=80',
                           cupon_codigo: bannerForm.cupon_codigo || '',
                           cupon_texto: bannerForm.cupon_texto || '',
                         }}

@@ -472,7 +472,7 @@
   justify-content: center;
   text-align: center;
   color: #FFFFFF;
-  background: url('/img/montes-de-maria-paisaje.jpg') no-repeat center center/cover;
+  background: url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=80') no-repeat center center/cover;
   padding: 5rem 1rem;
 }
 

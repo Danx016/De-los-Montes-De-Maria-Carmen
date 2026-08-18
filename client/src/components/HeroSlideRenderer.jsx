@@ -18,7 +18,7 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
   const estilo = slide.estilo_plantilla || 'clasico'
   const accent = slide.accentColor || slide.color_acento || '#22c55e'
   const blurVal = slide.filtro_blur !== undefined ? Number(slide.filtro_blur) : 0
-  const bgImg = slide.backgroundImage || slide.imagen_fondo || '/img/montes-de-maria-paisaje.jpg'
+  const bgImg = slide.backgroundImage || slide.imagen_fondo || 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1600&q=80'
 
   const handleCopyCoupon = (e, code) => {
     e.preventDefault()
