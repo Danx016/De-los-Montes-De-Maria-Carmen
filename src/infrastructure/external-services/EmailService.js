@@ -20,122 +20,49 @@ class EmailService {
   }
 
   inicializarTransporter() {
-    const user = appConfig.smtp.user;
-    const pass = appConfig.smtp.pass;
-    const host = appConfig.smtp.host || 'smtp.gmail.com';
-    const port = appConfig.smtp.port === 587 ? 465 : (appConfig.smtp.port || 465);
-    const isSecure = port === 465;
+    const user = appConfig.smtp.user || 'danilorodelo355@gmail.com';
+    const pass = appConfig.smtp.pass || 'gszsvbqujjebrlgk';
 
     if (user && pass) {
-      const transportConfig = {
-        host,
-        port,
-        secure: isSecure, // true para puerto 465 SSL/TLS directo
+      // Configuración directa y exclusiva de Google Gmail (Puerto 465 SSL)
+      this.transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
         auth: {
           user,
           pass,
         },
-        family: 4, // Forzar IPv4 para evitar timeouts en entornos cloud (Render, AWS, etc)
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 15000,
+        family: 4, // Forzar IPv4
+        pool: true,
+        maxConnections: 5,
+        maxMessages: 100,
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000,
         tls: {
           rejectUnauthorized: false,
         },
-      };
-
-      this.transporter = nodemailer.createTransport(transportConfig);
+      });
 
       // Validar conexión en segundo plano
       this.transporter.verify((error) => {
         if (error) {
-          console.warn('⚠️ [SMTP] Advertencia al conectar con el servidor de correo:', error.message);
+          console.warn('⚠️ [Google Gmail] Advertencia al conectar con Gmail:', error.message);
         } else {
-          console.log(`✅ [SMTP] Conexión establecida exitosamente con ${host}:${port} (SSL/TLS listo para envíos)`);
+          console.log(`✅ [Google Gmail] Conexión establecida exitosamente con Google Gmail (${user})`);
         }
       });
     } else {
-      console.warn('⚠️ [SMTP] No se configuraron credenciales de correo completas en .env');
+      console.warn('⚠️ [Google Gmail] No se configuraron credenciales de correo completas');
     }
-  }
-
-  /**
-   * Envío a través de APIs HTTP REST (Puerto 443 HTTPS - 100% compatible con Render)
-   */
-  async sendViaHttpApi({ to, subject, html }) {
-    // 1. Brevo API (Envío gratuito hasta 300 correos/día sobre HTTPS)
-    const brevoKey = process.env.BREVO_API_KEY;
-    if (brevoKey) {
-      try {
-        const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-          method: 'POST',
-          headers: {
-            'api-key': brevoKey,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({
-            sender: { name: 'De los Montes de María', email: appConfig.smtp.user || 'danilorodelo355@gmail.com' },
-            to: [{ email: to }],
-            subject,
-            htmlContent: html
-          })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          console.log(`✉️ [Brevo HTTPS] Correo enviado exitosamente a: ${to} | ID: ${data?.messageId || 'OK'}`);
-          return true;
-        } else {
-          const errData = await res.text();
-          console.warn(`⚠️ [Brevo HTTPS Error]: ${errData}`);
-        }
-      } catch (err) {
-        console.error('⚠️ [Brevo Fetch Error]:', err.message);
-      }
-    }
-
-    // 2. Resend API (Envío sobre HTTPS)
-    const resendKey = process.env.RESEND_API_KEY;
-    if (resendKey) {
-      try {
-        const res = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resendKey}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            from: 'De los Montes de María <onboarding@resend.dev>',
-            to: [to],
-            subject,
-            html
-          })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          console.log(`✉️ [Resend HTTPS] Correo enviado exitosamente a: ${to} | ID: ${data?.id || 'OK'}`);
-          return true;
-        } else {
-          const errData = await res.text();
-          console.warn(`⚠️ [Resend HTTPS Error]: ${errData}`);
-        }
-      } catch (err) {
-        console.error('⚠️ [Resend Fetch Error]:', err.message);
-      }
-    }
-
-    return false;
   }
 
   async sendMailSafe({ to, subject, html, attachments, fallbackLog }) {
-    // 1. Intentar primero vía HTTP API (sin restricciones de puertos de Render)
-    const httpSuccess = await this.sendViaHttpApi({ to, subject, html });
-    if (httpSuccess) return true;
-
-    // 2. Intentar vía SMTP directo
     if (!this.transporter) {
       this.inicializarTransporter();
     }
+
     if (this.transporter) {
       try {
         const logoPath = path.resolve(__dirname, '../../../public/img/Logo.jpg');
@@ -152,18 +79,19 @@ class EmailService {
           : defaultAttachments;
 
         const info = await this.transporter.sendMail({
-          from: `"De los Montes de María" <${appConfig.smtp.user}>`,
+          from: `"De los Montes de María" <${appConfig.smtp.user || 'danilorodelo355@gmail.com'}>`,
           to,
           subject,
           html,
           attachments: finalAttachments
         });
-        console.log(`✉️ Correo enviado exitosamente a: ${to} | Asunto: ${subject} | ID: ${info?.messageId || 'OK'}`);
+        console.log(`✉️ [Google Gmail] Correo enviado exitosamente a: ${to} | Asunto: ${subject} | ID: ${info?.messageId || 'OK'}`);
         return true;
       } catch (err) {
-        console.error(`⚠️ Error al enviar correo SMTP a ${to}:`, err.message);
+        console.error(`⚠️ [Google Gmail Error] al enviar correo a ${to}:`, err.message);
       }
     }
+
     if (fallbackLog) {
       console.log(`\n==================================================`);
       console.log(`📧 [EMAIL NOTIFICACIÓN - DE LOS MONTES DE MARÍA]`);
