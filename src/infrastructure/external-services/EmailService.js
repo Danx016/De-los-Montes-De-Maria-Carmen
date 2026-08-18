@@ -21,35 +21,26 @@ class EmailService {
     const user = appConfig.smtp.user;
     const pass = appConfig.smtp.pass;
     const host = appConfig.smtp.host || 'smtp.gmail.com';
-    const port = appConfig.smtp.port || 587;
+    const port = appConfig.smtp.port === 587 ? 465 : (appConfig.smtp.port || 465);
+    const isSecure = port === 465;
 
     if (user && pass) {
-      const isGmail = (host && host.includes('gmail')) || (user && user.includes('@gmail.com'));
-
-      const transportConfig = isGmail
-        ? {
-            service: 'gmail',
-            auth: {
-              user,
-              pass,
-            },
-            tls: {
-              rejectUnauthorized: false,
-            },
-          }
-        : {
-            host,
-            port,
-            secure: port === 465,
-            auth: {
-              user,
-              pass,
-            },
-            family: 4,
-            tls: {
-              rejectUnauthorized: false,
-            },
-          };
+      const transportConfig = {
+        host,
+        port,
+        secure: isSecure, // true para puerto 465 SSL/TLS directo
+        auth: {
+          user,
+          pass,
+        },
+        family: 4, // Forzar IPv4 para evitar timeouts en entornos cloud (Render, AWS, etc)
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
+        tls: {
+          rejectUnauthorized: false,
+        },
+      };
 
       this.transporter = nodemailer.createTransport(transportConfig);
 
@@ -58,7 +49,7 @@ class EmailService {
         if (error) {
           console.warn('⚠️ [SMTP] Advertencia al conectar con el servidor de correo:', error.message);
         } else {
-          console.log('✅ [SMTP] Conexión establecida y lista para envíos de correo');
+          console.log(`✅ [SMTP] Conexión establecida exitosamente con ${host}:${port} (SSL/TLS listo para envíos)`);
         }
       });
     } else {
