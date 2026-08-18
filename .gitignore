@@ -1,38 +1,41 @@
-# Node dependencies
+# Dependencias
 node_modules/
-**/node_modules/
-package-lock.json
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
-# Production Build Output
-dist/
-**/dist/
-build/
-**/build/
-
-# Environment Variables & Secrets
+# Variables de entorno (¡NUNCA subir!)
 .env
-*.env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.production
 
-# IDE & OS files
-.DS_Store
+# Base de datos local
+data/
+*.sqlite
+*.db
+
+# Logs
+logs/
+*.log
+
+# Uploads de usuarios
+public/uploads/
+
+# Certificados SSL (si usas HTTPS local)
+cert/
+*.key
+*.crt
+*.pem
+
+# Archivos de prueba y temporales
+test-out.html
+temp_pass.js
+test-clientId.js
+replace.js
+replace.py
+
+# Sistema operativo
 Thumbs.db
+.DS_Store
+desktop.ini
+
+# IDEs
 .vscode/
 .idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Temporary and AI directories
-.gemini/
-scratch/
-tmp/
-*.log
