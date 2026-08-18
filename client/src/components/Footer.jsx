@@ -1,6 +1,20 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { listarCategoriasPublicas } from '../api/productos.api'
 
 export default function Footer() {
+  const [categorias, setCategorias] = useState([])
+
+  useEffect(() => {
+    listarCategoriasPublicas()
+      .then((res) => {
+        if (Array.isArray(res.data) && res.data.length > 0) {
+          setCategorias(res.data.slice(0, 6))
+        }
+      })
+      .catch((err) => console.error('Error al cargar categorías en Footer:', err))
+  }, [])
+
   return (
     <footer className="site-footer">
       <div className="app-container footer-grid">
@@ -22,12 +36,22 @@ export default function Footer() {
         <div className="footer-col">
           <h4>Categorías</h4>
           <ul>
-            <li><Link to="/categoria/semillas">Semillas Certificadas</Link></li>
-            <li><Link to="/categoria/lacteos">Lácteos de la Finca</Link></li>
-            <li><Link to="/categoria/abonos">Abonos Orgánicos</Link></li>
-            <li><Link to="/categoria/ferre">Herramientas de Campo</Link></li>
-            <li><Link to="/categoria/cosechas">Cosechas del Día</Link></li>
-            <li><Link to="/categoria/agro">Maquinaria Agro</Link></li>
+            {categorias.length > 0 ? (
+              categorias.map((cat) => {
+                const slug = cat.slug || cat.nombre_categoria?.toLowerCase().replace(/\s+/g, '-')
+                return (
+                  <li key={cat.id_categoria || cat.id || slug}>
+                    <Link to={`/categoria/${slug}`}>
+                      {cat.nombre_categoria || cat.nombre}
+                    </Link>
+                  </li>
+                )
+              })
+            ) : (
+              <li>
+                <Link to="/catalogo">Explorar Catálogo</Link>
+              </li>
+            )}
           </ul>
         </div>
 
