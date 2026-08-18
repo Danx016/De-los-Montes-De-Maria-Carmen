@@ -283,7 +283,7 @@ Tu <b>Chat ID:</b> <code>${chatId}</code>
 Estado: 👤 <i>Usuario Invitado</i>
 
 🔐 <b>Conecta tu cuenta para desbloquear funciones:</b>
-👉 Escribe <code>/login tu_correo@gmail.com</code>
+👉 Escribe <code>/login</code>
 
 <b>Comandos generales:</b>
 💬 <code>/soporte</code> - Consulta con IA y soporte humano
@@ -438,7 +438,28 @@ ${replyText}
    */
   async procesarUpdate(update) {
     try {
-      if (!update || !update.message) return { ok: true };
+      if (!update) return { ok: true };
+
+      // ── MANEJO DE BOTONES INTERACTIVOS (CALLBACK QUERIES) ──
+      if (update.callback_query) {
+        const cb = update.callback_query;
+        const cbChatId = String(cb.message?.chat?.id || cb.from?.id);
+        const cbData = cb.data || '';
+
+        if (cbData === 'resend_otp') {
+          await this.reenviarCodigoOTP(cbChatId);
+          if (cb.id) {
+            await this.request('answerCallbackQuery', {
+              callback_query_id: cb.id,
+              text: '📧 ¡Nuevo código enviado a tu correo!'
+            }).catch(() => {});
+          }
+          return { ok: true };
+        }
+        return { ok: true };
+      }
+
+      if (!update.message) return { ok: true };
 
       const message = update.message;
       const chatId = String(message.chat?.id);
@@ -506,7 +527,7 @@ ${replyText}
 
       if (text === '/perfil' || text === '/cuenta' || text === '/mi_cuenta') {
         if (!authUser) {
-          await this.sendMessage(chatId, '🔒 No has iniciado sesión.\nEscribe <code>/login tu_correo@gmail.com</code> para vincular tu cuenta.');
+          await this.sendMessage(chatId, '🔒 No has iniciado sesión.\nEscribe <code>/login</code> para vincular tu cuenta.');
         } else {
           const rolTexto = rolId === 1 ? '👑 Administrador' : rolId === 2 ? '🌾 Campesino / Vendedor' : rolId === 4 ? '👨‍🌾 Asesor de Soporte' : '🛒 Comprador / Cliente';
           const perfilMsg = `
@@ -550,17 +571,23 @@ ${replyText}
       }
 
       if (session.state === 'LOGIN_WAIT_CODE') {
+        const lower = text.toLowerCase();
+        if (lower === '/reenviar' || lower === 'reenviar' || lower === 'reenviar codigo' || lower === '/resend') {
+          await this.reenviarCodigoOTP(chatId);
+          return { ok: true };
+        }
+
         const pending = this.pendingAuth.get(chatId);
         if (!pending) {
           session.state = 'IDLE';
-          await this.sendMessage(chatId, '⚠️ Tu solicitud de verificación expiró. Escribe /login para intentarlo nuevamente.');
+          await this.sendMessage(chatId, '⚠️ Tu solicitud de verificación expiró. Escribe <b>/login</b> para intentarlo nuevamente.');
           return { ok: true };
         }
 
         if (Date.now() > pending.expiresAt) {
           this.pendingAuth.delete(chatId);
           session.state = 'IDLE';
-          await this.sendMessage(chatId, '⌛ El código de 6 dígitos ha vencido. Escribe /login para solicitar un código nuevo.');
+          await this.sendMessage(chatId, '⌛ El código de 6 dígitos ha vencido. Escribe <b>/login</b> para solicitar un código nuevo.');
           return { ok: true };
         }
 
@@ -682,7 +709,7 @@ ${replyText}
       // ── COMANDOS DE ROL: COMPRADOR / CLIENTE ──
       if (text === '/mispedidos') {
         if (!authUser) {
-          await this.sendMessage(chatId, '🔒 Para consultar tus pedidos personales, primero inicia sesión escribiendo <code>/login tu_correo@gmail.com</code>.');
+          await this.sendMessage(chatId, '🔒 Para consultar tus pedidos personales, primero inicia sesión escribiendo <code>/login</code>.');
           return { ok: true };
         }
         await this.mostrarPedidosComprador(chatId, authUser);
@@ -1051,7 +1078,7 @@ Escribe <b>/soporte</b> para iniciar una consulta asistida por IA o explora el c
       } else {
         const fallback = authUser
           ? `¡Hola ${authUser.nombre || userName}! Recibimos tu mensaje.\n\nEscribe <b>/menu</b> para ver tus opciones o <b>/soporte</b> para crear una consulta.`
-          : `¡Hola ${userName}! Recibimos tu mensaje.\n\nEscribe <b>/soporte</b> para iniciar una consulta o <b>/login tu_correo@gmail.com</b> para conectar tu cuenta.`;
+          : `¡Hola ${userName}! Recibimos tu mensaje.\n\nEscribe <b>/soporte</b> para iniciar una consulta o <b>/login</b> para conectar tu cuenta.`;
         await this.sendMessage(chatId, fallback);
       }
 
@@ -1108,15 +1135,82 @@ Escribe <b>/soporte</b> para iniciar una consulta asistida por IA o explora el c
 Hemos enviado un código de seguridad de 6 dígitos a tu correo:
 📧 <b>${user.correo}</b>
 
-✍️ <b>Revisa tu bandeja de entrada (o carpeta de spam) y escribe el código de 6 dígitos aquí</b> para confirmar tu identidad:
+✍️ <b>Revisa tu bandeja de entrada (o spam) en Gmail y escribe los 6 dígitos aquí</b> para confirmar tu identidad.
+
+━━━━━━━━━━━━━━━━━━
+<i>¿No te ha llegado el código?</i>
+👉 Pulsa el botón de abajo o escribe <b>/reenviar</b> para enviarte uno nuevo.
 <i>(El código vence en 10 minutos. Escribe /cancelar para salir)</i>
 `;
 
-      await this.sendMessage(chatId, otpPrompt);
+      const resendKeyboard = {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '🔄 ¿No te ha llegado? Reenviar código', callback_data: 'resend_otp' }
+            ]
+          ]
+        }
+      };
+
+      await this.sendMessage(chatId, otpPrompt, resendKeyboard);
     } catch (err) {
       console.error('[Telegram Login Error]:', err);
       await this.sendMessage(chatId, `⚠️ Error al procesar tu solicitud: ${err.message}`);
     }
+  }
+
+  /**
+   * Reenviar código OTP por correo
+   */
+  async reenviarCodigoOTP(chatId) {
+    const pending = this.pendingAuth.get(chatId);
+
+    if (!pending || !pending.userObj) {
+      await this.sendMessage(chatId, '⚠️ No tienes una solicitud activa de inicio de sesión. Escribe <b>/login</b> para comenzar.');
+      return;
+    }
+
+    const user = pending.userObj;
+    const newOtpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    this.pendingAuth.set(chatId, {
+      code: newOtpCode,
+      userObj: user,
+      expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutos
+    });
+
+    if (this.emailService && typeof this.emailService.enviarCodigoVerificacionTelegram === 'function') {
+      this.emailService.enviarCodigoVerificacionTelegram({
+        correo: user.correo,
+        nombre: user.nombre || user.username,
+        codigo: newOtpCode
+      }).catch((err) => console.error('[Telegram Resend OTP Error]:', err));
+    }
+
+    const resendMsg = `
+🔄 <b>¡NUEVO CÓDIGO GENERADO Y ENVIADO!</b>
+━━━━━━━━━━━━━━━━━━
+Hemos enviado un nuevo código de 6 dígitos a tu correo:
+📧 <b>${user.correo}</b>
+
+✍️ <b>Revisa tu bandeja de entrada (o spam) en Gmail y escribe los 6 dígitos aquí:</b>
+
+━━━━━━━━━━━━━━━━━━
+<i>¿Aún no te llega? Puedes volver a pulsar el botón de abajo o escribir /reenviar.</i>
+`;
+
+    const resendKeyboard = {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: '🔄 Reenviar código nuevamente', callback_data: 'resend_otp' }
+          ]
+        ]
+      }
+    };
+
+    await this.sendMessage(chatId, resendMsg, resendKeyboard);
   }
 
   async mostrarResumenAdmin(chatId) {
