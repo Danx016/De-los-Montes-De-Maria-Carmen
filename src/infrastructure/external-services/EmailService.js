@@ -34,6 +34,9 @@ class EmailService {
           pass,
         },
         family: 4,
+        connectionTimeout: 6000,
+        greetingTimeout: 6000,
+        socketTimeout: 8000,
         lookup: (hostname, options, callback) => {
           dns.lookup(hostname, { family: 4, all: false }, callback);
         },
@@ -104,11 +107,7 @@ class EmailService {
   }
 
   async sendMailSafe({ to, subject, html, attachments, fallbackLog }) {
-    // 1. Intentar por HTTP REST API primero si hay API key configurada (Puerto 443)
-    const httpSuccess = await this.sendViaHttpApi({ to, subject, html });
-    if (httpSuccess) return true;
-
-    // 2. Intentar por SMTP Gmail directo
+    // 1. Intentar primero por Google Gmail SMTP oficial (garantiza entrega directa en bandeja principal con DKIM/SPF)
     if (!this.transporter) {
       this.inicializarTransporter();
     }
@@ -135,12 +134,16 @@ class EmailService {
           html,
           attachments: finalAttachments
         });
-        console.log(`✉️ [Google Gmail] Correo enviado exitosamente a: ${to} | Asunto: ${subject} | ID: ${info?.messageId || 'OK'}`);
+        console.log(`✉️ [Google Gmail SMTP] Correo enviado exitosamente a: ${to} | Asunto: ${subject} | ID: ${info?.messageId || 'OK'}`);
         return true;
       } catch (err) {
-        console.error(`⚠️ [Google Gmail Error] al enviar correo a ${to}:`, err.message);
+        console.warn(`⚠️ [Google Gmail SMTP Error]: ${err.message}. Probando fallback por API REST HTTPS...`);
       }
     }
+
+    // 2. Fallback a través de APIs HTTP REST (Puerto 443 HTTPS) si SMTP no responde
+    const httpSuccess = await this.sendViaHttpApi({ to, subject, html });
+    if (httpSuccess) return true;
 
     return false;
   }
