@@ -854,10 +854,14 @@ ${replyText}
       }
 
       // Iniciar proceso de Login
-      if (text.startsWith('/login') || text.startsWith('/conectar') || text === '🔐 Iniciar Sesión') {
-        const parts = text.split(' ');
-        const userInput = parts[1] ? parts[1].trim() : '';
+      if (text === '🔐 Iniciar Sesión' || text === '/login' || text === '/conectar') {
+        session.state = 'LOGIN_WAIT_EMAIL';
+        await this.sendMessage(chatId, '📧 Por favor escribe tu <b>Correo Electrónico o Usuario</b>:\n<i>(O escribe /cancelar para salir)</i>');
+        return { ok: true };
+      }
 
+      if (text.startsWith('/login ') || text.startsWith('/conectar ')) {
+        const userInput = text.replace(/^\/(login|conectar)\s+/, '').trim();
         if (userInput) {
           await this.iniciarLoginConIdentificador(chatId, userInput, session);
         } else {
