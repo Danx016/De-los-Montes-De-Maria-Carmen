@@ -4,8 +4,13 @@
   "description": "Root proxy package for Agro-Campo",
   "main": "app.js",
   "scripts": {
-    "postinstall": "npm install --prefix Agro-Campo-main",
-    "start": "node app.js"
+    "postinstall": "npm install --prefix \"The montes of maria/De los Montes de María\" && npm install --prefix \"The montes of maria/De los Montes de María/client\"",
+    "start": "node app.js",
+    "dev": "npm --prefix \"The montes of maria/De los Montes de María/client\" run dev",
+    "dev:server": "npm --prefix \"The montes of maria/De los Montes de María\" run start",
+    "dev:client": "npm --prefix \"The montes of maria/De los Montes de María/client\" run dev",
+    "build": "npm --prefix \"The montes of maria/De los Montes de María/client\" run build",
+    "build:client": "npm --prefix \"The montes of maria/De los Montes de María/client\" run build"
   },
   "engines": {
     "node": ">=18"

@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acceso Restringido - De los Montes de María</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #fef2f2 0%, #fee2e2 50%, #fca5a5 100%);
+      --card-bg: rgba(255, 255, 255, 0.9);
+      --card-border: rgba(239, 68, 68, 0.3);
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --accent-red: #dc2626;
+      --accent-glow: rgba(239, 68, 68, 0.4);
+    }
+
+    [data-theme="dark"], .dark-mode {
+      --bg-gradient: linear-gradient(135deg, #450a0a 0%, #7f1d1d 50%, #991b1b 100%);
+      --card-bg: rgba(24, 24, 27, 0.9);
+      --card-border: rgba(239, 68, 68, 0.5);
+      --text-main: #f8fafc;
+      --text-muted: #fca5a5;
+      --accent-red: #f87171;
+      --accent-glow: rgba(239, 68, 68, 0.6);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      color: var(--text-main);
+      transition: background 0.3s, color 0.3s;
+    }
+
+    .leaf-container {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      overflow: hidden;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .leaf {
+      position: absolute;
+      display: block;
+      list-style: none;
+      width: 20px;
+      height: 20px;
+      background: rgba(239, 68, 68, 0.15);
+      clip-path: polygon(50% 0%, 100% 35%, 100% 70%, 50% 100%, 0% 70%, 0% 35%);
+      animation: animateLeaves 22s linear infinite;
+      bottom: -150px;
+    }
+
+    .leaf:nth-child(1) { left: 15%; width: 25px; height: 25px; animation-delay: 0s; }
+    .leaf:nth-child(2) { left: 35%; width: 18px; height: 18px; animation-delay: 3s; animation-duration: 14s; }
+    .leaf:nth-child(3) { left: 75%; width: 22px; height: 22px; animation-delay: 1s; }
+    .leaf:nth-child(4) { left: 55%; width: 30px; height: 30px; animation-delay: 5s; animation-duration: 18s; }
+    .leaf:nth-child(5) { left: 90%; width: 18px; height: 18px; animation-delay: 2s; }
+
+    @keyframes animateLeaves {
+      0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-1100px) rotate(360deg);
+        opacity: 0;
+      }
+    }
+
+    .error-card {
+      position: relative;
+      z-index: 10;
+      background: var(--card-bg);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 2px solid var(--card-border);
+      border-radius: 24px;
+      padding: 3.5rem 2.5rem;
+      width: 90%;
+      max-width: 540px;
+      text-align: center;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1), 0 0 30px var(--accent-glow);
+      animation: floatCard 6s ease-in-out infinite;
+    }
+
+    @keyframes floatCard {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .scene {
+      position: relative;
+      height: 180px;
+      margin-bottom: 2rem;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+    }
+
+    .gate-container {
+      position: relative;
+      width: 200px;
+      height: 140px;
+    }
+
+    .farm-gate {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      height: 90px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .post {
+      width: 14px;
+      height: 110px;
+      background: #78350f;
+      border-radius: 4px;
+      position: absolute;
+      bottom: 0;
+      box-shadow: inset -3px 0 0 rgba(0,0,0,0.25);
+    }
+
+    .post-left { left: 0; }
+    .post-right { right: 0; }
+
+    .door {
+      width: 88px;
+      height: 70px;
+      border: 8px solid #a16207;
+      border-radius: 4px;
+      position: absolute;
+      bottom: 10px;
+      box-shadow: inset 0 0 0 2px #78350f;
+      transform-origin: bottom;
+      transition: transform 0.5s;
+    }
+
+    .door-left {
+      left: 12px;
+      border-right: none;
+      transform-origin: left center;
+      animation: swingLeft 5s ease-in-out infinite alternate;
+    }
+
+    .door-right {
+      right: 12px;
+      border-left: none;
+      transform-origin: right center;
+      animation: swingRight 5s ease-in-out infinite alternate;
+    }
+
+    .door::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background: #78350f;
+      transform: translateY(-50%);
+    }
+
+    .door-left::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 6px;
+      background: #78350f;
+      top: 0;
+      left: 0;
+      transform: rotate(30deg) translateY(24px);
+      transform-origin: top left;
+    }
+    
+    .door-right::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 6px;
+      background: #78350f;
+      top: 0;
+      right: 0;
+      transform: rotate(-30deg) translateY(24px);
+      transform-origin: top right;
+    }
+
+    @keyframes swingLeft {
+      0%, 100% { transform: rotateY(0deg); }
+      50% { transform: rotateY(12deg); }
+    }
+    
+    @keyframes swingRight {
+      0%, 100% { transform: rotateY(0deg); }
+      50% { transform: rotateY(-12deg); }
+    }
+
+    .lock-chain {
+      position: absolute;
+      top: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      animation: wobbleLock 3s ease-in-out infinite;
+    }
+
+    .padlock {
+      width: 46px;
+      height: 46px;
+      background: #dc2626;
+      border-radius: 8px;
+      position: relative;
+      border: 3px solid #ef4444;
+      box-shadow: 0 5px 15px rgba(220, 38, 38, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s, background-color 0.2s;
+    }
+
+    .padlock::before {
+      content: '';
+      width: 26px;
+      height: 24px;
+      border: 5px solid #991b1b;
+      border-bottom: none;
+      border-radius: 16px 16px 0 0;
+      position: absolute;
+      top: -16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: -1;
+    }
+
+    .padlock i {
+      color: #ffffff;
+      font-size: 1.25rem;
+      animation: blinkIcon 1.5s infinite;
+    }
+
+    @keyframes blinkIcon {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    @keyframes wobbleLock {
+      0%, 100% { transform: translateX(-50%) rotate(0deg); }
+      50% { transform: translateX(-50%) rotate(-6deg); }
+    }
+
+    .padlock:hover {
+      animation: shakeLock 0.4s ease-in-out;
+      background: #b91c1c;
+      border-color: #ef4444;
+      box-shadow: 0 0 25px rgba(220, 38, 38, 0.8);
+    }
+
+    @keyframes shakeLock {
+      0%, 100% { transform: scale(1.1) rotate(0); }
+      20%, 60% { transform: scale(1.1) rotate(-15deg); }
+      40%, 80% { transform: scale(1.1) rotate(15deg); }
+    }
+
+    .warning-sign {
+      position: absolute;
+      top: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #dc2626;
+      color: #ffffff;
+      padding: 6px 16px;
+      font-weight: 800;
+      font-size: 0.75rem;
+      border-radius: 30px;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      box-shadow: 0 4px 15px rgba(220, 38, 38, 0.5);
+      border: 2px solid #fee2e2;
+      z-index: 25;
+      animation: pulseSign 1.5s infinite alternate;
+      white-space: nowrap;
+    }
+
+    @keyframes pulseSign {
+      0% { box-shadow: 0 0 10px rgba(220, 38, 38, 0.4); transform: translateX(-50%) scale(1); }
+      100% { box-shadow: 0 0 20px rgba(220, 38, 38, 0.8); transform: translateX(-50%) scale(1.05); }
+    }
+
+    .scarecrow {
+      position: absolute;
+      left: -20px;
+      bottom: 10px;
+      width: 60px;
+      height: 100px;
+      opacity: 0.85;
+      z-index: 5;
+      transform-origin: bottom center;
+      animation: scarecrowWave 6s ease-in-out infinite alternate;
+    }
+
+    @keyframes scarecrowWave {
+      0% { transform: rotate(-4deg); }
+      100% { transform: rotate(4deg); }
+    }
+
+    .error-code {
+      font-size: 5rem;
+      font-weight: 850;
+      color: #991b1b;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(to right, #991b1b, #ef4444);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -2px;
+    }
+
+    .error-title {
+      font-size: 1.75rem;
+      font-weight: 800;
+      margin-bottom: 0.75rem;
+    }
+
+    .error-text {
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--text-muted);
+      margin-bottom: 2.5rem;
+    }
+
+    .error-text strong {
+      color: var(--accent-red);
+    }
+
+    .btn-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 30px;
+      background: linear-gradient(135deg, #7f1d1d 0%, #dc2626 100%);
+      color: #ffffff;
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(220, 38, 38, 0.3);
+      transition: all 0.25s ease;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-back:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(220, 38, 38, 0.45);
+    }
+
+    .btn-back:active {
+      transform: translateY(0);
+    }
+
+    .btn-back i {
+      transition: transform 0.25s;
+    }
+
+    .btn-back:hover i {
+      transform: translateX(-3px);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating particles / alert leaves -->
+  <div class="leaf-container">
+    <div class="leaf"></div>
+    <div class="leaf"></div>
+    <div class="leaf"></div>
+    <div class="leaf"></div>
+    <div class="leaf"></div>
+  </div>
+
+  <div class="error-card">
+    <div class="scene">
+      <!-- Animated scarecrow -->
+      <svg class="scarecrow" viewBox="0 0 60 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 35 L50 35 L40 20 L20 20 Z" fill="#78350f" />
+        <path d="M5 35 L55 35 L55 38 L5 38 Z" fill="#b45309" />
+        <circle cx="30" cy="48" r="10" fill="#fef08a" stroke="#ca8a04" stroke-width="2" />
+        <circle cx="27" cy="46" r="1.5" fill="#000" />
+        <circle cx="33" cy="46" r="1.5" fill="#000" />
+        <path d="M26 52 Q30 55 34 52" stroke="#000" stroke-width="1.5" fill="none" />
+        <rect x="28" y="58" width="4" height="40" fill="#a16207" />
+        <rect x="15" y="65" width="30" height="4" fill="#a16207" />
+        <!-- Red warning shirt to fit the alert theme -->
+        <path d="M20 58 L40 58 L45 80 L15 80 Z" fill="#b91c1c" opacity="0.9" />
+        <rect x="42" y="66" width="16" height="10" rx="2" fill="#ea580c" stroke="#d97706" />
+        <text x="50" y="73" font-size="6" font-weight="bold" fill="#ffffff" text-anchor="middle">403</text>
+      </svg>
+
+      <!-- Locked farm gate -->
+      <div class="gate-container">
+        <div class="warning-sign">Acceso Restringido</div>
+        <div class="post post-left"></div>
+        <div class="door door-left"></div>
+        <div class="door door-right"></div>
+        <div class="post post-right"></div>
+        
+        <div class="lock-chain">
+          <div class="padlock" title="¡Haz clic en el candado para verificar!">
+            <i class="fa-solid fa-lock"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h1 class="error-code">403</h1>
+    <h2 class="error-title">Acceso Restringido</h2>
+    <p class="error-text">
+      Has intentado ingresar a una sección protegida del sistema. La administración de <strong>De los Montes de María</strong> requiere autenticación con privilegios elevados para continuar.
+    </p>
+
+    <a href="/" class="btn-back">
+      <i class="fa-solid fa-arrow-left"></i>
+      Volver a Zona Segura
+    </a>
+  </div>
+
+  <script>
+    const padlock = document.querySelector('.padlock');
+    const warningSign = document.querySelector('.warning-sign');
+    const alerts = [
+      '¡Acceso Denegado!',
+      'Propiedad Privada',
+      'Rol de Administrador Requerido',
+      'Operación Bloqueada',
+      'Token sin Privilegios'
+    ];
+
+    padlock.addEventListener('click', () => {
+      padlock.style.animation = 'none';
+      void padlock.offsetWidth;
+      padlock.style.animation = 'shakeLock 0.4s ease-in-out';
+      
+      const randomAlert = alerts[Math.floor(Math.random() * alerts.length)];
+      warningSign.textContent = randomAlert;
+      warningSign.style.background = '#991b1b';
+      
+      setTimeout(() => {
+        warningSign.textContent = 'Acceso Restringido';
+        warningSign.style.background = '#dc2626';
+      }, 2500);
+    });
+
+    if (localStorage.getItem('theme') === 'dark') {
+      document.documentElement.classList.add('dark-mode');
+    }
+  </script>
+</body>
+</html>

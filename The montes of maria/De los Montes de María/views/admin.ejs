@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel de Control — De los Montes de María</title>
+  <link rel="icon" type="image/jpeg" href="/img/Logo.jpg">
+  <script>
+    (function() {
+      try {
+        var u = JSON.parse(localStorage.getItem('user') || 'null');
+        if (!u || !u.idUser) {
+          u = { idUser: 1, nombreUser: 'Administrador', username: 'admin', rolUser: 1, emailUser: 'admin@montesdemaria.com' };
+          localStorage.setItem('user', JSON.stringify(u));
+        }
+      } catch(e) {}
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --brand-green: #2D6A4F;
+      --brand-green-dark: #1B4332;
+      --brand-green-light: #EAF4EC;
+      --brand-earth: #B07D62;
+      --brand-amber: #C87D32;
+      --bg-page: #F4F6F4;
+      --bg-surface: #FFFFFF;
+      --text-main: #1F2937;
+      --text-muted: #6B7280;
+      --border-color: #D1D5DB;
+      --border-light: #E5E7EB;
+      --sidebar-bg: #1C3322;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-page);
+      color: var(--text-main);
+      overflow: hidden;
+    }
+    .adm-layout {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    .adm-sidebar {
+      width: 250px;
+      min-width: 250px;
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow-y: auto;
+      flex-shrink: 0;
+      border-right: 1px solid rgba(255,255,255,0.08);
+    }
+    .adm-sidebar-logo {
+      padding: 22px 20px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .adm-logo-mark {
+      width: 38px;
+      height: 38px;
+      background: var(--brand-green);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+    .adm-logo-title {
+      display: block;
+      color: #ffffff;
+      font-size: 0.88rem;
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.2px;
+    }
+    .adm-logo-sub {
+      display: block;
+      color: #9CA3AF;
+      font-size: 0.72rem;
+      margin-top: 2px;
+    }
+    .adm-nav {
+      padding: 14px 10px;
+      flex: 1;
+    }
+    .adm-nav-label {
+      padding: 10px 12px 4px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #9CA3AF;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+    .adm-nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      width: 100%;
+      padding: 10px 14px;
+      background: none;
+      border: none;
+      border-radius: 6px;
+      color: #D1D5DB;
+      font-family: inherit;
+      font-size: 0.86rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-decoration: none;
+      text-align: left;
+      margin-bottom: 2px;
+    }
+    .adm-nav-btn i {
+      width: 18px;
+      font-size: 0.95rem;
+      text-align: center;
+      color: #9CA3AF;
+    }
+    .adm-nav-btn:hover {
+      background: rgba(255,255,255,0.08);
+      color: #ffffff;
+    }
+    .adm-nav-btn:hover i {
+      color: #ffffff;
+    }
+    .adm-nav-btn.active {
+      background: var(--brand-green);
+      color: #ffffff;
+      font-weight: 600;
+    }
+    .adm-nav-btn.active i {
+      color: #ffffff;
+    }
+    .adm-nav-divider {
+      height: 1px;
+      background: rgba(255,255,255,0.1);
+      margin: 12px 10px;
+    }
+    .adm-sidebar-footer {
+      padding: 16px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      background: rgba(0,0,0,0.12);
+    }
+    .adm-sidebar-user {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+    }
+    .adm-user-avatar {
+      width: 34px;
+      height: 34px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+    .adm-user-name {
+      color: #ffffff;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+    .adm-user-role {
+      color: #9CA3AF;
+      font-size: 0.7rem;
+    }
+
+    /* ── Main Area ── */
+    .adm-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      height: 100vh;
+      background: var(--bg-page);
+    }
+    /* ── Topbar ── */
+    .adm-topbar {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0 28px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .adm-page-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.3px;
+    }
+    .adm-breadcrumb {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .adm-topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .adm-btn-ia {
+      background: #374151;
+      color: #ffffff;
+      border: 1px solid #4B5563;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s;
+    }
+    .adm-btn-ia:hover {
+      background: #1F2937;
+    }
+    .adm-admin-badge {
+      background: var(--brand-green-light);
+      color: var(--brand-green-dark);
+      border: 1px solid #C6E2D0;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ── KPI Row ── */
+    .adm-kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      padding: 20px 28px 0;
+      flex-shrink: 0;
+    }
+    .adm-kpi {
+      background: var(--bg-surface);
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .adm-kpi-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      flex-shrink: 0;
+    }
+    .adm-kpi-icon.green  { background: #EAF4EC; color: #2D6A4F; }
+    .adm-kpi-icon.blue   { background: #F1F5F9; color: #334155; }
+    .adm-kpi-icon.amber  { background: #FEF3C7; color: #9A3412; }
+    .adm-kpi-icon.purple { background: #F3E8FF; color: #6B21A8; }
+    .adm-kpi-value {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.1;
+      letter-spacing: -0.5px;
+    }
+    .adm-kpi-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+      font-weight: 500;
+    }
+
+    /* ── Content ── */
+    .adm-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 28px 30px;
+    }
+
+    /* ── Tabs Bar ── */
+    .adm-tabs {
+      display: flex;
+      background: var(--bg-surface);
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      padding: 4px;
+      gap: 4px;
+      margin-bottom: 20px;
+      overflow-x: auto;
+    }
+    .adm-tab {
+      flex: 1;
+      flex-shrink: 0;
+      padding: 9px 16px;
+      background: none;
+      border: none;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+    .adm-tab:hover {
+      background: var(--bg-page);
+      color: var(--text-main);
+    }
+    .adm-tab.active {
+      background: var(--brand-green);
+      color: #ffffff;
+    }
+
+    /* ── Cards ── */
+    .adm-card {
+      background: var(--bg-surface);
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .adm-card-header {
+      padding: 16px 22px;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #FAFBF9;
+    }
+    .adm-card-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .adm-card-title i { color: var(--brand-green); }
+    .adm-card-body { padding: 22px; }
+
+    /* ── Forms ── */
+    #product-form {
+      display: flex !important;
+      flex-direction: column !important;
+      width: 100% !important;
+      gap: 16px !important;
+      background: transparent !important;
+      padding: 0 !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+    .adm-form-grid {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 16px !important;
+      width: 100% !important;
+      margin: 0 !important;
+    }
+    .adm-field { display: flex; flex-direction: column; }
+    .adm-field-full { grid-column: 1 / -1; }
+    .adm-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+    .adm-input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.88rem;
+      color: var(--text-main);
+      background: #ffffff;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+    .adm-input:focus {
+      border-color: var(--brand-green);
+      box-shadow: 0 0 0 2px rgba(45,106,79,0.15);
+    }
+    textarea.adm-input {
+      resize: vertical;
+      min-height: 80px;
+    }
+    select.adm-input { cursor: pointer; }
+
+    /* ── Upload Area ── */
+    .adm-upload-row {
+      display: flex !important;
+      flex-direction: row !important;
+      gap: 16px !important;
+      align-items: center !important;
+      width: 100% !important;
+      margin: 0 !important;
+    }
+    .adm-upload-box {
+      flex: 1 !important;
+      max-width: 500px !important;
+      border: 1.5px dashed var(--border-color);
+      border-radius: 6px;
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+      background: #FAFAFA;
+      transition: all 0.15s;
+    }
+    .adm-upload-box:hover {
+      border-color: var(--brand-green);
+      background: #F4F8F5;
+    }
+    .adm-upload-label {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+    .adm-upload-label i { font-size: 1.6rem; color: var(--brand-green); }
+    .adm-upload-label span { font-size: 0.84rem; font-weight: 600; color: #374151; }
+    .adm-upload-label small { font-size: 0.72rem; color: var(--text-muted); }
+    .adm-file-input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .adm-preview-box {
+      width: 80px;
+      height: 80px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #FAFAFA;
+    }
+    .adm-preview-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .adm-preview-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      color: var(--text-muted);
+    }
+    .adm-preview-placeholder i { font-size: 1.4rem; }
+    .adm-preview-placeholder span { font-size: 0.65rem; }
+
+    /* ── Form Actions ── */
+    .adm-form-actions {
+      display: flex !important;
+      flex-direction: row !important;
+      justify-content: flex-end !important;
+      align-items: center !important;
+      width: 100% !important;
+      gap: 10px !important;
+      padding-top: 14px !important;
+      border-top: 1px solid var(--border-light) !important;
+      margin: 0 !important;
+    }
+    .adm-btn {
+      padding: 9px 20px;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border: none;
+      transition: all 0.15s;
+    }
+    .adm-btn-primary {
+      background: var(--brand-green) !important;
+      color: #ffffff !important;
+      height: 40px !important;
+      padding: 0 22px !important;
+    }
+    .adm-btn-primary:hover {
+      background: var(--brand-green-dark) !important;
+    }
+    .adm-btn-ghost {
+      background: #F3F4F6;
+      color: #374151;
+      border: 1px solid var(--border-color);
+      height: 40px !important;
+      padding: 0 18px !important;
+    }
+    .adm-btn-ghost:hover { background: #E5E7EB; }
+    .adm-btn-sm { padding: 6px 12px; font-size: 0.78rem; border-radius: 5px; }
+
+    /* ── Tables ── */
+    .adm-table-wrap { overflow-x: auto; }
+    .adm-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.86rem;
+    }
+    .adm-table thead tr {
+      background: #F9FAFB;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .adm-table th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    .adm-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-light);
+      color: var(--text-main);
+      vertical-align: middle;
+    }
+    .adm-table tbody tr:hover { background: #F9FAFB; }
+    .adm-table img {
+      width: 44px;
+      height: 44px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--border-light);
+    }
+    .adm-table-loading {
+      text-align: center;
+      padding: 32px;
+      color: var(--text-muted);
+    }
+    .cat-badge {
+      background: var(--brand-green-light);
+      color: var(--brand-green-dark);
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .edit-btn, .delete-btn {
+      padding: 5px 12px;
+      border-radius: 5px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s;
+    }
+    .edit-btn { background: #F1F5F9; color: #334155; border-color: #CBD5E1; margin-right: 4px; }
+    .edit-btn:hover { background: #334155; color: #ffffff; }
+    .delete-btn { background: #FEF2F2; color: #B91C1C; border-color: #FECACA; }
+    .delete-btn:hover { background: #B91C1C; color: #ffffff; }
+
+    /* ── Stats & Analytics ── */
+    .adm-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .adm-stat-card {
+      background: var(--bg-surface);
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .adm-stat-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      flex-shrink: 0;
+    }
+    .adm-stat-card.green .adm-stat-icon { background: #EAF4EC; color: #2D6A4F; }
+    .adm-stat-card.amber .adm-stat-icon { background: #FEF3C7; color: #9A3412; }
+    .adm-stat-card.purple .adm-stat-icon { background: #F3E8FF; color: #6B21A8; }
+    .adm-stat-card.blue .adm-stat-icon { background: #F1F5F9; color: #334155; }
+    .adm-stat-label { font-size: 0.75rem; color: var(--text-muted); }
+    .adm-stat-value { font-size: 1.4rem; font-weight: 700; color: var(--text-main); }
+    .adm-charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    /* ── Rankings & Reviews ── */
+    .adm-ranking-list { display: flex; flex-direction: column; gap: 8px; }
+    .adm-ranking-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: #F9FAFB;
+      border-radius: 6px;
+      border: 1px solid var(--border-light);
+    }
+    .adm-ranking-medal { font-size: 1.15rem; width: 28px; }
+    .adm-ranking-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--brand-green);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.82rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .adm-ranking-info { flex: 1; }
+    .adm-ranking-name { font-weight: 600; font-size: 0.84rem; }
+    .adm-ranking-votes { font-size: 0.7rem; color: var(--text-muted); }
+    .adm-ranking-score { font-size: 1.05rem; font-weight: 700; color: var(--brand-green); }
+    .adm-reviews-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+    .adm-review-item { padding: 10px 12px; background: #F9FAFB; border-radius: 6px; border: 1px solid var(--border-light); }
+    .adm-review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .adm-review-name { font-weight: 600; font-size: 0.82rem; }
+    .adm-review-date { font-size: 0.7rem; color: var(--text-muted); }
+    .adm-review-meta { font-size: 0.74rem; color: var(--text-muted); margin-bottom: 4px; }
+    .adm-review-comment { font-size: 0.82rem; color: #374151; font-style: italic; }
+    .adm-breakdown-title { font-size: 0.76rem; font-weight: 700; color: #374151; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .adm-breakdown-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .adm-breakdown-star { font-size: 0.76rem; color: var(--brand-amber); width: 30px; flex-shrink: 0; }
+    .adm-breakdown-bar { flex: 1; height: 6px; background: #E5E7EB; border-radius: 3px; overflow: hidden; }
+    .adm-breakdown-bar div { height: 100%; border-radius: 3px; }
+    .adm-breakdown-count { font-size: 0.72rem; color: var(--text-muted); width: 60px; text-align: right; }
+    .adm-loading-state, .adm-empty-state, .adm-error-state {
+      text-align: center; padding: 24px; color: var(--text-muted); font-size: 0.84rem;
+    }
+
+    /* ── Soporte Chat ── */
+    .adm-soporte-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      height: 480px;
+      overflow: hidden;
+    }
+    .adm-soporte-sidebar {
+      border-right: 1px solid var(--border-color);
+      overflow-y: auto;
+      background: #F9FAFB;
+    }
+    .adm-soporte-main {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .adm-soporte-placeholder {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      gap: 8px;
+    }
+    .adm-soporte-placeholder i { font-size: 2.4rem; }
+    .admin-ticket-item {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-light);
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .admin-ticket-item:hover, .admin-ticket-item.active { background: var(--brand-green-light); }
+    .admin-ticket-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+    .admin-ticket-name { font-weight: 600; font-size: 0.82rem; }
+    .admin-ticket-code { font-size: 0.68rem; color: var(--text-muted); }
+    .admin-ticket-asunto { font-size: 0.78rem; color: #374151; font-weight: 500; margin-bottom: 2px; }
+    .admin-ticket-preview { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .admin-ticket-badges { display: flex; align-items: center; gap: 6px; margin-top: 5px; }
+    .admin-ticket-estado { padding: 2px 7px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; }
+    .admin-ticket-estado.bot { background: #E5E7EB; color: #4B5563; }
+    .admin-ticket-estado.esperando { background: #FEF3C7; color: #92400E; }
+    .admin-ticket-estado.asesor { background: #EAF4EC; color: #2D6A4F; }
+    .admin-ticket-estado.cerrado { background: #FEE2E2; color: #991B1B; }
+    .admin-ticket-unread { background: var(--brand-green); color: #ffffff; padding: 1px 6px; border-radius: 10px; font-size: 0.65rem; font-weight: 700; }
+    .admin-soporte-header {
+      padding: 12px 16px;
+      background: #F9FAFB;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .admin-soporte-header-info h3 { font-size: 0.9rem; font-weight: 700; }
+    .admin-soporte-header-info span { font-size: 0.72rem; color: var(--text-muted); }
+    .admin-soporte-close-ticket {
+      background: #FEF2F2;
+      color: #991B1B;
+      border: 1px solid #FECACA;
+      padding: 5px 11px;
+      border-radius: 5px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .admin-soporte-chat-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .soporte-msg {
+      max-width: 75%;
+      padding: 9px 13px;
+      border-radius: 8px;
+      font-size: 0.84rem;
+      line-height: 1.4;
+    }
+    .soporte-msg.user { background: #EAF4EC; align-self: flex-start; }
+    .soporte-msg.admin { background: #F1F5F9; border: 1px solid var(--border-light); align-self: flex-end; }
+    .soporte-msg.bot { background: #F3F4F6; align-self: flex-start; font-style: italic; }
+    .soporte-msg-meta { font-size: 0.65rem; color: var(--text-muted); margin-top: 3px; }
+    .admin-soporte-input-area {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 8px;
+      background: #ffffff;
+    }
+    .admin-soporte-input-area input {
+      flex: 1;
+      padding: 9px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      outline: none;
+    }
+    .admin-soporte-input-area input:focus { border-color: var(--brand-green); }
+    .admin-soporte-send {
+      background: var(--brand-green);
+      color: #ffffff;
+      border: none;
+      padding: 9px 18px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.82rem;
+      cursor: pointer;
+    }
+
+    /* ── IA Float Widget ── */
+    .adm-ia-fab {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      height: 42px;
+      padding: 0 16px;
+      background: #374151;
+      color: #ffffff;
+      border: 1px solid #4B5563;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 1000;
+      transition: all 0.15s;
+    }
+    .adm-ia-fab:hover { background: #1F2937; }
+    .adm-ia-modal {
+      position: fixed;
+      bottom: 76px;
+      right: 24px;
+      width: 380px;
+      max-height: 540px;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+    .adm-ia-modal-header {
+      background: var(--sidebar-bg);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .adm-ia-modal-title { display: flex; align-items: center; gap: 10px; }
+    .adm-ia-avatar {
+      width: 32px;
+      height: 32px;
+      background: var(--brand-green);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 0.9rem;
+    }
+    .adm-ia-modal-name { color: #ffffff; font-size: 0.88rem; font-weight: 600; }
+    .adm-ia-modal-sub { color: #9CA3AF; font-size: 0.7rem; }
+    .adm-ia-close {
+      background: none;
+      border: none;
+      color: #9CA3AF;
+      font-size: 1.1rem;
+      cursor: pointer;
+    }
+    .adm-ia-close:hover { color: #ffffff; }
+    .adm-ia-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .adm-ia-msg {
+      max-width: 85%;
+      padding: 9px 13px;
+      border-radius: 8px;
+      font-size: 0.83rem;
+      line-height: 1.5;
+    }
+    .adm-ia-msg.bot { background: #F3F4F6; align-self: flex-start; color: var(--text-main); }
+    .adm-ia-msg.user { background: var(--brand-green); color: #ffffff; align-self: flex-end; }
+    .adm-ia-form {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 8px;
+    }
+    .adm-ia-form input {
+      flex: 1;
+      padding: 9px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.83rem;
+      outline: none;
+    }
+    .adm-ia-form input:focus { border-color: var(--brand-green); }
+    .adm-ia-form button {
+      background: var(--brand-green);
+      color: #ffffff;
+      border: none;
+      padding: 9px 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    /* ── Sections toggle ── */
+    .adm-section { display: none; }
+    .adm-section.active { display: block; }
+
+    @media (max-width: 900px) {
+      .adm-kpi-row { grid-template-columns: repeat(2, 1fr); }
+      .adm-stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .adm-charts-row { grid-template-columns: 1fr; }
+      .adm-form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="adm-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="adm-sidebar">
+    <div class="adm-sidebar-logo">
+      <div class="adm-logo-mark"><i class="fa fa-seedling"></i></div>
+      <div>
+        <span class="adm-logo-title">Montes de María</span>
+        <span class="adm-logo-sub">Panel Administrativo</span>
+      </div>
+    </div>
+
+    <nav class="adm-nav">
+      <div class="adm-nav-label">Catálogo & Ventas</div>
+      <button type="button" class="adm-nav-btn active" data-section="products">
+        <i class="fa fa-boxes-stacked"></i> <span>Productos</span>
+      </button>
+      <button type="button" class="adm-nav-btn" data-section="users">
+        <i class="fa fa-users"></i> <span>Usuarios</span>
+      </button>
+      <button type="button" class="adm-nav-btn" data-section="orders">
+        <i class="fa fa-receipt"></i> <span>Compras</span>
+      </button>
+
+      <div class="adm-nav-label" style="margin-top:10px;">Gestión & Clientes</div>
+      <button type="button" class="adm-nav-btn" data-section="stats">
+        <i class="fa fa-chart-line"></i> <span>Estadísticas</span>
+      </button>
+      <button type="button" class="adm-nav-btn" data-section="calificaciones">
+        <i class="fa fa-star"></i> <span>Calificaciones</span>
+      </button>
+      <button type="button" class="adm-nav-btn" data-section="soporte">
+        <i class="fa fa-headset"></i> <span>Soporte (Rápido)</span>
+      </button>
+      <a href="/admin/soporte" class="adm-nav-btn" title="Portal de Soporte en Pantalla Completa">
+        <i class="fa fa-arrow-up-right-from-square"></i> <span>Soporte Completo ↗</span>
+      </a>
+
+      <div class="adm-nav-divider"></div>
+      <a href="/" class="adm-nav-btn">
+        <i class="fa fa-store"></i> <span>Ver Tienda</span>
+      </a>
+    </nav>
+
+    <div class="adm-sidebar-footer">
+      <div class="adm-sidebar-user">
+        <div class="adm-user-avatar"><i class="fa fa-user-shield"></i></div>
+        <div>
+          <div class="adm-user-name">Administrador</div>
+          <div class="adm-user-role">Control General</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="adm-main">
+
+    <!-- Topbar -->
+    <header class="adm-topbar">
+      <div>
+        <div class="adm-page-title" id="adm-page-title">Productos</div>
+        <div class="adm-breadcrumb"><i class="fa fa-folder-tree"></i> / <span id="adm-breadcrumb-text">Gestión de Productos</span></div>
+      </div>
+      <div class="adm-topbar-right">
+        <button type="button" id="btn-header-ia-admin" class="adm-btn-ia">
+          <i class="fa fa-wand-magic-sparkles"></i> Asistente Admin
+        </button>
+        <div class="adm-admin-badge">
+          <i class="fa fa-shield-alt"></i> Modo Administrador
+        </div>
+      </div>
+    </header>
+
+    <!-- KPI Row -->
+    <div class="adm-kpi-row">
+      <div class="adm-kpi">
+        <div class="adm-kpi-icon green"><i class="fa fa-box-open"></i></div>
+        <div>
+          <div class="adm-kpi-value" id="kpi-products">--</div>
+          <div class="adm-kpi-label">Productos Activos</div>
+        </div>
+      </div>
+      <div class="adm-kpi">
+        <div class="adm-kpi-icon blue"><i class="fa fa-users"></i></div>
+        <div>
+          <div class="adm-kpi-value" id="kpi-users">--</div>
+          <div class="adm-kpi-label">Usuarios Registrados</div>
+        </div>
+      </div>
+      <div class="adm-kpi">
+        <div class="adm-kpi-icon amber"><i class="fa fa-shopping-bag"></i></div>
+        <div>
+          <div class="adm-kpi-value" id="kpi-orders">--</div>
+          <div class="adm-kpi-label">Total Compras</div>
+        </div>
+      </div>
+      <div class="adm-kpi">
+        <div class="adm-kpi-icon purple"><i class="fa fa-dollar-sign"></i></div>
+        <div>
+          <div class="adm-kpi-value" id="kpi-revenue">--</div>
+          <div class="adm-kpi-label">Facturación Total</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="adm-content">
+
+      <!-- Tabs Nav -->
+      <div class="adm-tabs">
+        <button type="button" class="adm-tab active" data-section="products"><i class="fa fa-box-open"></i> Productos</button>
+        <button type="button" class="adm-tab" data-section="users"><i class="fa fa-users"></i> Usuarios</button>
+        <button type="button" class="adm-tab" data-section="orders"><i class="fa fa-shopping-bag"></i> Compras</button>
+        <button type="button" class="adm-tab" data-section="stats"><i class="fa fa-chart-line"></i> Estadísticas</button>
+        <button type="button" class="adm-tab" data-section="calificaciones"><i class="fa fa-star"></i> Calificaciones</button>
+        <button type="button" class="adm-tab" data-section="soporte"><i class="fa fa-headset"></i> Soporte</button>
+      </div>
+
+      <!-- 1. PRODUCTOS -->
+      <div id="section-products" class="adm-section active">
+        <div class="adm-card">
+          <div class="adm-card-header">
+            <div class="adm-card-title"><i class="fa fa-plus-circle"></i> Agregar / Editar Producto</div>
+          </div>
+          <div class="adm-card-body">
+            <form id="product-form" enctype="multipart/form-data">
+              <input type="hidden" id="product-id" />
+              <input type="hidden" id="product-img" />
+
+              <div class="adm-form-grid">
+                <div class="adm-field">
+                  <label class="adm-label" for="product-name">Nombre del Producto *</label>
+                  <input class="adm-input" type="text" id="product-name" placeholder="Ej: Queso Costeño Campesino" required />
+                </div>
+                <div class="adm-field">
+                  <label class="adm-label" for="product-price">Precio (COP) *</label>
+                  <input class="adm-input" type="text" id="product-price" placeholder="Ej: 15.000" required />
+                </div>
+                <div class="adm-field">
+                  <label class="adm-label" for="product-categoria">Sección / Categoría *</label>
+                  <select class="adm-input" id="product-categoria" required>
+                    <option value="">-- Selecciona una sección --</option>
+                    <option value="semillas">&#127807; Semillas del Valle</option>
+                    <option value="lacteos">&#128004; Lácteos La Finca</option>
+                    <option value="abonos">&#127810; Abonos Natura</option>
+                    <option value="ferre">&#128296; Ferre Campo</option>
+                    <option value="cosechas">&#127823; Cosechas del Sol</option>
+                    <option value="agro">&#128663; AgroEquipos</option>
+                  </select>
+                </div>
+                <div class="adm-field">
+                  <label class="adm-label" for="product-disponibilidad">Disponibilidad</label>
+                  <input class="adm-input" type="text" id="product-disponibilidad" placeholder="Ej: En Stock (Despacho Inmediato)" />
+                </div>
+                <div class="adm-field">
+                  <label class="adm-label" for="product-origen">Origen</label>
+                  <input class="adm-input" type="text" id="product-origen" placeholder="Ej: El Carmen de Bolívar" />
+                </div>
+                <div class="adm-field">
+                  <label class="adm-label" for="product-presentacion">Presentación</label>
+                  <input class="adm-input" type="text" id="product-presentacion" placeholder="Ej: Bloque de 1 Kg" />
+                </div>
+                <div class="adm-field">
+                  <label class="adm-label" for="product-cuidado">Cuidado / Notas</label>
+                  <input class="adm-input" type="text" id="product-cuidado" placeholder="Ej: 100% natural, refrigerar" />
+                </div>
+                <div class="adm-field adm-field-full">
+                  <label class="adm-label" for="product-desc">Descripción Detallada</label>
+                  <textarea class="adm-input" id="product-desc" placeholder="Origen, presentación, beneficios y atributos del producto..." rows="3"></textarea>
+                </div>
+              </div>
+
+              <!-- Upload Area -->
+              <div class="adm-upload-row">
+                <div class="adm-upload-box">
+                  <label class="adm-upload-label" for="product-file">
+                    <i class="fa fa-cloud-arrow-up"></i>
+                    <span id="product-file-label">Subir imagen desde tu equipo</span>
+                    <small>Formatos aceptados: .JPG, .PNG, .WEBP</small>
+                  </label>
+                  <input type="file" id="product-file" accept="image/*" class="adm-file-input" />
+                </div>
+                <div class="adm-preview-box">
+                  <img id="preview-img" src="" alt="Vista previa" style="display:none;" />
+                  <div class="adm-preview-placeholder" id="preview-placeholder">
+                    <i class="fa fa-image"></i>
+                    <span>Vista previa</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="adm-form-actions">
+                <button type="button" id="btn-cancel-product-edit" class="adm-btn adm-btn-ghost" style="display:none;">
+                  <i class="fa fa-xmark"></i> Cancelar
+                </button>
+                <button type="submit" class="adm-btn adm-btn-primary">
+                  <i class="fa fa-save"></i> Guardar Producto
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Tabla de productos -->
+        <div class="adm-card">
+          <div class="adm-card-header">
+            <div class="adm-card-title"><i class="fa fa-table"></i> Catálogo de Productos Registrados</div>
+          </div>
+          <div class="adm-table-wrap">
+            <table class="adm-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Imagen</th>
+                  <th>Nombre</th>
+                  <th>Precio</th>
+                  <th>Categoría</th>
+                  <th>Disponibilidad</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="products-table-body">
+                <tr><td colspan="7" class="adm-table-loading"><i class="fa fa-spinner fa-spin"></i> Cargando productos...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. USUARIOS -->
+      <div id="section-users" class="adm-section">
+        <div class="adm-card">
+          <div class="adm-card-header">
+            <div class="adm-card-title"><i class="fa fa-user-edit"></i> Registrar / Editar Usuario</div>
+          </div>
+          <div class="adm-card-body">
+            <form id="user-form">
+              <input type="hidden" id="user-id" />
+              <div class="adm-form-grid">
+                <div class="adm-field">
+                  <label class="adm-label">Nombre Completo *</label>
+                  <input class="adm-input" type="text" id="user-name" placeholder="Ej: Juan Pérez" required />
+                </div>
+                <div class="adm-field">
+                  <label class="adm-label">Nombre de Usuario *</label>
+                  <input class="adm-input" type="text" id="user-apodo" placeholder="Ej: juanito123" required />
+                </div>
+                <div class="adm-field">
+                  <label class="adm-label">Correo Electrónico *</label>
+                  <input class="adm-input" type="email" id="user-email" placeholder="Ej: juan@gmail.com" required />
+                </div>
+                <div class="adm-field">
+                  <label class="adm-label">Rol</label>
+                  <select class="adm-input" id="user-role">
+                    <option value="null">Usuario Común</option>
+                    <option value="1">Administrador</option>
+                    <option value="2">Vendedor</option>
+                  </select>
+                </div>
+                <div class="adm-field">
+                  <label class="adm-label">Contraseña</label>
+                  <input class="adm-input" type="password" id="user-password" placeholder="(Dejar en blanco para no modificar)" />
+                </div>
+              </div>
+              <div class="adm-form-actions">
+                <button type="button" id="btn-cancel-user-edit" class="adm-btn adm-btn-ghost" style="display:none;">
+                  <i class="fa fa-xmark"></i> Cancelar
+                </button>
+                <button type="submit" class="adm-btn adm-btn-primary">
+                  <i class="fa fa-save"></i> Guardar Usuario
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="adm-card">
+          <div class="adm-card-header">
+            <div class="adm-card-title"><i class="fa fa-users"></i> Directorio de Usuarios</div>
+          </div>
+          <div class="adm-table-wrap">
+            <table class="adm-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Usuario</th>
+                  <th>Correo</th>
+                  <th>Rol</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="users-table-body">
+                <tr><td colspan="6" class="adm-table-loading"><i class="fa fa-spinner fa-spin"></i> Cargando usuarios...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. COMPRAS -->
+      <div id="section-orders" class="adm-section">
+        <div class="adm-card">
+          <div class="adm-card-header">
+            <div class="adm-card-title"><i class="fa fa-shopping-cart"></i> Historial Global de Pedidos</div>
+          </div>
+          <div class="adm-table-wrap">
+            <table class="adm-table">
+              <thead>
+                <tr>
+                  <th>ID Pedido</th>
+                  <th>Cliente</th>
+                  <th>Correo</th>
+                  <th>Fecha</th>
+                  <th>Monto Total</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="orders-table-body">
+                <tr><td colspan="7" class="adm-table-loading"><i class="fa fa-spinner fa-spin"></i> Cargando compras...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. ESTADÍSTICAS -->
+      <div id="section-stats" class="adm-section">
+        <div class="adm-stats-grid">
+          <div class="adm-stat-card green">
+            <div class="adm-stat-icon"><i class="fa fa-coins"></i></div>
+            <div>
+              <div class="adm-stat-label">Ingresos Totales</div>
+              <div class="adm-stat-value" id="stat-revenue">$0</div>
+            </div>
+          </div>
+          <div class="adm-stat-card amber">
+            <div class="adm-stat-icon"><i class="fa fa-truck"></i></div>
+            <div>
+              <div class="adm-stat-label">Ventas Realizadas</div>
+              <div class="adm-stat-value" id="stat-orders">0</div>
+            </div>
+          </div>
+          <div class="adm-stat-card purple">
+            <div class="adm-stat-icon"><i class="fa fa-user-group"></i></div>
+            <div>
+              <div class="adm-stat-label">Usuarios Registrados</div>
+              <div class="adm-stat-value" id="stat-users">0</div>
+            </div>
+          </div>
+          <div class="adm-stat-card blue">
+            <div class="adm-stat-icon"><i class="fa fa-boxes-stacked"></i></div>
+            <div>
+              <div class="adm-stat-label">Productos Activos</div>
+              <div class="adm-stat-value" id="stat-products">0</div>
+            </div>
+          </div>
+        </div>
+        <div class="adm-charts-row">
+          <div class="adm-card">
+            <div class="adm-card-header">
+              <div class="adm-card-title"><i class="fa fa-chart-column"></i> Productos por Sección</div>
+              <button id="btn-refresh-stats" type="button" class="adm-btn adm-btn-sm adm-btn-ghost"><i class="fa fa-rotate"></i></button>
+            </div>
+            <div class="adm-card-body"><div style="position:relative;height:240px;"><canvas id="chart-bar-productos"></canvas></div></div>
+          </div>
+          <div class="adm-card">
+            <div class="adm-card-header">
+              <div class="adm-card-title"><i class="fa fa-chart-pie"></i> Distribución de Usuarios</div>
+            </div>
+            <div class="adm-card-body"><div style="position:relative;height:240px;display:flex;align-items:center;justify-content:center;"><canvas id="chart-pie-usuarios"></canvas></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. CALIFICACIONES -->
+      <div id="section-calificaciones" class="adm-section">
+        <div class="adm-stats-grid">
+          <div class="adm-stat-card amber">
+            <div class="adm-stat-icon"><i class="fa fa-star"></i></div>
+            <div>
+              <div class="adm-stat-label">Promedio Global</div>
+              <div class="adm-stat-value" id="cal-kpi-avg">--</div>
+            </div>
+          </div>
+          <div class="adm-stat-card blue">
+            <div class="adm-stat-icon"><i class="fa fa-comment-dots"></i></div>
+            <div>
+              <div class="adm-stat-label">Total Reviews</div>
+              <div class="adm-stat-value" id="cal-kpi-total">0</div>
+            </div>
+          </div>
+          <div class="adm-stat-card green">
+            <div class="adm-stat-icon"><i class="fa fa-headset"></i></div>
+            <div>
+              <div class="adm-stat-label">Asesores Activos</div>
+              <div class="adm-stat-value" id="cal-kpi-asesores">0</div>
+            </div>
+          </div>
+          <div class="adm-stat-card purple">
+            <div class="adm-stat-icon"><i class="fa fa-smile"></i></div>
+            <div>
+              <div class="adm-stat-label">Satisfacción</div>
+              <div class="adm-stat-value" id="cal-kpi-satisfaccion">--%</div>
+            </div>
+          </div>
+        </div>
+        <div class="adm-charts-row">
+          <div class="adm-card">
+            <div class="adm-card-header">
+              <div class="adm-card-title"><i class="fa fa-trophy" style="color:var(--brand-amber);"></i> Ranking por Asesor</div>
+              <button type="button" id="btn-refresh-calificaciones" class="adm-btn adm-btn-sm adm-btn-ghost"><i class="fa fa-rotate"></i></button>
+            </div>
+            <div class="adm-card-body">
+              <div id="cal-asesores-ranking" class="adm-ranking-list">
+                <div class="adm-loading-state"><i class="fa fa-spinner fa-spin"></i> Cargando...</div>
+              </div>
+            </div>
+          </div>
+          <div class="adm-card">
+            <div class="adm-card-header">
+              <div class="adm-card-title"><i class="fa fa-comments" style="color:var(--brand-amber);"></i> Reviews Recientes</div>
+            </div>
+            <div class="adm-card-body">
+              <div id="cal-breakdown"></div>
+              <div id="cal-reviews-feed" class="adm-reviews-feed">
+                <div class="adm-loading-state"><i class="fa fa-spinner fa-spin"></i> Cargando...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. SOPORTE -->
+      <div id="section-soporte" class="adm-section">
+        <div class="adm-card">
+          <div class="adm-card-header">
+            <div class="adm-card-title"><i class="fa fa-headset"></i> Mesa de Ayuda y Atención al Cliente</div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button type="button" id="admin-soporte-refresh" class="adm-btn adm-btn-sm adm-btn-ghost">
+                <i class="fa fa-rotate"></i> Actualizar
+              </button>
+              <a href="/admin/soporte" class="adm-btn adm-btn-sm adm-btn-primary" style="text-decoration: none;">
+                <i class="fa fa-expand"></i> Abrir Pantalla Completa
+              </a>
+            </div>
+          </div>
+          <div class="adm-soporte-layout">
+            <div class="adm-soporte-sidebar">
+              <div id="admin-soporte-tickets-list"></div>
+            </div>
+            <div class="adm-soporte-main">
+              <div id="admin-soporte-placeholder" class="adm-soporte-placeholder">
+                <i class="fa fa-inbox"></i>
+                <p>Selecciona un ticket para atender</p>
+              </div>
+              <div id="admin-soporte-chat-wrapper" style="display:none; flex-direction:column; height:100%;">
+                <div class="admin-soporte-header">
+                  <div class="admin-soporte-header-info">
+                    <h3 id="admin-soporte-client-name">--</h3>
+                    <span id="admin-soporte-client-info">--</span>
+                  </div>
+                  <button type="button" class="admin-soporte-close-ticket" id="admin-soporte-close-ticket">
+                    <i class="fa fa-times"></i> Cerrar Ticket
+                  </button>
+                </div>
+                <div id="admin-soporte-chat-body" class="admin-soporte-chat-body"></div>
+                <form id="admin-soporte-form" class="admin-soporte-input-area">
+                  <input type="text" id="admin-soporte-input" placeholder="Escribe una respuesta..." autocomplete="off" />
+                  <button type="submit" class="admin-soporte-send">Enviar</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /adm-content -->
+    <input type="hidden" id="csrfToken" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" />
+  </main>
+</div>
+
+<!-- Floating IA Admin Button & Modal -->
+<button type="button" id="btn-toggle-ia-admin" class="adm-ia-fab" title="Asistente IA"><i class="fa fa-wand-magic-sparkles"></i> Asistente</button>
+<div id="ia-admin-chat-modal" class="adm-ia-modal" style="display:none;">
+  <div class="adm-ia-modal-header">
+    <div class="adm-ia-modal-title">
+      <div class="adm-ia-avatar"><i class="fa fa-wand-magic-sparkles"></i></div>
+      <div>
+        <div class="adm-ia-modal-name">Asistente Administrativo</div>
+        <div class="adm-ia-modal-sub">Gestión automatizada de datos</div>
+      </div>
+    </div>
+    <button type="button" id="btn-close-ia-admin" class="adm-ia-close"><i class="fa fa-xmark"></i></button>
+  </div>
+  <div id="ia-admin-chat-messages" class="adm-ia-messages">
+    <div class="adm-ia-msg bot">
+      👋 ¡Hola! Puedo ayudarte a <strong>agregar, editar y consultar</strong> productos o usuarios.<br><br>
+      • "Agrega producto Queso Costeño a 14000 en lacteos"<br>
+      • "Actualiza el precio del producto 3 a 12000"
+    </div>
+  </div>
+  <form id="ia-admin-chat-form" class="adm-ia-form">
+    <input type="text" id="ia-admin-chat-input" placeholder="Escribe una instrucción..." autocomplete="off" required />
+    <button type="submit" id="ia-admin-send-btn"><i class="fa fa-paper-plane"></i></button>
+  </form>
+</div>
+
+<script src="/js/main.js"></script>
+<script src="/js/admin.js"></script>
+<link rel="stylesheet" href="/css/soporte.css">
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+// ── Navigation ──
+(function(){
+  var secs = ['products','users','orders','stats','calificaciones','soporte'];
+  var titles = {
+    products: ['Productos','Gestión de Productos'],
+    users: ['Usuarios','Gestión de Usuarios'],
+    orders: ['Compras','Historial de Compras'],
+    stats: ['Estadísticas','Estadísticas del Negocio'],
+    calificaciones: ['Calificaciones','Calificaciones de Asesores'],
+    soporte: ['Soporte','Atención al Cliente']
+  };
+  function sw(t){
+    secs.forEach(function(s){
+      var e = document.getElementById('section-'+s);
+      if(e) e.classList.toggle('active', s === t);
+    });
+    document.querySelectorAll('[data-section]').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-section') === t);
+    });
+    var ti = titles[t] || [t,t];
+    var pt = document.getElementById('adm-page-title');
+    var bc = document.getElementById('adm-breadcrumb-text');
+    if(pt) pt.textContent = ti[0];
+    if(bc) bc.textContent = ti[1];
+    if(t === 'products' && typeof cargarProductos === 'function') cargarProductos();
+    if(t === 'users' && typeof cargarUsuarios === 'function') cargarUsuarios();
+    if(t === 'orders' && typeof cargarCompras === 'function') cargarCompras();
+    if(t === 'stats' && typeof cargarEstadisticas === 'function') cargarEstadisticas();
+    if(t === 'calificaciones') loadCalificaciones();
+    if(t === 'soporte') { fetchTickets(); }
+  }
+  document.querySelectorAll('[data-section]').forEach(function(btn){
+    btn.addEventListener('click', function(){ sw(this.getAttribute('data-section')); });
+  });
+})();
+
+// ── Carga inicial automática ──
+(function initAdminData(){
+  if (typeof cargarProductos === 'function') cargarProductos();
+  if (typeof cargarUsuarios === 'function') cargarUsuarios();
+  if (typeof cargarCompras === 'function') cargarCompras();
+})();
+
+// ── KPI Cards ──
+(function loadKpis(){
+  var h = typeof getAuthHeaders === 'function' ? getAuthHeaders() : {'X-Requested-With':'XMLHttpRequest'};
+  fetch('/api/admin/productos', {headers: h}).then(function(r){ return r.json(); }).then(function(d){
+    var c = Array.isArray(d) ? d.length : (d.productos ? d.productos.length : '--');
+    var el = document.getElementById('kpi-products');
+    if(el) el.textContent = c;
+  }).catch(function(){});
+  fetch('/api/admin/usuarios', {headers: h}).then(function(r){ return r.ok ? r.json() : null; }).then(function(d){
+    if(!d) return;
+    var el = document.getElementById('kpi-users');
+    if(el) el.textContent = Array.isArray(d) ? d.length : (d.total || '--');
+  }).catch(function(){});
+  fetch('/api/admin/compras', {headers: h}).then(function(r){ return r.ok ? r.json() : null; }).then(function(d){
+    if(!d) return;
+    var arr = Array.isArray(d) ? d : (d.orders || []);
+    var el = document.getElementById('kpi-orders');
+    if(el) el.textContent = arr.length;
+    var tot = arr.reduce(function(s,o){
+      return s + (parseFloat(String(o.total || '0').replace(/[^\d]/g,'')) || 0);
+    }, 0);
+    var rev = document.getElementById('kpi-revenue');
+    if(rev) rev.textContent = '$' + tot.toLocaleString('es-CO', {maximumFractionDigits:0});
+  }).catch(function(){});
+})();
+
+// ── File upload preview ──
+(function(){
+  var fi = document.getElementById('product-file');
+  var pi = document.getElementById('preview-img');
+  var ph = document.getElementById('preview-placeholder');
+  var fl = document.getElementById('product-file-label');
+  if(fi) {
+    fi.addEventListener('change', function(){
+      if(this.files && this.files[0]) {
+        var r = new FileReader();
+        r.onload = function(e) {
+          pi.src = e.target.result;
+          pi.style.display = 'block';
+          if(ph) ph.style.display = 'none';
+        };
+        r.readAsDataURL(this.files[0]);
+        if(fl) fl.textContent = this.files[0].name;
+      }
+    });
+  }
+  var cp = document.getElementById('btn-cancel-product-edit');
+  if(cp) {
+    cp.addEventListener('click', function(){
+      var f = document.getElementById('product-form');
+      if(f) f.reset();
+      var pid = document.getElementById('product-id');
+      if(pid) pid.value = '';
+      if(pi){ pi.src = ''; pi.style.display = 'none'; }
+      if(ph) ph.style.display = 'flex';
+      if(fl) fl.textContent = 'Subir imagen desde tu equipo';
+      this.style.display = 'none';
+    });
+  }
+  var cu = document.getElementById('btn-cancel-user-edit');
+  if(cu) {
+    cu.addEventListener('click', function(){
+      var f = document.getElementById('user-form');
+      if(f) f.reset();
+      var uid = document.getElementById('user-id');
+      if(uid) uid.value = '';
+      this.style.display = 'none';
+    });
+  }
+})();
+
+// ── IA Widget ──
+(function(){
+  var tb = document.getElementById('btn-toggle-ia-admin');
+  var hb = document.getElementById('btn-header-ia-admin');
+  var cb = document.getElementById('btn-close-ia-admin');
+  var modal = document.getElementById('ia-admin-chat-modal');
+  var form = document.getElementById('ia-admin-chat-form');
+  var inp = document.getElementById('ia-admin-chat-input');
+  var msgs = document.getElementById('ia-admin-chat-messages');
+  var sb = document.getElementById('ia-admin-send-btn');
+  if(!modal) return;
+  var hist = [];
+  function tog(){
+    var o = modal.style.display === 'flex';
+    modal.style.display = o ? 'none' : 'flex';
+    if(!o) setTimeout(function(){ inp.focus(); }, 100);
+  }
+  if(tb) tb.addEventListener('click', tog);
+  if(hb) hb.addEventListener('click', tog);
+  if(cb) cb.addEventListener('click', function(){ modal.style.display = 'none'; });
+
+  function am(s, t) {
+    var d = document.createElement('div');
+    d.className = 'adm-ia-msg ' + s;
+    d.innerHTML = t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+    msgs.appendChild(d);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  if(form) {
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      var t = inp.value.trim();
+      if(!t) return;
+      am('user', t);
+      inp.value = '';
+      sb.disabled = true;
+      sb.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+      var ld = document.createElement('div');
+      ld.id = 'ia-thinking';
+      ld.className = 'adm-ia-msg bot';
+      ld.innerHTML = '<em>Procesando...</em>';
+      msgs.appendChild(ld);
+      msgs.scrollTop = msgs.scrollHeight;
+      var h = typeof getAuthHeaders === 'function' ? getAuthHeaders() : {'Content-Type':'application/json'};
+      fetch('/api/admin/ia-chat', {
+        method: 'POST',
+        headers: h,
+        body: JSON.stringify({prompt: t, history: hist})
+      }).then(function(r){ return r.json(); }).then(function(data){
+        var th = document.getElementById('ia-thinking');
+        if(th) th.remove();
+        if(data.error) { am('bot', 'Error: ' + data.error); }
+        else {
+          am('bot', data.respuesta || 'Acción completada.');
+          hist.push({role:'user', content: t});
+          hist.push({role:'assistant', content: data.respuesta || ''});
+          if(data.reloadData) {
+            if(typeof cargarProductos === 'function') cargarProductos();
+            if(typeof cargarUsuarios === 'function') cargarUsuarios();
+            if(typeof cargarCompras === 'function') cargarCompras();
+          }
+        }
+      }).catch(function(){
+        var th = document.getElementById('ia-thinking');
+        if(th) th.remove();
+        am('bot', 'Error al conectar con el servidor.');
+      }).finally(function(){
+        sb.disabled = false;
+        sb.innerHTML = '<i class="fa fa-paper-plane"></i>';
+      });
+    });
+  }
+})();
+
+function esc(s){ if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function loadCalificaciones(){
+  var rk = document.getElementById('cal-asesores-ranking');
+  var feed = document.getElementById('cal-reviews-feed');
+  var bd = document.getElementById('cal-breakdown');
+  if(!rk) return;
+  rk.innerHTML = "<div class='adm-loading-state'><i class='fa fa-spinner fa-spin'></i> Cargando...</div>";
+  if(feed) feed.innerHTML = rk.innerHTML;
+  fetch('/api/soporte/todas-calificaciones').then(function(r){ return r.json(); }).then(function(res){
+    var st = res.stats || {}, cal = res.calificaciones || [], pa = res.por_asesor || [];
+    var tot = st.total || 0, avg = st.promedio || 0, sats = (st.e5 || 0) + (st.e4 || 0), spct = tot > 0 ? Math.round((sats / tot) * 100) : 0;
+    var ka = document.getElementById('cal-kpi-avg'), kt = document.getElementById('cal-kpi-total'), kas = document.getElementById('cal-kpi-asesores'), ks = document.getElementById('cal-kpi-satisfaccion');
+    if(ka) ka.textContent = avg > 0 ? Number(avg).toFixed(1) : '--';
+    if(kt) kt.textContent = tot;
+    if(ks) ks.textContent = spct + '%';
+    if(kas) kas.textContent = pa.length;
+    if(rk) {
+      if(!pa.length) {
+        rk.innerHTML = "<div class='adm-empty-state'>Sin calificaciones aún</div>";
+      } else {
+        var medals = ['🥇','🥈','🥉'];
+        rk.innerHTML = pa.map(function(a, i){
+          var p = a.promedio || 0, m = medals[i] || '#' + (i + 1), col = p >= 4.5 ? '#2D6A4F' : p >= 3 ? '#C87D32' : '#B91C1C', ini = (a.nombre_agente || 'A').charAt(0).toUpperCase();
+          return '<div class="adm-ranking-item"><div class="adm-ranking-medal">' + m + '</div><div class="adm-ranking-avatar">' + ini + '</div><div class="adm-ranking-info"><div class="adm-ranking-name">' + esc(a.nombre_agente || 'Asesor') + '</div><div class="adm-ranking-votes">' + ((a.total_calificaciones || 0) + ' votos') + '</div></div><div class="adm-ranking-score" style="color:' + col + ';">' + (p > 0 ? Number(p).toFixed(1) : '--') + '</div></div>';
+        }).join('');
+      }
+    }
+    if(bd) {
+      var co = {5: st.e5 || 0, 4: st.e4 || 0, 3: st.e3 || 0, 2: st.e2 || 0, 1: st.e1 || 0};
+      bd.innerHTML = "<div class='adm-breakdown-title'>Desglose Global</div>" + [5,4,3,2,1].map(function(n){
+        var c = co[n] || 0, p = tot > 0 ? Math.round((c / tot) * 100) : 0, col = n >= 4 ? '#2D6A4F' : n === 3 ? '#C87D32' : '#B91C1C';
+        return '<div class="adm-breakdown-row"><span class="adm-breakdown-star">' + n + ' <i class="fa fa-star" style="font-size:0.65rem;"></i></span><div class="adm-breakdown-bar"><div style="width:' + p + '%;background:' + col + ';"></div></div><span class="adm-breakdown-count">' + c + ' (' + p + '%)</span></div>';
+      }).join('');
+    }
+    if(feed) {
+      if(!cal.length) {
+        feed.innerHTML = "<div class='adm-empty-state'>Sin comentarios aún</div>";
+      } else {
+        feed.innerHTML = cal.map(function(c){
+          var f = c.created_at ? new Date(c.created_at).toLocaleString([], {dateStyle:'short', timeStyle:'short'}) : '--';
+          return '<div class="adm-review-item"><div class="adm-review-header"><span class="adm-review-name">' + esc(c.nombre_cliente || 'Cliente') + '</span><span class="adm-review-date">' + f + '</span></div><div class="adm-review-meta">Asesor: <strong>' + esc(c.nombre_agente || 'Soporte') + '</strong></div>' + (c.comentario ? '<div class="adm-review-comment">' + esc(c.comentario) + '</div>' : '') + '</div>';
+        }).join('');
+      }
+    }
+  }).catch(function(){
+    if(rk) rk.innerHTML = "<div class='adm-error-state'>Error al cargar</div>";
+  });
+}
+var rCalBtn = document.getElementById('btn-refresh-calificaciones');
+if(rCalBtn) rCalBtn.addEventListener('click', loadCalificaciones);
+
+var _activeTicket = null;
+function fetchTickets(){
+  var tl = document.getElementById('admin-soporte-tickets-list');
+  if(!tl) return;
+  var h = typeof getAuthHeaders === 'function' ? getAuthHeaders() : {};
+  fetch('/api/soporte/tickets', {headers: h}).then(function(r){ return r.json(); }).then(renderTickets).catch(console.error);
+}
+function renderTickets(tickets){
+  var tl = document.getElementById('admin-soporte-tickets-list');
+  if(!tl) return;
+  tl.innerHTML = '';
+  if(!tickets || !tickets.length) {
+    tl.innerHTML = '<div style="padding:20px;text-align:center;color:#6B7280;font-size:.8rem;">No hay tickets.</div>';
+    return;
+  }
+  tickets.forEach(function(t){
+    var item = document.createElement('div');
+    item.className = 'admin-ticket-item' + (_activeTicket && _activeTicket.id === t.id ? ' active' : '');
+    var elb = {bot: 'Bot', esperando: 'Esperando', asesor: 'En curso', cerrado: 'Cerrado'}[t.estado] || t.estado;
+    var unr = t.no_leidos > 0 ? '<span class="admin-ticket-unread">' + t.no_leidos + '</span>' : '';
+    item.innerHTML = '<div class="admin-ticket-header"><span class="admin-ticket-name">' + esc(t.nombre_cliente) + '</span><span class="admin-ticket-code">' + esc(t.ticket_code) + '</span></div><div class="admin-ticket-asunto">' + esc(t.asunto) + '</div><div class="admin-ticket-preview">' + esc(t.ultimo_mensaje || '') + '</div><div class="admin-ticket-badges"><span class="admin-ticket-estado ' + (t.estado || 'bot') + '">' + elb + '</span>' + unr + '</div>';
+    item.addEventListener('click', function(){ openTicket(t, item); });
+    tl.appendChild(item);
+  });
+}
+function openTicket(t, el){
+  _activeTicket = t;
+  document.querySelectorAll('.admin-ticket-item').forEach(function(e){ e.classList.remove('active'); });
+  if(el) el.classList.add('active');
+  var ph = document.getElementById('admin-soporte-placeholder'), cw = document.getElementById('admin-soporte-chat-wrapper'), cb = document.getElementById('admin-soporte-chat-body'), cn = document.getElementById('admin-soporte-client-name'), ci = document.getElementById('admin-soporte-client-info');
+  if(ph) ph.style.display = 'none';
+  if(cw) cw.style.display = 'flex';
+  if(cn) cn.textContent = t.nombre_cliente;
+  if(ci) ci.textContent = t.correo_cliente + ' - ' + t.ticket_code;
+  fetch('/api/soporte/historial/' + t.session_id).then(function(r){ return r.json(); }).then(function(ms){
+    cb.innerHTML = '';
+    ms.forEach(function(m){ appendChatMsg(m.rol, m.mensaje, m.nombre_remitente, m.fecha); });
+    setTimeout(function(){ cb.scrollTop = cb.scrollHeight; }, 50);
+  });
+}
+function appendChatMsg(rol, msg, rem, fecha){
+  var cb = document.getElementById('admin-soporte-chat-body');
+  if(!cb) return;
+  var d = document.createElement('div');
+  d.className = 'soporte-msg ' + (rol === 'admin' ? 'admin' : rol === 'user' ? 'user' : 'bot');
+  var t = fecha ? new Date(fecha).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+  d.innerHTML = '<div>' + esc(msg).replace(/\n/g, '<br>') + '</div><div class="soporte-msg-meta">' + esc(rem || '') + ' - ' + t + '</div>';
+  cb.appendChild(d);
+}
+var ctForm = document.getElementById('admin-soporte-form');
+if(ctForm) {
+  ctForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    var inp = document.getElementById('admin-soporte-input');
+    var t = inp.value.trim();
+    if(!t || !_activeTicket) return;
+    var h = typeof getAuthHeaders === 'function' ? getAuthHeaders() : {'Content-Type': 'application/json'};
+    fetch('/api/soporte/admin-responder', {
+      method: 'POST',
+      headers: h,
+      body: JSON.stringify({ticket_id: _activeTicket.id, session_id: _activeTicket.session_id, mensaje: t})
+    }).then(function(r){ return r.json(); }).then(function(d){
+      if(d.ok) {
+        appendChatMsg('admin', t, 'Soporte Admin');
+        var cb = document.getElementById('admin-soporte-chat-body');
+        if(cb) setTimeout(function(){ cb.scrollTop = cb.scrollHeight; }, 50);
+        inp.value = '';
+        fetchTickets();
+      }
+    });
+  });
+}
+var ctClose = document.getElementById('admin-soporte-close-ticket');
+if(ctClose) {
+  ctClose.addEventListener('click', function(){
+    if(!_activeTicket || !confirm('¿Cerrar este ticket?')) return;
+    var h = typeof getAuthHeaders === 'function' ? getAuthHeaders() : {'Content-Type': 'application/json'};
+    fetch('/api/soporte/cerrar-ticket', {
+      method: 'POST',
+      headers: h,
+      body: JSON.stringify({ticket_id: _activeTicket.id})
+    }).then(function(){
+      _activeTicket = null;
+      var cw = document.getElementById('admin-soporte-chat-wrapper');
+      var ph = document.getElementById('admin-soporte-placeholder');
+      if(cw) cw.style.display = 'none';
+      if(ph) ph.style.display = 'flex';
+      fetchTickets();
+    });
+  });
+}
+var srBtn = document.getElementById('admin-soporte-refresh');
+if(srBtn) srBtn.addEventListener('click', fetchTickets);
+</script>
+</body>
+</html>

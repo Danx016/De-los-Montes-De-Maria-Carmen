@@ -1,0 +1,1129 @@
+/* ============================================================
+   SOPORTE — Página dedicada y Panel Admin
+   ============================================================ */
+
+/* ─── Layout de la página ─── */
+.soporte-page {
+  min-height: calc(100vh - 80px);
+  background: #f1f5f9;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 16px 60px;
+}
+
+body.soporte-body .soporte-float-link {
+  display: none !important;
+}
+
+.soporte-wrapper {
+  width: 100%;
+  max-width: 560px;
+}
+
+.soporte-step {
+  display: none;
+}
+
+.soporte-step.active {
+  display: block;
+}
+
+/* ─── PASO 1: Formulario ─── */
+.soporte-form-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  padding: 36px 32px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+}
+
+.soporte-form-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.soporte-form-header i {
+  font-size: 36px;
+  color: #1e3a8a;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.soporte-form-header h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 8px;
+}
+
+.soporte-form-header p {
+  font-size: 13.5px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.soporte-field {
+  margin-bottom: 16px;
+}
+
+.soporte-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 5px;
+}
+
+.soporte-field input,
+.soporte-field select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #0f172a;
+  background: #f8fafc;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.soporte-field input:focus,
+.soporte-field select:focus {
+  border-color: #1e3a8a;
+  background: #fff;
+}
+
+.soporte-submit-btn {
+  width: 100%;
+  padding: 12px;
+  background: #1e3a8a;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.15s;
+}
+
+.soporte-submit-btn:hover {
+  background: #1e40af;
+}
+
+/* ─── PASO 2: Panel de Chat ─── */
+.soporte-chat-panel {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  height: 600px;
+  max-height: calc(100vh - 160px);
+  overflow: hidden;
+}
+
+.soporte-chat-topbar {
+  background: #1e3a8a;
+  color: #fff;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.soporte-chat-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.soporte-chat-agent-avatar {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.soporte-chat-agent-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.soporte-chat-agent-name {
+  font-weight: 600;
+  font-size: 14.5px;
+}
+
+.soporte-chat-agent-status {
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+.soporte-ticket-badge {
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+}
+
+/* Mensajes */
+.soporte-chat-messages {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #f8fafc;
+}
+
+.soporte-chat-messages::-webkit-scrollbar {
+  width: 4px;
+}
+
+.soporte-chat-messages::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.soporte-msg {
+  max-width: 82%;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  word-wrap: break-word;
+  border-radius: 14px;
+}
+
+.soporte-msg.user {
+  align-self: flex-end;
+  background: #1e3a8a;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.soporte-msg.bot,
+.soporte-msg.system {
+  align-self: flex-start;
+  background: #fff;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+  border-bottom-left-radius: 4px;
+}
+
+.soporte-msg.admin {
+  align-self: flex-start;
+  background: #ecfdf5;
+  color: #064e3b;
+  border: 1px solid #a7f3d0;
+  border-bottom-left-radius: 4px;
+}
+
+.soporte-msg.system {
+  background: #fef3c7;
+  border-color: #fcd34d;
+  color: #92400e;
+  align-self: center;
+  max-width: 90%;
+  text-align: center;
+  font-size: 12.5px;
+}
+
+.soporte-msg-meta {
+  font-size: 10px;
+  opacity: 0.65;
+  margin-top: 4px;
+}
+
+.soporte-msg.user .soporte-msg-meta {
+  text-align: right;
+}
+
+.soporte-msg strong {
+  font-weight: 600;
+}
+
+/* Markdown en mensajes */
+.soporte-msg p {
+  margin: 0 0 6px;
+}
+.soporte-msg p:last-child {
+  margin-bottom: 0;
+}
+.soporte-msg ul, .soporte-msg ol {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+
+/* Typing indicator */
+.soporte-typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 20px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.soporte-typing-indicator span {
+  width: 6px;
+  height: 6px;
+  background: #94a3b8;
+  border-radius: 50%;
+  animation: soporte-dot 1.3s infinite ease-in-out both;
+}
+.soporte-typing-indicator span:nth-child(1) { animation-delay: -0.28s; }
+.soporte-typing-indicator span:nth-child(2) { animation-delay: -0.14s; }
+
+@keyframes soporte-dot {
+  0%, 80%, 100% { transform: scale(0.4); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* Input bar */
+.soporte-chat-input-bar {
+  padding: 12px 14px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.soporte-chat-input-bar input {
+  flex: 1;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  background: #f8fafc;
+  color: #0f172a;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.soporte-chat-input-bar input:focus {
+  border-color: #1e3a8a;
+  background: #fff;
+}
+
+#soporte-chat-send {
+  background: #1e3a8a;
+  color: #fff;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+#soporte-chat-send:hover {
+  background: #1e40af;
+}
+
+/* Botón escalar */
+.soporte-escalate-bar {
+  padding: 8px 14px;
+  background: #f8fafc;
+  border-top: 1px solid #f1f5f9;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+#soporte-escalate-btn {
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 7px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s, color 0.15s;
+}
+
+#soporte-escalate-btn:hover {
+  background: #1e3a8a;
+  color: #fff;
+  border-color: #1e3a8a;
+}
+
+/* ─── Botón flotante en el footer ─── */
+.soporte-float-link {
+  position: fixed !important;
+  bottom: 40px !important;
+  right: 40px !important;
+  width: 56px !important;
+  height: 56px !important;
+  background: #1e3a8a !important;
+  color: #fff !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-decoration: none !important;
+  box-shadow: 0 4px 16px rgba(30, 58, 138, 0.4) !important;
+  z-index: 999 !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+  font-size: 22px !important;
+}
+
+.soporte-float-link:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 6px 22px rgba(30, 58, 138, 0.55) !important;
+  background: #1e40af !important;
+}
+
+/* ─── PANEL ADMIN: Sección de tickets ─── */
+.admin-soporte-layout {
+  display: flex;
+  height: calc(100vh - 200px);
+  min-height: 460px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.admin-soporte-sidebar {
+  width: 320px;
+  min-width: 260px;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+}
+
+.admin-soporte-sidebar-header {
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  font-weight: 600;
+  font-size: 14px;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-soporte-tickets-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.admin-ticket-item {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.admin-ticket-item:hover,
+.admin-ticket-item.active {
+  background: #e2e8f0;
+}
+
+.admin-ticket-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3px;
+}
+
+.admin-ticket-name {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #0f172a;
+}
+
+.admin-ticket-code {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 600;
+  font-family: monospace;
+}
+
+.admin-ticket-asunto {
+  font-size: 12px;
+  color: #1e3a8a;
+  font-weight: 500;
+  margin-bottom: 3px;
+}
+
+.admin-ticket-preview {
+  font-size: 11.5px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-ticket-badges {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.admin-ticket-estado {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+}
+
+.admin-ticket-estado.bot {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.admin-ticket-estado.esperando {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.admin-ticket-estado.asesor {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.admin-ticket-estado.cerrado {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.admin-ticket-unread {
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+
+/* Panel principal del admin */
+.admin-soporte-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+.admin-soporte-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-soporte-header-info h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.admin-soporte-header-info span {
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.admin-soporte-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.admin-soporte-close-ticket {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-soporte-close-ticket:hover {
+  background: #dc2626;
+}
+
+.admin-soporte-chat-body {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #f8fafc;
+}
+
+.admin-soporte-input-area {
+  padding: 14px 18px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  gap: 10px;
+  background: #fff;
+}
+
+.admin-soporte-input-area input {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.admin-soporte-input-area input:focus {
+  border-color: #1e3a8a;
+}
+
+.admin-soporte-send {
+  background: #1e3a8a;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.admin-soporte-send:hover {
+  background: #1e40af;
+}
+
+.admin-soporte-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  text-align: center;
+  font-size: 14px;
+  padding: 40px;
+}
+
+.admin-soporte-placeholder i {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 16px;
+  opacity: 0.4;
+}
+
+/* ─── Respuestas Rápidas del Agente (Quick Replies) ─── */
+.admin-quick-replies-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+
+.admin-quick-replies-bar::-webkit-scrollbar {
+  height: 3px;
+}
+
+.admin-quick-replies-bar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.admin-quick-reply-btn {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.admin-quick-reply-btn:hover {
+  background: #1e3a8a;
+  color: #ffffff;
+  border-color: #1e3a8a;
+}
+
+
+/* ============================================================
+   ADMIN PORTAL — Layout completo del Portal de Soporte
+   ============================================================ */
+
+.admin-soporte-layout {
+  display: flex;
+  height: calc(100vh - 130px);
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+/* ─── Sidebar de Tickets ─── */
+.admin-soporte-sidebar {
+  width: 360px;
+  min-width: 300px;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+}
+
+.admin-soporte-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.admin-soporte-tickets-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* ─── Ticket Item ─── */
+.admin-ticket-item {
+  padding: 14px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.admin-ticket-item:hover {
+  background: #eef2ff;
+}
+
+.admin-ticket-item.active {
+  background: #e0e7ff;
+  border-left: 3px solid #2563eb;
+}
+
+.admin-ticket-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.admin-ticket-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-ticket-code {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.admin-ticket-asunto {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 4px;
+}
+
+.admin-ticket-preview {
+  font-size: 12px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+  margin-bottom: 6px;
+}
+
+.admin-ticket-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-ticket-estado {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 10px;
+}
+
+.admin-ticket-estado.bot {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.admin-ticket-estado.esperando {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.admin-ticket-estado.asesor {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.admin-ticket-estado.cerrado {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.admin-ticket-unread {
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+}
+
+/* ─── Área Principal del Chat ─── */
+.admin-soporte-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-soporte-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 14px;
+  padding: 40px;
+}
+
+.admin-soporte-placeholder i {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 16px;
+  opacity: 0.4;
+}
+
+/* ─── Header del Chat Activo ─── */
+.admin-soporte-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.admin-soporte-header-info h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-soporte-header-info span {
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.admin-soporte-close-ticket {
+  background: #fee2e2;
+  color: #991b1b;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s;
+}
+
+.admin-soporte-close-ticket:hover {
+  background: #fecaca;
+}
+
+/* ─── Cuerpo del Chat ─── */
+.admin-soporte-chat-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Mensajes en el Chat del Admin */
+.admin-soporte-chat-body .soporte-msg {
+  max-width: 75%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.admin-soporte-chat-body .soporte-msg.user {
+  align-self: flex-start;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
+  border-bottom-left-radius: 4px;
+}
+
+.admin-soporte-chat-body .soporte-msg.bot,
+.admin-soporte-chat-body .soporte-msg.system {
+  align-self: center;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 12.5px;
+  max-width: 85%;
+  text-align: center;
+  border-radius: 8px;
+}
+
+.admin-soporte-chat-body .soporte-msg.admin {
+  align-self: flex-end;
+  background: #1e3a8a;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.soporte-msg-meta {
+  font-size: 10px;
+  opacity: 0.6;
+  margin-top: 4px;
+}
+
+/* ─── Área de Input del Agente ─── */
+.admin-soporte-input-area {
+  display: flex;
+  gap: 10px;
+  padding: 12px 18px;
+  border-top: 1px solid #e2e8f0;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.admin-soporte-input-area input {
+  flex: 1;
+  padding: 10px 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.admin-soporte-input-area input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.admin-soporte-send {
+  background: #1e3a8a;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s;
+}
+
+.admin-soporte-send:hover {
+  background: #1e40af;
+}
+
+/* ─── Modal de Confirmación ─── */
+.confirm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 3000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  animation: fadeInModal 0.15s ease-out;
+}
+
+.confirm-modal-backdrop.open {
+  display: flex;
+}
+
+.confirm-modal-card {
+  background: #ffffff;
+  border-radius: 8px;
+  width: 400px;
+  max-width: 90vw;
+  padding: 24px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  border: 1px solid #D1D5DB;
+  animation: popInModal 0.2s ease;
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes popInModal {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.confirm-modal-icon {
+  width: 46px;
+  height: 46px;
+  background: #FEF3C7;
+  color: #D97706;
+  border: 1px solid #FDE68A;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  margin: 0 auto 12px;
+}
+
+.confirm-modal-title {
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.confirm-modal-message {
+  margin: 0 0 20px 0;
+  font-size: 0.9rem;
+  color: #4B5563;
+  line-height: 1.5;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.confirm-btn-cancel {
+  flex: 1;
+  padding: 9px 18px;
+  background: #ffffff;
+  color: #374151;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.confirm-btn-cancel:hover {
+  background: #F3F4F6;
+  color: #111827;
+}
+
+.confirm-btn-accept {
+  flex: 1;
+  padding: 9px 18px;
+  background: #2D6A4F;
+  color: #ffffff;
+  border: 1px solid #1B4332;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.confirm-btn-accept:hover {
+  background: #1B4332;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+  .soporte-form-card {
+    padding: 24px 18px;
+  }
+
+  .soporte-chat-panel {
+    height: calc(100vh - 120px);
+    border-radius: 0;
+  }
+
+  .soporte-float-link {
+    width: 48px !important;
+    height: 48px !important;
+    bottom: 20px !important;
+    right: 20px !important;
+    font-size: 18px !important;
+  }
+
+  .admin-soporte-layout {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .admin-soporte-sidebar {
+    width: 100%;
+    max-height: 250px;
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
+  }
+}

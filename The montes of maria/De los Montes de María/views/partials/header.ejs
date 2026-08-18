@@ -1,0 +1,250 @@
+<script>
+  // Tema inicial - ejecutar ANTES de renderizar para evitar parpadeos
+  (function() {
+    const theme = localStorage.getItem("theme") || "light";
+    const html = document.documentElement;
+    const body = document.body;
+    
+    if (theme === "dark") {
+      html.setAttribute("data-theme", "dark");
+      html.classList.add("dark-mode");
+      body.classList.add("dark-mode");
+    } else {
+      html.removeAttribute("data-theme");
+      html.classList.remove("dark-mode");
+      body.classList.remove("dark-mode");
+    }
+    
+    // Guardar el tema en sessionStorage también para sincronización entre pestañas
+    sessionStorage.setItem("current-theme", theme);
+  })();
+</script>
+<header class="header">
+  <div class="header-logo">
+    <a href="/" title="Inicio">
+      <img src="../img/Logo.jpg" alt="Logo De los Montes de María" />
+      <span>De los Montes de María</span>
+    </a>
+  </div>
+
+  <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Abrir menú">
+    <i class="fa fa-bars"></i>
+  </button>
+
+  <div class="search-bar" style="position: relative;">
+    <form id="search-form" action="/buscar" method="GET" style="position: relative; z-index: 100;">
+      <input type="text" id="search-input" name="q" autocomplete="off" placeholder="Buscar productos..." aria-label="Buscar productos" />
+      <button type="button" class="clear-search" id="clear-search" style="display: none">
+        <i class="fa fa-times"></i>
+      </button>
+      <button type="submit" class="search-icon">
+        <i class="fa fa-search"></i>
+      </button>
+    </form>
+    
+    <!-- Contenedor para resultados en vivo -->
+    <div id="search-dropdown" style="display: none; position: absolute; top: calc(100% + 8px); left: 0; width: 100%; background: #ffffff; border-radius: 6px; border: 1px solid var(--border-color); box-shadow: 0 4px 16px rgba(0,0,0,0.08); z-index: 1000; max-height: 450px; overflow-y: auto; transition: all 0.2s ease; transform-origin: top center; overflow: hidden;">
+      <ul id="search-dropdown-results" style="list-style: none; margin: 0; padding: 5px;"></ul>
+      
+      <div id="search-dropdown-loading" style="display: none; padding: 25px 15px; text-align: center; color: var(--primary-color);">
+        <i class="fas fa-spinner fa-spin fa-2x" style="margin-bottom: 10px; display: block;"></i>
+        <span style="font-size: 0.9rem; font-weight: 600;">Buscando productos...</span>
+      </div>
+      
+      <div id="search-dropdown-empty" style="display: none; padding: 30px 15px; text-align: center; color: var(--text-color);">
+        <i class="fas fa-search-minus" style="font-size: 2.5rem; color: #cbd5e1; margin-bottom: 15px; display: block;"></i>
+        <span style="font-size: 0.95rem; font-weight: 500;">No encontramos coincidencias.</span>
+      </div>
+      
+      <a href="#" id="search-dropdown-more" style="display: none; padding: 14px; text-align: center; color: #fff; font-weight: 600; text-decoration: none; background: var(--primary-color); transition: opacity 0.2s; margin-top: 5px;">
+        Ver todos los resultados <i class="fas fa-arrow-right" style="margin-left: 5px;"></i>
+      </a>
+    </div>
+  </div>
+
+  <nav class="main-nav">
+    <ul>
+      <li>
+        <a href="/" class="nav-link"><i class="fa fa-home"></i> Inicio</a>
+      </li>
+      <li>
+        <a href="/carrito" class="nav-link"><i class="fa fa-shopping-cart"></i> Carrito <span class="cart-count">0</span></a>
+      </li>
+      <% if (locals.user) { %>
+        <li class="user-profile-dropdown">
+          <a href="#" class="user-profile no-loader">
+            <img src="<%= locals.user && locals.user.avatar ? locals.user.avatar : '../img/logo vaca.png' %>" alt="Perfil" class="user-avatar" id="header-user-avatar" referrerpolicy="no-referrer"> 
+            <span><%= user.username %></span>
+            <i class="fa fa-caret-down"></i>
+          </a>
+          <div class="dropdown-content">
+            <% if (user.rol === 1) { %>
+              <a href="/admin" id="admin-btn"><i class="fa fa-cogs"></i> Panel Admin</a>
+              <a href="/admin/soporte" id="soporte-btn"><i class="fa fa-headset"></i> Portal de Soporte</a>
+            <% } %>
+            <% if (user.rol === 2 || user.rol === 1) { %>
+              <a href="/vendedor" id="seller-btn"><i class="fa fa-truck-moving"></i> Panel Despachador</a>
+            <% } %>
+            <a href="/perfil"><i class="fa fa-user"></i> Perfil</a>
+            <a href="/logout" class="no-loader"><i class="fa fa-sign-out-alt"></i> Cerrar sesión</a>
+          </div>
+        </li>
+      <% } else { %>
+        <li id="nav-user-profile">
+          <a href="/login" class="nav-link"><i class="fa fa-user"></i> Login</a>
+        </li>
+      <% } %>
+    </ul>
+  </nav>
+</header>
+
+<script>
+  (function syncHeaderUser() {
+    function runSync() {
+      try {
+        const storedUser = JSON.parse(localStorage.getItem("user") || "null");
+        const loginLi = document.getElementById("nav-user-profile");
+        
+        if (storedUser && storedUser.username) {
+          if (loginLi && loginLi.parentNode) {
+            const rolNum = Number(storedUser.rolUser);
+            const isAdmin = (rolNum === 1 || storedUser.username === 'admin');
+            const isVendedor = (rolNum === 2 || rolNum === 1);
+            const avatarSrc = storedUser.avatar || '../img/logo vaca.png';
+
+            let adminLinks = '';
+            if (isAdmin) {
+              adminLinks += '<a href="/admin" id="admin-btn"><i class="fa fa-cogs"></i> Panel Admin</a>';
+              adminLinks += '<a href="/admin/soporte" id="soporte-btn"><i class="fa fa-headset"></i> Portal de Soporte</a>';
+            }
+            if (isVendedor) {
+              adminLinks += '<a href="/vendedor" id="seller-btn"><i class="fa fa-truck-moving"></i> Panel Despachador</a>';
+            }
+
+            const dropdownLi = document.createElement("li");
+            dropdownLi.className = "user-profile-dropdown";
+            dropdownLi.id = "nav-user-dropdown";
+            dropdownLi.innerHTML = `
+              <a href="#" class="user-profile no-loader">
+                <img src="${avatarSrc}" alt="Perfil" class="user-avatar" id="header-user-avatar" referrerpolicy="no-referrer"> 
+                <span>${storedUser.username}</span>
+                <i class="fa fa-caret-down"></i>
+              </a>
+              <div class="dropdown-content">
+                ${adminLinks}
+                <a href="/perfil"><i class="fa fa-user"></i> Perfil</a>
+                <a href="/logout" class="no-loader"><i class="fa fa-sign-out-alt"></i> Cerrar sesión</a>
+              </div>
+            `;
+            loginLi.parentNode.replaceChild(dropdownLi, loginLi);
+          }
+
+          if (storedUser.token && !document.cookie.includes("jwt=")) {
+            document.cookie = "jwt=" + storedUser.token + "; path=/; max-age=604800; SameSite=Lax";
+          }
+        }
+      } catch (e) {
+        console.error("Error sincronizando header de usuario:", e);
+      }
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", runSync);
+    } else {
+      runSync();
+    }
+  })();
+
+  (function() {
+    function initMobileMenu() {
+      const toggle = document.getElementById("mobile-menu-toggle");
+      const nav = document.querySelector(".main-nav");
+      if (!toggle || !nav) return;
+
+      // Remover cualquier listener previo para evitar duplicaciones
+      const newToggle = toggle.cloneNode(true);
+      toggle.parentNode.replaceChild(newToggle, toggle);
+
+      newToggle.addEventListener("click", function (e) {
+        e.stopPropagation();
+        nav.classList.toggle("active");
+        const icon = newToggle.querySelector("i");
+        if (icon) {
+          if (nav.classList.contains("active")) {
+            icon.className = "fa fa-times";
+          } else {
+            icon.className = "fa fa-bars";
+          }
+        }
+      });
+
+      document.addEventListener("click", function (e) {
+        if (!nav.contains(e.target) && !newToggle.contains(e.target)) {
+          if (nav.classList.contains("active")) {
+            nav.classList.remove("active");
+            const icon = newToggle.querySelector("i");
+            if (icon) icon.className = "fa fa-bars";
+          }
+        }
+      });
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initMobileMenu);
+    } else {
+      initMobileMenu();
+    }
+  })();
+</script>
+
+<% if (typeof locals.path === 'undefined' || (!locals.path.startsWith('/admin') && !locals.path.startsWith('/soporte'))) { %>
+<!-- Recursos y UI del Asistente Agro-IA -->
+<link rel="stylesheet" href="/css/ai-assistant.css">
+
+<button id="ai-chat-float-btn" class="ai-chat-float" aria-label="Asistente de IA">
+  <span class="ai-float-badge">IA</span>
+  <i class="fa fa-robot"></i>
+  <span class="ai-float-tooltip">¿Preguntas sobre la tienda? 🌾</span>
+</button>
+
+<div id="ai-chat-widget-container" class="ai-chat-container">
+  <div class="ai-chat-header">
+    <div class="ai-chat-profile">
+      <div class="ai-chat-avatar">
+        <i class="fa fa-robot"></i>
+      </div>
+      <div class="ai-chat-info">
+        <h4>AgroAsistente IA</h4>
+        <span>Asesor de Montes de María</span>
+      </div>
+    </div>
+    <button id="ai-chat-close-btn" class="ai-chat-close" aria-label="Cerrar Chat">
+      <i class="fa fa-times"></i>
+    </button>
+  </div>
+  
+  <div id="ai-chat-messages-body" class="ai-chat-body">
+    <div class="ai-message bot">
+      <p>¡Hola! 🌾 Soy <strong>AgroAsistente</strong>, tu asesor virtual de <strong>De los Montes de María</strong>. Puedo ayudarte con productos, recetas del campo, herramientas y pedidos.</p>
+      <div class="ai-quick-chips">
+        <button type="button" class="ai-chip" data-msg="🌱 Recomiéndame semillas populares">🌱 Semillas</button>
+        <button type="button" class="ai-chip" data-msg="🍳 Recomiéndame una receta con productos de la tienda">🍳 Recetas</button>
+        <button type="button" class="ai-chip" data-msg="🔧 ¿Qué herramientas me sirven para la finca?">🔧 Herramientas</button>
+        <button type="button" class="ai-chip" data-msg="💳 Métodos de pago y envíos">💳 Pagos y Envíos</button>
+      </div>
+    </div>
+  </div>
+  
+  <form id="ai-chat-form" class="ai-chat-input-area">
+    <div class="ai-input-wrapper">
+      <input type="text" id="ai-chat-input" placeholder="Pregunta sobre productos, recetas..." autocomplete="off" required />
+    </div>
+    <button type="submit" class="ai-chat-send" aria-label="Enviar Mensaje">
+      <i class="fa fa-paper-plane"></i>
+    </button>
+  </form>
+</div>
+
+<script src="/js/ai-assistant.js"></script>
+<% } %>
+

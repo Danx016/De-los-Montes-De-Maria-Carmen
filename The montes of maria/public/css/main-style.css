@@ -1,0 +1,215 @@
+/* ========================================= */
+/*    AGRO-CAMPO - MAIN STYLES CSS BASE      */
+/*    Estilo "Rustic Elegance"             */
+/* ========================================= */
+
+/* -------------------- */
+/* 1. VARIABLES Y RESETES */
+/* -------------------- */
+
+:root {
+    /* Colores de la Marca */
+    --color-primary: #2E7D32;   /* Verde Bosque Profundo (Confianza) */
+    --color-secondary: #FFB300; /* Amarillo Mostaza Terroso (Acción/Oferta) */
+    --color-background-light: #FAF8F5; /* Crema Hueso Suave */
+    --color-text-dark: #3A322B;   /* Marrón Carbón Oscuro */
+
+    /* Estilos de Tema (Oscuro/Claro) */
+    --color-background: var(--color-background-light);
+    --color-surface: #ffffff; /* Fondo blanco para componentes flotantes */
+    --color-text: var(--color-text-dark);
+}
+
+body {
+    font-family: 'Inter', 'Roboto', system-ui, sans-serif; /* Cuerpo legible (Sans-Serif) */
+    background-color: var(--color-background);
+    color: var(--color-text);
+    line-height: 1.6;
+}
+
+h1, h2, h3, h4 {
+    font-family: 'Playfair Display', Georgia, serif; /* Titulares elegantes (Serif) */
+    color: var(--color-text);
+    margin-bottom: 0.5rem;
+}
+
+/* Estilo de Enlaces generales */
+a {
+    color: var(--color-primary);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: var(--color-secondary);
+}
+
+/* -------------------- */
+/* 2. COMPONENTES GENERALES */
+/* -------------------- */
+
+/* Botones base */
+button, .btn {
+    cursor: pointer;
+    padding: 10px 25px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: background-color 0.3s ease, transform 0.1s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Botón Principal (Acento/Acción) */
+.btn-primary {
+    background-color: var(--color-secondary);
+    color: var(--color-text-dark);
+}
+
+.btn-primary:hover {
+    background-color: #e69a00; /* Oscurece el acento al pasar el ratón */
+    transform: translateY(-2px);
+    box-shadow: 0 6px 10px rgba(255, 179, 0, 0.3);
+}
+
+/* Botón Secundario (Navegación/Informacional) */
+.btn-secondary {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #256426; /* Oscurece el verde principal */
+    transform: translateY(-2px);
+}
+
+/* Tarjetas de producto o contenido */
+.card {
+    background-color: var(--color-surface);
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    padding: 20px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+}
+
+
+/* -------------------- */
+/* 3. ESTILOS DEL HEADER (Navegación) */
+/* -------------------- */
+
+header {
+    background-color: var(--color-surface); /* Asegura un fondo consistente */
+    padding: 15px 0;
+    border-bottom: 1px solid rgba(46, 125, 50, 0.1); /* Delicado toque verde */
+}
+
+/* Menú de Navegación principal (main-nav) */
+.main-nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 15px; /* Espacio entre enlaces */
+}
+
+.main-nav .nav-link {
+    color: var(--color-text);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    padding: 8px 12px;
+    transition: color 0.2s ease, background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+}
+
+.main-nav .nav-link i {
+    margin-right: 5px;
+    font-size: 1.1em;
+}
+
+.main-nav .nav-link:hover, 
+.main-nav .nav-link.active {
+    color: var(--color-primary);
+    background-color: rgba(46, 125, 50, 0.05); /* Fondo verde muy suave */
+}
+
+/* Estilo del Perfil de Usuario (Dropdown) */
+.user-profile-dropdown {
+    position: relative;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 8px;
+    border: 2px solid rgba(46, 125, 50, 0.3); /* Borde sutil */
+}
+
+/* Dropdown content (se manejará con JS o estilos específicos) */
+.dropdown-content {
+    // ... existing code ...
+}
+
+
+/* -------------------- */
+/* 4. Estilos de la Barra de Búsqueda (Search Bar) */
+/* -------------------- */
+.search-bar form {
+    display: flex;
+    width: 100%;
+    max-width: 600px; /* Limitar ancho en escritorio */
+}
+
+#search-input {
+    padding: 12px 15px;
+    border: 2px solid #ddd;
+    border-radius: 8px 0 0 8px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+
+#search-input:focus {
+    border-color: var(--color-primary); /* Enfoque con el color principal */
+    box-shadow: 0 0 5px rgba(46, 125, 50, 0.2);
+    outline: none;
+}
+
+/* ... (El resto del CSS de la barra de búsqueda se adaptará al contenedor) ... */
+
+
+/* -------------------- */
+/* 5. RESPONSIVIDAD Y TEMAS */
+/* -------------------- */
+
+/* Mobile Menu Toggle (Ajuste para el nuevo diseño) */
+#mobile-menu-toggle {
+    background: none;
+    border: none;
+    font-size: 1.8rem; /* Un poco más grande y visible */
+    color: var(--color-text);
+}
+
+/* Media queries para hacer responsive (Se deben añadir aquí) */
+
+
+/* --- Modo Oscuro (Dark Mode) --- */
+body.dark-mode {
+    --color-background: #1c281a; /* Fondo verde oscuro apagado */
+    --color-surface: #3A473E;  /* Superficie de caja oscura */
+    --color-text: #D9D9D0;     /* Texto gris claro suave */
+}
+
+body.dark-mode a {
+    color: #8BC34A; /* Verde claro para enlaces en modo oscuro */
+}
+
+body.dark-mode .card {
+    background-color: var(--color-surface);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}

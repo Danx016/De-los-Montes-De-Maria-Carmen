@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Soporte Técnico | De los Montes de María</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/soporte.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="soporte-body">
+  <%- include('partials/header') %>
+
+  <main class="soporte-page">
+    <div class="soporte-wrapper">
+
+      <!-- PASO 1: Formulario de datos -->
+      <div id="soporte-step-form" class="soporte-step active">
+        <div class="soporte-form-card">
+          <div class="soporte-form-header">
+            <i class="fa fa-headset"></i>
+            <h1>Centro de Soporte</h1>
+            <p>Cuéntanos tu problema y te ayudaremos a resolverlo. Primero, nuestro asistente intentará ayudarte. Si necesitas hablar con un asesor, solo pídelo.</p>
+          </div>
+
+          <form id="soporte-form">
+            <div class="soporte-field">
+              <label for="soporte-nombre">Nombre completo</label>
+              <input type="text" id="soporte-nombre" placeholder="Ej: Juan Pérez" required
+                value="<%= locals.user ? locals.user.nombre || '' : '' %>" />
+            </div>
+            <div class="soporte-field">
+              <label for="soporte-correo">Correo electrónico</label>
+              <input type="email" id="soporte-correo" placeholder="tucorreo@email.com" required
+                value="<%= locals.user ? locals.user.correo || locals.user.email || '' : '' %>" />
+            </div>
+            <div class="soporte-field">
+              <label for="soporte-telefono">Teléfono</label>
+              <input type="tel" id="soporte-telefono" placeholder="+57 300 123 4567" required
+                value="<%= locals.user ? locals.user.telefono || '' : '' %>" />
+            </div>
+            <div class="soporte-field">
+              <label for="soporte-asunto">¿En qué podemos ayudarte?</label>
+              <select id="soporte-asunto" required>
+                <option value="">Selecciona un tema</option>
+                <option value="Problema con mi pedido">Problema con mi pedido</option>
+                <option value="Producto defectuoso o incorrecto">Producto defectuoso o incorrecto</option>
+                <option value="Problema con el pago">Problema con el pago</option>
+                <option value="Reembolso o devolución">Reembolso o devolución</option>
+                <option value="Problema con mi cuenta">Problema con mi cuenta</option>
+                <option value="Información sobre envíos">Información sobre envíos</option>
+                <option value="Sugerencia o comentario">Sugerencia o comentario</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </div>
+            <button type="submit" class="soporte-submit-btn">
+              <i class="fa fa-arrow-right"></i> Iniciar conversación
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- PASO 2: Chat con el bot / asesor -->
+      <div id="soporte-step-chat" class="soporte-step">
+        <div class="soporte-chat-panel">
+          <!-- Barra superior del chat -->
+          <div class="soporte-chat-topbar">
+            <div class="soporte-chat-topbar-left">
+              <div class="soporte-chat-agent-avatar" id="soporte-agent-avatar">
+                <i class="fa fa-robot"></i>
+              </div>
+              <div class="soporte-chat-agent-info">
+                <span class="soporte-chat-agent-name" id="soporte-agent-name">Asistente Bot</span>
+                <span class="soporte-chat-agent-status" id="soporte-agent-status">En línea</span>
+              </div>
+            </div>
+            <div class="soporte-chat-topbar-right" style="display:flex;align-items:center;gap:10px;">
+              <span class="soporte-ticket-badge" id="soporte-ticket-badge">—</span>
+              <button type="button" id="soporte-btn-abandonar" title="Abandonar conversación"
+                style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all 0.15s;">
+                <i class="fa fa-sign-out-alt"></i> Abandonar
+              </button>
+            </div>
+          </div>
+
+          <!-- Cuerpo de mensajes -->
+          <div class="soporte-chat-messages" id="soporte-chat-messages">
+            <!-- Mensajes dinámicos -->
+          </div>
+
+          <!-- Indicador de escribiendo -->
+          <div class="soporte-typing-indicator" id="soporte-typing" style="display:none;">
+            <span></span><span></span><span></span>
+            <small>escribiendo...</small>
+          </div>
+
+          <!-- Input de mensaje -->
+          <form class="soporte-chat-input-bar" id="soporte-chat-form" style="display:flex;align-items:center;gap:6px;">
+            <input type="file" id="soporte-file-input" accept="image/*" style="display:none;" />
+            <button type="button" id="soporte-btn-attach" title="Adjuntar imagen" style="background:none;border:none;color:#64748b;font-size:18px;cursor:pointer;padding:0 8px;transition:color 0.15s;">
+              <i class="fa fa-camera"></i>
+            </button>
+            <input type="text" id="soporte-chat-input" placeholder="Escribe tu mensaje..." autocomplete="off" style="flex:1;" />
+            <button type="submit" id="soporte-chat-send">
+              <i class="fa fa-paper-plane"></i>
+            </button>
+          </form>
+
+          <!-- Botón de escalar -->
+          <div class="soporte-escalate-bar" id="soporte-escalate-bar">
+            <button type="button" id="soporte-escalate-btn">
+              <i class="fa fa-user-tie"></i> Hablar con un asesor
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Modal de Confirmación Personalizado (Estilo Oficial del Proyecto) -->
+  <div id="custom-confirm-modal" class="confirm-modal-backdrop">
+    <div class="confirm-modal-card">
+      <div class="confirm-modal-icon">
+        <i class="fa fa-exclamation-circle" style="color: #e11d48;"></i>
+      </div>
+      <h3 class="confirm-modal-title" id="confirm-modal-title">¿Abandonar Conversación?</h3>
+      <p class="confirm-modal-message" id="confirm-modal-message">¿Estás seguro de que deseas abandonar la conversación? El ticket se dará por finalizado.</p>
+      <div class="confirm-modal-actions">
+        <button type="button" class="confirm-btn-cancel" id="confirm-btn-cancel">Cancelar</button>
+        <button type="button" class="confirm-btn-accept" id="confirm-btn-accept" style="background:#e11d48;">Abandonar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/soporte-client.js"></script>
+</body>
+</html>

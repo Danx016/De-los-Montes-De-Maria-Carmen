@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuperar Contraseña - De los Montes de María</title>
+    <meta name="description" content="Recupera el acceso a tu cuenta De los Montes de María mediante un código de seguridad enviado a tu correo.">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/olvidaste_contrasena.css">
+    <script>
+      // Anti-flicker: aplica tema oscuro inmediatamente antes de pintar el DOM
+      if (localStorage.getItem('theme') === 'dark') {
+        document.documentElement.classList.add('dark-mode');
+      }
+    </script>
+</head>
+<body>
+
+    <div class="recover-container">
+        <!-- Header -->
+        <div class="recover-header">
+            <div class="icon-top">
+                <i class="fas fa-lock-open"></i>
+            </div>
+            <h1>¿Olvidaste tu contraseña?</h1>
+            <p>Ingresa tu correo y te enviaremos un código de recuperación</p>
+        </div>
+
+        <!-- Indicador de pasos -->
+        <div class="steps-indicator">
+            <div class="step-dot active" id="dot-1">1</div>
+            <div class="step-line" id="line-1"></div>
+            <div class="step-dot" id="dot-2">2</div>
+            <div class="step-line" id="line-2"></div>
+            <div class="step-dot" id="dot-3">✓</div>
+        </div>
+
+        <form id="passwordForm" class="password-form">
+
+            <!-- PASO 1: Correo -->
+            <div id="step-1">
+                <div class="form-group">
+                    <label for="email"><i class="fas fa-envelope" style="color:#3ba75a; margin-right:5px;"></i> Correo electrónico</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="email" placeholder="Ingresa tu correo registrado" required>
+                    </div>
+                </div>
+                <button type="button" id="btn-send-code" class="recover-btn">
+                    <i class="fas fa-paper-plane"></i> Enviar código de recuperación
+                </button>
+            </div>
+
+            <!-- PASO 2: Código + Nueva contraseña -->
+            <div id="step-2" style="display: none;">
+                <div class="form-group">
+                    <label for="recovery-code"><i class="fas fa-key" style="color:#3ba75a; margin-right:5px;"></i> Código de seguridad (6 dígitos)</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-key"></i>
+                        <input type="text" id="recovery-code" maxlength="6" placeholder="Código enviado a tu correo" autocomplete="off">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="new-password"><i class="fas fa-lock" style="color:#3ba75a; margin-right:5px;"></i> Nueva contraseña</label>
+                    <div class="input-with-icon" style="position:relative;">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="new-password" placeholder="Mínimo 8 caracteres">
+                        <i class="fa fa-eye" id="toggle-new-password" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;opacity:0.6;font-size:1.05rem;transition:opacity .2s;"></i>
+                    </div>
+                    <!-- Indicador de fortaleza de contraseña -->
+                    <div class="password-strength" id="password-strength-container" style="display:none;">
+                        <div class="strength-bar"><div id="strength-bar-fill" class="strength-bar-fill"></div></div>
+                        <div class="strength-text" id="strength-text">Insegura</div>
+                        <div class="password-requirements">
+                            <small id="req-length" class="req-item"><i class="fa-regular fa-circle-xmark text-danger"></i> Mínimo 8 caracteres</small>
+                            <small id="req-upper" class="req-item"><i class="fa-regular fa-circle-xmark text-danger"></i> Una mayúscula (A-Z)</small>
+                            <small id="req-number" class="req-item"><i class="fa-regular fa-circle-xmark text-danger"></i> Un número (0-9)</small>
+                            <small id="req-special" class="req-item"><i class="fa-regular fa-circle-xmark text-danger"></i> Un carácter especial (ej: !@#$)</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password"><i class="fas fa-lock" style="color:#3ba75a; margin-right:5px;"></i> Confirmar contraseña</label>
+                    <div class="input-with-icon" style="position:relative;">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="confirm-password" placeholder="Repite tu nueva contraseña">
+                        <i class="fa fa-eye" id="toggle-confirm-password" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;opacity:0.6;font-size:1.05rem;transition:opacity .2s;"></i>
+                    </div>
+                </div>
+                <button type="submit" id="btn-reset-password" class="recover-btn">
+                    <i class="fas fa-shield-halved"></i> Restablecer contraseña
+                </button>
+                <div style="text-align: center; margin-top: 1rem;">
+                    <a href="#" id="btn-back-to-step-1" style="font-size: 0.88rem; color: #3aac67; text-decoration: none;">
+                        <i class="fas fa-arrow-left"></i> Cambiar correo / Reenviar
+                    </a>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="back-link">
+                <a href="/login"><i class="fas fa-arrow-left"></i> Volver al inicio de sesión</a>
+            </div>
+        </form>
+
+        <!-- Info de pasos -->
+        <div class="steps-info">
+            <h3><i class="fas fa-circle-info"></i> Proceso de recuperación:</h3>
+            <ol>
+                <li>Ingresa tu dirección de correo electrónico registrado</li>
+                <li>Recibirás un código de 6 dígitos en tu bandeja de entrada</li>
+                <li>Ingresa el código y establece tu nueva contraseña</li>
+                <li>¡Listo! Inicia sesión con tus nuevas credenciales</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Modal de éxito -->
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-icon">
+                <i class="fas fa-check"></i>
+            </div>
+            <h2>¡Contraseña restablecida!</h2>
+            <p>Tu contraseña ha sido actualizada exitosamente. Ya puedes iniciar sesión con tus nuevas credenciales.</p>
+            <button id="closeModal" class="modal-button">
+                <i class="fas fa-arrow-right-to-bracket"></i> Ir al inicio de sesión
+            </button>
+        </div>
+    </div>
+
+    <!-- Loader global -->
+    <div id="global-loader" style="display:none;">
+        <div class="loader-backdrop"></div>
+        <div class="loader-spinner">
+            <i id="loader-icon" class="fa fa-spinner fa-spin fa-3x"></i>
+            <p id="loader-text">Cargando...</p>
+        </div>
+    </div>
+
+    <script src="/js/olvidaste_contrasena.js"></script>
+    <script src="/js/main.js"></script>
+
+    <!-- Script para indicador de pasos visual -->
+    <script>
+        const dot1 = document.getElementById('dot-1');
+        const dot2 = document.getElementById('dot-2');
+        const dot3 = document.getElementById('dot-3');
+        const line1 = document.getElementById('line-1');
+        const line2 = document.getElementById('line-2');
+        const btnBack = document.getElementById('btn-back-to-step-1');
+
+        const observer = new MutationObserver(() => {
+            const step2 = document.getElementById('step-2');
+            if (step2 && step2.style.display !== 'none') {
+                dot1.classList.remove('active');
+                dot1.classList.add('done');
+                dot1.innerHTML = '<i class="fas fa-check" style="font-size:0.75rem;"></i>';
+                line1.classList.add('active');
+                dot2.classList.add('active');
+            } else {
+                dot1.classList.add('active');
+                dot1.classList.remove('done');
+                dot1.textContent = '1';
+                line1.classList.remove('active');
+                dot2.classList.remove('active');
+            }
+        });
+
+        const step2El = document.getElementById('step-2');
+        if (step2El) observer.observe(step2El, { attributes: true, attributeFilter: ['style'] });
+
+        if (btnBack) {
+            btnBack.addEventListener('click', () => {
+                dot1.classList.add('active');
+                dot1.classList.remove('done');
+                dot1.textContent = '1';
+                line1.classList.remove('active');
+                dot2.classList.remove('active');
+            });
+        }
+
+        const closeModal = document.getElementById('closeModal');
+        if (closeModal) {
+            closeModal.addEventListener('click', () => {
+                window.location.href = '/login';
+            });
+        }
+    </script>
+</body>
+</html>

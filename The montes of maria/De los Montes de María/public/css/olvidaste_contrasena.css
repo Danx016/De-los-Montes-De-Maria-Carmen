@@ -1,0 +1,612 @@
+/* ============================================================
+   De los Montes de María — Recuperar Contraseña
+   Inspirado en ofercampo.co
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Open+Sans:wght@400;500;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Open Sans', sans-serif;
+  background-color: #F7F7F7;
+  background-image: radial-gradient(rgba(67, 142, 68, 0.05) 1px, transparent 0);
+  background-size: 24px 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+/* ---------- Contenedor principal ---------- */
+.recover-container {
+  background-color: #FFFFFF;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  width: 100%;
+  max-width: 420px;
+  padding: 2.2rem 2rem;
+  border-top: 4px solid #438E44;
+  animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Header ---------- */
+.recover-header {
+  text-align: center;
+  margin-bottom: 1.8rem;
+}
+
+.recover-header .icon-top {
+  width: 64px;
+  height: 64px;
+  background: rgba(67, 142, 68, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.recover-header .icon-top i {
+  color: #438E44;
+  font-size: 1.7rem;
+}
+
+.recover-header h1 {
+  font-family: 'Montserrat', sans-serif;
+  color: #242424;
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  margin-bottom: 0.4rem;
+}
+
+.recover-header p {
+  color: #666666;
+  font-size: 0.92rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* ---------- Indicador de pasos ---------- */
+.steps-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 1.8rem;
+}
+
+.step-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #E0E0E0;
+  color: #666666;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.step-dot.active {
+  background: #438E44;
+  color: white;
+}
+
+.step-dot.done {
+  background: #438E44;
+  color: white;
+}
+
+.step-line {
+  width: 50px;
+  height: 3px;
+  background: #E0E0E0;
+  transition: background 0.2s ease;
+}
+
+.step-line.active {
+  background: #438E44;
+}
+
+/* ---------- Formulario ---------- */
+.form-group {
+  margin-bottom: 1.3rem;
+  position: relative;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.6rem;
+  color: #242424;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.input-with-icon {
+  position: relative;
+}
+
+.input-with-icon > i:first-of-type {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+  font-size: 0.95rem;
+  pointer-events: none;
+}
+
+.input-with-icon i[id^="toggle-"] {
+  pointer-events: all;
+  cursor: pointer;
+  color: #999;
+  transition: color 0.2s;
+}
+
+.input-with-icon i[id^="toggle-"]:hover {
+  color: #438E44;
+  opacity: 1;
+}
+
+.input-with-icon input {
+  width: 100%;
+  padding: 11px 15px 11px 38px;
+  border: 1.5px solid #E0E0E0;
+  border-radius: 6px;
+  font-size: 0.97rem;
+  transition: all 0.2s ease;
+  color: #242424;
+  background: #ffffff;
+  outline: none;
+  font-family: 'Open Sans', sans-serif;
+}
+
+.input-with-icon input:focus {
+  border-color: #438E44;
+  box-shadow: 0 0 0 3px rgba(67, 142, 68, 0.15);
+  background: #ffffff;
+}
+
+/* ---------- Botones ---------- */
+.recover-btn {
+  width: 100%;
+  padding: 13px;
+  background: #438E44;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  margin-top: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.recover-btn:hover {
+  background: #367036;
+}
+
+.recover-btn:active {
+  background: #2E5A2E;
+}
+
+/* ---------- Links ---------- */
+.back-link {
+  text-align: center;
+  margin-top: 1.4rem;
+  font-size: 0.88rem;
+}
+
+.back-link a {
+  color: #438E44;
+  text-decoration: none;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: color 0.2s ease;
+}
+
+.back-link a:hover {
+  color: #367036;
+  text-decoration: underline;
+}
+
+.divider {
+  border-top: 1px dashed #E0E0E0;
+  margin: 1.2rem 0 1rem;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 480px) {
+  .recover-container {
+    padding: 1.75rem 1.25rem;
+  }
+  .recover-header h1 {
+    font-size: 1.5rem;
+  }
+}
+
+/* ── Indicador de fortaleza de contraseña ──────────────── */
+.password-strength {
+  margin-top: 10px;
+  transition: all 0.3s ease;
+}
+
+.strength-bar {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.strength-bar-fill {
+  height: 100%;
+  width: 0%;
+  background-color: #ef4444;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.4s ease;
+  border-radius: 3px;
+}
+
+.strength-bar-fill.weak   { width: 33.33%; background-color: #ef4444; }
+.strength-bar-fill.medium { width: 66.66%; background-color: #E28C2B; }
+.strength-bar-fill.strong { width: 100%;   background-color: #438E44; }
+
+.strength-text {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-align: right;
+  transition: color 0.3s ease;
+}
+
+.strength-text.weak   { color: #ef4444; }
+.strength-text.medium { color: #E28C2B; }
+.strength-text.strong { color: #438E44; }
+
+.password-requirements {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: #F7F7F7;
+  border-radius: 6px;
+  border: 1px solid #E0E0E0;
+}
+
+@media (min-width: 350px) {
+  .password-requirements { grid-template-columns: 1fr 1fr; }
+}
+
+.req-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: #666666;
+  transition: color 0.3s ease;
+}
+
+.req-item.valid { color: #438E44; font-weight: 500; }
+.req-item i     { font-size: 13px; transition: transform 0.2s ease; }
+.req-item.valid i { transform: scale(1.1); }
+
+.text-danger  { color: #ef4444 !important; }
+.text-success { color: #438E44 !important; }
+
+/* ---------- Caja informativa de pasos ---------- */
+.steps-info {
+  background: rgba(67, 142, 68, 0.05);
+  border: 1px solid rgba(67, 142, 68, 0.15);
+  border-radius: 6px;
+  padding: 1rem 1.1rem;
+  margin-top: 1.5rem;
+}
+
+.steps-info h3 {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.88rem;
+  color: #367036;
+  margin-bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.steps-info ol {
+  padding-left: 1.2rem;
+  margin: 0;
+}
+
+.steps-info ol li {
+  font-size: 0.82rem;
+  color: #666666;
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+/* ---------- Modal de éxito ---------- */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  padding: 2.5rem 2rem;
+  max-width: 380px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  border-top: 4px solid #438E44;
+  animation: fadeInUp 0.3s ease;
+}
+
+.modal-icon {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.2rem;
+  font-size: 2rem;
+  background: rgba(67, 142, 68, 0.1);
+  color: #438E44;
+}
+
+.modal-content h2 {
+  font-family: 'Montserrat', sans-serif;
+  color: #242424;
+  margin-bottom: 0.7rem;
+  font-size: 1.4rem;
+}
+
+.modal-content p {
+  color: #666666;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+.modal-button {
+  padding: 11px 24px;
+  background: #438E44;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-size: 0.97rem;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.modal-button:hover {
+  background: #367036;
+}
+
+/* ---------- Loader global ---------- */
+#global-loader {
+  position: fixed;
+  z-index: 9999;
+  inset: 0;
+  display: none; /* El JS lo pone en flex cuando se necesita */
+  align-items: center;
+  justify-content: center;
+}
+
+.loader-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+.loader-spinner {
+  position: relative;
+  z-index: 2;
+  background: #ffffff;
+  padding: 2.2rem 2.8rem;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-width: 260px;
+  border-top: 4px solid #438E44;
+  animation: loaderPopIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.loader-spinner i { margin: 0; color: #438E44; }
+.loader-spinner p { margin: 0; color: #242424; font-weight: 600; font-size: 1.05em; line-height: 1.4; }
+
+@keyframes loaderPopIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 480px) {
+  .recover-container {
+    padding: 1.75rem 1.25rem;
+  }
+  .recover-header h1 {
+    font-size: 1.5rem;
+  }
+}
+
+/* ============================================================
+   DARK MODE
+   ============================================================ */
+html.dark-mode body,
+body.dark-mode {
+  background: linear-gradient(135deg, rgba(2, 6, 23, 0.88) 0%, rgba(6, 30, 20, 0.95) 100%),
+              url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1800&q=80')
+              no-repeat center center fixed !important;
+  background-size: cover !important;
+}
+
+body.dark-mode .recover-container {
+  background: rgba(15, 23, 42, 0.97);
+  border-top-color: #10b981;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+}
+
+body.dark-mode .recover-header h1 {
+  color: #a7f3d0;
+}
+
+body.dark-mode .recover-header p {
+  color: #94a3b8;
+}
+
+body.dark-mode .step-dot {
+  background: #334155;
+  color: #64748b;
+}
+
+body.dark-mode .step-dot.active {
+  background: linear-gradient(135deg, #1b4332 0%, #10b981 100%);
+  color: white;
+}
+
+body.dark-mode .step-dot.done {
+  background: #10b981;
+  color: white;
+}
+
+body.dark-mode .step-line {
+  background: #334155;
+}
+
+body.dark-mode .step-line.active {
+  background: linear-gradient(to right, #1b4332, #10b981);
+}
+
+body.dark-mode .form-group label {
+  color: #cbd5e1;
+}
+
+body.dark-mode .input-with-icon i {
+  color: #64748b;
+}
+
+body.dark-mode .input-with-icon input {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+body.dark-mode .input-with-icon input:focus {
+  background: #1e293b;
+  border-color: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+}
+
+body.dark-mode .input-with-icon input::placeholder {
+  color: #64748b;
+}
+
+body.dark-mode .divider {
+  border-top-color: #334155;
+}
+
+body.dark-mode .back-link a {
+  color: #34d399;
+}
+
+body.dark-mode .back-link a:hover {
+  color: #10b981;
+}
+
+body.dark-mode .steps-info {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+body.dark-mode .steps-info h3 {
+  color: #34d399;
+}
+
+body.dark-mode .steps-info ol li {
+  color: #94a3b8;
+}
+
+/* Modal dark */
+body.dark-mode .modal-content {
+  background: #1e293b;
+  border-top-color: #10b981;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .modal-content h2 {
+  color: #a7f3d0;
+}
+
+body.dark-mode .modal-content p {
+  color: #94a3b8;
+}
+
+/* Password strength dark mode */
+body.dark-mode .password-requirements {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+body.dark-mode .req-item       { color: #94a3b8; }
+body.dark-mode .req-item.valid { color: #34d399; }
+
+body.dark-mode .strength-bar { background: #334155; }
+body.dark-mode .strength-text.weak   { color: #f87171; }
+body.dark-mode .strength-text.medium { color: #fbbf24; }
+body.dark-mode .strength-text.strong { color: #34d399; }
+
+/* Loader dark */
+body.dark-mode .loader-spinner {
+  background: #1e293b;
+  border-top-color: #10b981;
+}
+
+body.dark-mode .loader-spinner p {
+  color: #f1f5f9;
+}

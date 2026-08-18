@@ -1,0 +1,109 @@
+<footer class="footer">
+
+  <!-- Contenido principal -->
+  <div class="footer-content">
+
+    <!-- Columna 1: Marca -->
+    <div>
+      <div class="footer-brand">
+        <img src="/img/Logo.jpg" alt="Logo De los Montes de María">
+        <div class="footer-brand-name">
+          <span>De los Montes</span>
+          <span>de María</span>
+        </div>
+      </div>
+      <p class="footer-tagline">
+        Tu tienda agropecuaria de confianza. Conectamos el campo con tu mesa desde El Carmen de Bolívar.
+      </p>
+      <div class="footer-socials">
+        <a href="https://www.facebook.com/AgrocampoCo" target="_blank" rel="noopener" class="footer-social-btn fb" title="Facebook">
+          <i class="fab fa-facebook-f"></i>
+        </a>
+        <a href="https://x.com/AgrocampoCo" target="_blank" rel="noopener" class="footer-social-btn tw" title="X / Twitter">
+          <i class="fab fa-x-twitter"></i>
+        </a>
+        <a href="https://www.instagram.com/agrocampoco/" target="_blank" rel="noopener" class="footer-social-btn ig" title="Instagram">
+          <i class="fab fa-instagram"></i>
+        </a>
+        <a href="https://wa.me/573008723989" target="_blank" rel="noopener" class="footer-social-btn wa" title="WhatsApp">
+          <i class="fab fa-whatsapp"></i>
+        </a>
+      </div>
+    </div>
+
+    <!-- Columna 2: Navegar -->
+    <div class="footer-section">
+      <h4>Navegar</h4>
+      <ul>
+        <li><a href="/"><i class="fas fa-home"></i> Inicio</a></li>
+        <li><a href="/carrito"><i class="fas fa-shopping-cart"></i> Carrito</a></li>
+        <li><a href="/soporte"><i class="fas fa-headset"></i> Soporte</a></li>
+        <% if (locals.user) { %>
+          <li><a href="/perfil"><i class="fas fa-user"></i> Perfil</a></li>
+        <% } else { %>
+          <li><a href="/login"><i class="fas fa-sign-in-alt"></i> Ingresar</a></li>
+        <% } %>
+      </ul>
+    </div>
+
+    <!-- Columna 3: Categorías -->
+    <div class="footer-section">
+      <h4>Categorías</h4>
+      <ul>
+        <li><a href="/categoria/semillas"><i class="fas fa-seedling"></i> Semillas</a></li>
+        <li><a href="/categoria/lacteos"><i class="fas fa-cow"></i> Lácteos</a></li>
+        <li><a href="/categoria/cosechas"><i class="fas fa-wheat-awn"></i> Cosechas</a></li>
+        <li><a href="/categoria/abonos"><i class="fas fa-leaf"></i> Abonos</a></li>
+        <li><a href="/categoria/ferre"><i class="fas fa-hammer"></i> Ferretería</a></li>
+        <li><a href="/categoria/agro"><i class="fas fa-tractor"></i> AgroEquipos</a></li>
+      </ul>
+    </div>
+
+    <!-- Columna 4: Contacto -->
+    <div class="footer-section">
+      <h4>Contacto</h4>
+      <div class="footer-contact-item">
+        <div class="footer-contact-icon"><i class="fas fa-envelope"></i></div>
+        <div>
+          <div class="footer-contact-label">Email</div>
+          <a href="mailto:delosmontesdemaria@gmail.com" class="footer-contact-value">delosmontesdemaria@gmail.com</a>
+        </div>
+      </div>
+      <div class="footer-contact-item">
+        <div class="footer-contact-icon"><i class="fas fa-phone"></i></div>
+        <div>
+          <div class="footer-contact-label">Teléfono</div>
+          <a href="tel:+573008723989" class="footer-contact-value">+57 300 872 3989</a>
+        </div>
+      </div>
+      <div class="footer-contact-item">
+        <div class="footer-contact-icon"><i class="fas fa-map-marker-alt"></i></div>
+        <div>
+          <div class="footer-contact-label">Ubicación</div>
+          <span class="footer-contact-value">El Carmen de Bolívar, Colombia</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Separador -->
+  <div class="footer-divider"><hr></div>
+
+  <!-- Barra inferior -->
+  <div class="footer-bottom">
+    <p>&copy; 2026 <strong>De los Montes de María</strong>. Todos los derechos reservados. | NIT: 1050277880</p>
+    <div class="footer-made-with">
+      <i class="fas fa-leaf"></i>
+      <span>Hecho con amor desde el campo colombiano</span>
+    </div>
+  </div>
+
+</footer>
+
+<!-- Botón flotante de soporte (enlace directo a /soporte) -->
+<a href="/soporte" class="soporte-float-link" title="Centro de Soporte" aria-label="Centro de Soporte">
+  <i class="fa fa-headset"></i>
+</a>
+
+<link rel="stylesheet" href="/css/soporte.css">
