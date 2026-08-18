@@ -1,10 +1,11 @@
 /**
  * Servicio Externo: TelegramService
  * Integración con la API oficial de Telegram Bot (montesdemariabot)
- * - Sistema interactivo de Tickets de Soporte por pasos
+ * - Sistema interactivo de Tickets de Soporte por pasos con Botones Táctiles
  * - Conexión directa con la IA de Soporte (IAService / OpenRouter)
- * - Transferencia fluida a Asesores Humanos y respuestas bidireccionales
- * - Alertas en tiempo real a administradores (compras, stock bajo, tickets)
+ * - Transferencia fluida a Asesores Humanos y respuestas interactivas 1-click
+ * - Alertas en tiempo real a administradores con botones de acción directa
+ * - Menú táctil persistente según el rol del usuario (Admin, Campesino, Comprador)
  */
 const https = require('https');
 const bcrypt = require('bcrypt');
@@ -31,8 +32,8 @@ class TelegramService {
     this.emailService = emailService;
     this.socketHandler = null;
 
-    // Memoria de sesiones interactivas por chatId
-    // { state: 'IDLE' | 'FORM_NOMBRE' | 'FORM_CORREO' | 'FORM_TELEFONO' | 'FORM_CATEGORIA' | 'FORM_MENSAJE' | 'CHAT_ACTIVO' | 'LOGIN_WAIT_EMAIL' | 'LOGIN_WAIT_CODE', data: {}, activeTicket: null }
+    // Memoria de sesiones conversacionales por chatId
+    // { state: 'IDLE' | 'FORM_NOMBRE' | 'FORM_CORREO' | 'FORM_TELEFONO' | 'FORM_CATEGORIA' | 'FORM_MENSAJE' | 'CHAT_ACTIVO' | 'LOGIN_WAIT_EMAIL' | 'LOGIN_WAIT_AUTH' | 'WAITING_TICKET_REPLY', data: {}, activeTicket: null, replyTicketCode: null }
     this.sessions = new Map();
 
     // Memoria de usuarios autenticados: chatId -> { id_usuario, nombre, apodo, correo, telefono, id_rol, rolNombre }
@@ -98,6 +99,57 @@ class TelegramService {
   }
 
   /**
+   * Genera el teclado persistente en la parte inferior según el rol
+   */
+  getPersistentKeyboard(authUser) {
+    if (!authUser) {
+      return {
+        keyboard: [
+          [{ text: '🔐 Iniciar Sesión' }, { text: '💬 Soporte' }],
+          [{ text: '🛒 Ver Catálogo' }, { text: '🆔 Mi ID' }]
+        ],
+        resize_keyboard: true,
+        persistent: true
+      };
+    }
+
+    const rolId = Number(authUser.id_rol);
+    if (rolId === 1 || rolId === 4) {
+      // Admin o Asesor
+      return {
+        keyboard: [
+          [{ text: '📊 Resumen' }, { text: '🎫 Tickets' }],
+          [{ text: '🛒 Ventas' }, { text: '⚠️ Stock' }],
+          [{ text: '🌾 Catálogo' }, { text: '👤 Mi Perfil' }]
+        ],
+        resize_keyboard: true,
+        persistent: true
+      };
+    } else if (rolId === 2) {
+      // Campesino / Vendedor
+      return {
+        keyboard: [
+          [{ text: '🌾 Mis Productos' }, { text: '💰 Mis Ventas' }],
+          [{ text: '🛒 Catálogo' }, { text: '💬 Soporte' }],
+          [{ text: '👤 Mi Perfil' }]
+        ],
+        resize_keyboard: true,
+        persistent: true
+      };
+    } else {
+      // Comprador / Cliente
+      return {
+        keyboard: [
+          [{ text: '📦 Mis Pedidos' }, { text: '🛒 Catálogo' }],
+          [{ text: '💬 Soporte' }, { text: '👤 Mi Perfil' }]
+        ],
+        resize_keyboard: true,
+        persistent: true
+      };
+    }
+  }
+
+  /**
    * Enviar mensaje a un chat específico
    */
   async sendMessage(chatId, text, options = {}) {
@@ -118,7 +170,6 @@ class TelegramService {
   async broadcastAdmins(text, options = {}) {
     const recipients = Array.from(this.subscribers);
     if (recipients.length === 0) {
-      console.log('[Telegram Broadcast] No hay chat_id registrado aún para administradores.');
       return;
     }
     const promises = recipients.map((id) => this.sendMessage(id, text, options));
@@ -126,7 +177,7 @@ class TelegramService {
   }
 
   /**
-   * Registrar nuevo chat_id dinámicamente (cuando un admin escribe /start)
+   * Registrar nuevo chat_id dinámicamente
    */
   registerSubscriber(chatId) {
     if (chatId) {
@@ -164,7 +215,7 @@ class TelegramService {
 👤 <b>Cliente:</b> ${clientName}
 📞 <b>Teléfono:</b> <code>${clientPhone}</code>
 📧 <b>Correo:</b> ${clientEmail}
-📍 <b>Entrega:</b> ${direccion || 'San Jacinto / Montes de María'}
+📍 <b>Entrega:</b> ${direccion || 'Montes de María, Colombia'}
 💳 <b>Pago:</b> ${metodoPago || 'Contra Entrega'}
 💰 <b>Total:</b> <b>$${formattedTotal} COP</b>
 
@@ -173,14 +224,25 @@ ${productsList}
 ━━━━━━━━━━━━━━━━━━
 🌿 <i>De los Montes de María - Cosechando Futuro</i>
 `;
-      await this.broadcastAdmins(msg);
+      const keyboard = {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '🛒 Ver Pedidos', callback_data: 'cmd_ventas' },
+              { text: '🌐 Panel Web', url: 'https://delosmontesdemaria.onrender.com/admin' }
+            ]
+          ]
+        }
+      };
+
+      await this.broadcastAdmins(msg, keyboard);
     } catch (err) {
       console.error('[Telegram] Error al notificar compra:', err);
     }
   }
 
   /**
-   * Alerta de Stock Bajo (cuando un producto tiene 5 o menos unidades)
+   * Alerta de Stock Bajo
    */
   async notificarStockBajo({ producto, stockRestante }) {
     try {
@@ -192,9 +254,19 @@ ${productsList}
 🌾 <b>Stock Restante:</b> <code>${stockRestante} unidades</code>
 🏷️ <b>Categoría:</b> ${producto?.categoria || 'General'}
 ━━━━━━━━━━━━━━━━━━
-👉 <a href="https://delosmontesdemaria.onrender.com/admin">Actualizar Inventario en el Panel</a>
 `;
-      await this.broadcastAdmins(msg);
+      const keyboard = {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '⚠️ Ver Todo el Stock Bajo', callback_data: 'cmd_stock' },
+              { text: '🌐 Actualizar en Web', url: 'https://delosmontesdemaria.onrender.com/admin' }
+            ]
+          ]
+        }
+      };
+
+      await this.broadcastAdmins(msg, keyboard);
     } catch (err) {
       console.error('[Telegram] Error al notificar stock bajo:', err);
     }
@@ -231,10 +303,11 @@ ${usuario?.nombre ? `👤 <b>Cliente:</b> ${usuario.nombre}\n` : ''}
    */
   async notificarNuevoTicket({ ticket, mensajeInicial }) {
     try {
+      const ticketCode = ticket.ticket_code || ticket.session_id;
       const msg = `
 🎫 <b>NUEVA CONSULTA DE SOPORTE</b>
 ━━━━━━━━━━━━━━━━━━
-Código: <code>${ticket.ticket_code || ticket.session_id}</code>
+Código: <code>#${ticketCode}</code>
 Cliente: <b>${ticket.nombre_cliente || 'Usuario'}</b>
 Correo: <code>${ticket.correo_cliente || 'N/A'}</code>
 Asunto: <b>${ticket.asunto || 'Consulta'}</b>
@@ -242,9 +315,19 @@ Asunto: <b>${ticket.asunto || 'Consulta'}</b>
 📝 <b>Mensaje:</b>
 <i>"${mensajeInicial || 'Solicitud de información'}"</i>
 ━━━━━━━━━━━━━━━━━━
-👉 <a href="https://delosmontesdemaria.onrender.com/admin/soporte">Abrir Panel de Soporte</a>
 `;
-      await this.broadcastAdmins(msg);
+      const keyboard = {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: `💬 Responder a #${ticketCode}`, callback_data: `reply_tk:${ticketCode}` },
+              { text: `🔒 Cerrar Ticket`, callback_data: `close_tk:${ticketCode}` }
+            ]
+          ]
+        }
+      };
+
+      await this.broadcastAdmins(msg, keyboard);
     } catch (err) {
       console.error('[Telegram] Error al notificar ticket:', err);
     }
@@ -255,18 +338,29 @@ Asunto: <b>${ticket.asunto || 'Consulta'}</b>
    */
   async notificarSolicitudAsesorHumano({ ticket }) {
     try {
+      const ticketCode = ticket.ticket_code || ticket.id;
       const msg = `
 🚨 <b>¡CLIENTE SOLICITA ASESOR HUMANO!</b>
 ━━━━━━━━━━━━━━━━━━
-Ticket: <code>${ticket.ticket_code || ticket.id}</code>
+Ticket: <code>#${ticketCode}</code>
 Cliente: <b>${ticket.nombre_cliente}</b>
 Teléfono: <code>${ticket.telefono_cliente || 'N/A'}</code>
 Asunto: <b>${ticket.asunto}</b>
 ━━━━━━━━━━━━━━━━━━
-⚡ <i>Por favor atiende la solicitud en el panel de asesores:</i>
-👉 <a href="https://delosmontesdemaria.onrender.com/admin/soporte">Atender en Vivo</a>
+⚡ <i>Toca el botón de abajo para atender directamente desde Telegram:</i>
 `;
-      await this.broadcastAdmins(msg);
+      const keyboard = {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: `💬 Atender #${ticketCode} Ahora`, callback_data: `reply_tk:${ticketCode}` },
+              { text: `🌐 Abrir en Panel`, url: 'https://delosmontesdemaria.onrender.com/admin/soporte' }
+            ]
+          ]
+        }
+      };
+
+      await this.broadcastAdmins(msg, keyboard);
     } catch (err) {
       console.error('[Telegram] Error al notificar asesor humano:', err);
     }
@@ -277,21 +371,33 @@ Asunto: <b>${ticket.asunto}</b>
    */
   generarMenuRol(authUser, chatId) {
     if (!authUser) {
-      return `
+      return {
+        text: `
 👋 <b>¡Bienvenido al Bot de De los Montes de María!</b> 🌾
 ━━━━━━━━━━━━━━━━━━
 Tu <b>Chat ID:</b> <code>${chatId}</code>
 Estado: 👤 <i>Usuario Invitado</i>
 
-🔐 <b>Conecta tu cuenta para desbloquear funciones:</b>
-👉 Escribe <code>/login</code>
+🔐 <b>Conecta tu cuenta para acceder a tus pedidos o panel:</b>
+Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
 
-<b>Comandos generales:</b>
-💬 <code>/soporte</code> - Consulta con IA y soporte humano
-🛒 <code>/tienda</code> - Catálogo de cosechas y productos
-📦 <code>/pedidos</code> - Información sobre envíos
-🆔 <code>/id</code> - Ver tu Chat ID
-`;
+<b>Opciones Rápidas:</b>
+💬 <b>Soporte con IA</b> - Escribe <code>/soporte</code>
+🛒 <b>Catálogo Campesino</b> - Escribe <code>/tienda</code>
+📦 <b>Envíos</b> - Escribe <code>/pedidos</code>
+`,
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '🔐 Iniciar Sesión', callback_data: 'cmd_login' },
+              { text: '💬 Soporte & Ayuda', callback_data: 'cmd_soporte' }
+            ],
+            [
+              { text: '🛒 Ver Catálogo Web', url: 'https://delosmontesdemaria.onrender.com/catalogo' }
+            ]
+          ]
+        }
+      };
     }
 
     const rolId = Number(authUser.id_rol);
@@ -300,59 +406,92 @@ Estado: 👤 <i>Usuario Invitado</i>
     // 1. Administrador (id_rol = 1) o Asesor (id_rol = 4)
     if (rolId === 1 || rolId === 4) {
       const badge = rolId === 1 ? '👑 ADMINISTRADOR' : '👨‍🌾 ASESOR DE SOPORTE';
-      return `
+      return {
+        text: `
 🌾 <b>PANEL DE CONTROL TELEGRAM</b> 🌾
 ━━━━━━━━━━━━━━━━━━
 👤 <b>Sesión:</b> ${nombre} (${badge})
 📧 <b>Correo:</b> <code>${authUser.correo}</code>
 ━━━━━━━━━━━━━━━━━━
-<b>Comandos de Gestión:</b>
-📊 <code>/admin</code> o <code>/resumen</code> - Métricas en tiempo real
-🎫 <code>/tickets</code> - Lista de tickets pendientes
-💬 <code>/responder [CÓDIGO] [MENSAJE]</code> - Responder a un cliente
-🔒 <code>/cerrarticket [CÓDIGO]</code> - Finalizar un ticket
-🛒 <code>/ventas</code> - Últimas ventas registradas
-📦 <code>/stock</code> - Inventario y alertas de stock bajo
-🌾 <code>/misproductos</code> - Cosechas activas en el catálogo
-👤 <code>/perfil</code> - Datos de tu cuenta
-🚪 <code>/logout</code> - Cerrar sesión en Telegram
-
-💡 <i>Consejo: Para responder a un cliente rápidamente, desliza/cita el mensaje de alerta de soporte en Telegram y escribe tu respuesta directamente.</i>
-`;
+<b>Selecciona una acción rápida en los botones:</b>
+`,
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '📊 Resumen General', callback_data: 'cmd_resumen' },
+              { text: '🎫 Ver Tickets', callback_data: 'cmd_tickets' }
+            ],
+            [
+              { text: '🛒 Últimas Ventas', callback_data: 'cmd_ventas' },
+              { text: '⚠️ Stock Crítico', callback_data: 'cmd_stock' }
+            ],
+            [
+              { text: '👤 Mi Perfil', callback_data: 'cmd_perfil' },
+              { text: '🚪 Cerrar Sesión', callback_data: 'cmd_logout' }
+            ],
+            [
+              { text: '🌐 Panel Web Administrativo', url: 'https://delosmontesdemaria.onrender.com/admin' }
+            ]
+          ]
+        }
+      };
     }
 
     // 2. Campesino / Vendedor (id_rol = 2)
     if (rolId === 2) {
-      return `
+      return {
+        text: `
 🌱 <b>PANEL DE PRODUCTOR CAMPESINO</b> 🌱
 ━━━━━━━━━━━━━━━━━━
 👨‍🌾 <b>Productor:</b> ${nombre}
 📧 <b>Correo:</b> <code>${authUser.correo}</code>
 ━━━━━━━━━━━━━━━━━━
-<b>Tus Herramientas:</b>
-🌾 <code>/misproductos</code> - Ver tus cosechas publicadas y stock
-💰 <code>/misventas</code> - Resumen de pedidos de tus cosechas
-💬 <code>/soporte</code> - Contactar asistencia directa
-🛒 <code>/tienda</code> - Ver catálogo general
-👤 <code>/perfil</code> - Datos de tu cuenta
-🚪 <code>/logout</code> - Cerrar sesión en Telegram
-`;
+<b>Tus Herramientas Rápidas:</b>
+`,
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '🌾 Mis Cosechas & Stock', callback_data: 'cmd_misproductos' },
+              { text: '💰 Mis Ventas', callback_data: 'cmd_misventas' }
+            ],
+            [
+              { text: '💬 Soporte Directo', callback_data: 'cmd_soporte' },
+              { text: '👤 Mi Perfil', callback_data: 'cmd_perfil' }
+            ],
+            [
+              { text: '🚪 Cerrar Sesión', callback_data: 'cmd_logout' }
+            ]
+          ]
+        }
+      };
     }
 
     // 3. Comprador / Cliente (id_rol = 3)
-    return `
+    return {
+      text: `
 🛒 <b>PANEL DEL COMPRADOR</b> 🛒
 ━━━━━━━━━━━━━━━━━━
 👤 <b>Hola:</b> ${nombre}
 📧 <b>Correo:</b> <code>${authUser.correo}</code>
 ━━━━━━━━━━━━━━━━━━
 <b>Tus Opciones:</b>
-📦 <code>/mispedidos</code> - Consultar tus compras y estado de envío
-💬 <code>/soporte</code> - Consulta rápida (tus datos ya están listos)
-🛒 <code>/tienda</code> - Ver catálogo de cosechas frescas
-👤 <code>/perfil</code> - Datos de tu cuenta
-🚪 <code>/logout</code> - Cerrar sesión en Telegram
-`;
+`,
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: '📦 Mis Pedidos & Estado', callback_data: 'cmd_mispedidos' },
+            { text: '💬 Crear Consulta Soporte', callback_data: 'cmd_soporte' }
+          ],
+          [
+            { text: '🛒 Ver Catálogo Web', url: 'https://delosmontesdemaria.onrender.com/catalogo' },
+            { text: '👤 Mi Perfil', callback_data: 'cmd_perfil' }
+          ],
+          [
+            { text: '🚪 Cerrar Sesión', callback_data: 'cmd_logout' }
+          ]
+        ]
+      }
+    };
   }
 
   /**
@@ -365,7 +504,7 @@ Estado: 👤 <i>Usuario Invitado</i>
     }
 
     try {
-      const cleanCode = ticketCode.toUpperCase().trim();
+      const cleanCode = ticketCode.toUpperCase().replace('#', '').trim();
       const ticket = await this.soporteRepository.buscarTicketPorCodigo(cleanCode);
 
       if (!ticket) {
@@ -376,7 +515,7 @@ Estado: 👤 <i>Usuario Invitado</i>
       const nombreAsesor = authUser?.nombre || authUser?.username || 'Equipo de Soporte';
       const idUsuario = authUser?.id_usuario || null;
 
-      // 1. Guardar mensaje en la base de datos
+      // 1. Guardar mensaje en DB
       await this.soporteRepository.agregarMensaje({
         ticket_id: ticket.id,
         session_id: ticket.session_id,
@@ -387,14 +526,14 @@ Estado: 👤 <i>Usuario Invitado</i>
         leido: 0
       });
 
-      // 2. Actualizar estado del ticket a agente asignado
+      // 2. Actualizar estado
       await this.soporteRepository.actualizarTicket(ticket.id, {
         estado: 'agente',
         nombre_agente: nombreAsesor,
         id_agente: idUsuario
       });
 
-      // 3. Emitir por Socket.IO al panel web en tiempo real
+      // 3. Emitir a Socket.IO
       if (this.socketHandler) {
         this.socketHandler.emitirNuevoMensaje(ticket.session_id, {
           ticket_id: ticket.id,
@@ -422,10 +561,22 @@ ${replyText}
         }
       }
 
-      // 5. Confirmar al Admin/Asesor que envió el mensaje
+      // 5. Confirmar con botón de cierre
+      const confirmKeyboard = {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: `💬 Responder de nuevo`, callback_data: `reply_tk:${cleanCode}` },
+              { text: `🔒 Cerrar Ticket #${cleanCode}`, callback_data: `close_tk:${cleanCode}` }
+            ]
+          ]
+        }
+      };
+
       await this.sendMessage(
         chatId,
-        `✅ <b>Respuesta enviada con éxito al cliente</b>\n━━━━━━━━━━━━━━━━━━\n🎫 <b>Ticket:</b> <code>#${cleanCode}</code>\n👤 <b>Cliente:</b> ${ticket.nombre_cliente}\n📝 <b>Mensaje:</b> <i>"${replyText}"</i>`
+        `✅ <b>Respuesta enviada con éxito al cliente</b>\n━━━━━━━━━━━━━━━━━━\n🎫 <b>Ticket:</b> <code>#${cleanCode}</code>\n👤 <b>Cliente:</b> ${ticket.nombre_cliente}\n📝 <b>Mensaje:</b> <i>"${replyText}"</i>`,
+        confirmKeyboard
       );
     } catch (err) {
       console.error('[Telegram responderTicket Error]:', err);
@@ -435,7 +586,6 @@ ${replyText}
 
   /**
    * PROCESADOR PRINCIPAL DE ACTUALIZACIONES (WEBHOOK)
-   * Gestiona el flujo interactivo de formularios, tickets, IA y asesores.
    */
   async procesarUpdate(update) {
     try {
@@ -447,16 +597,170 @@ ${replyText}
         const cbChatId = String(cb.message?.chat?.id || cb.from?.id);
         const cbData = cb.data || '';
 
+        // Feedback táctil inmediato
+        if (cb.id) {
+          this.request('answerCallbackQuery', { callback_query_id: cb.id }).catch(() => {});
+        }
+
+        let session = this.sessions.get(cbChatId);
+        if (!session) {
+          session = { state: 'IDLE', data: {}, activeTicket: null, activeSessionId: null };
+          this.sessions.set(cbChatId, session);
+        }
+
+        const authUser = this.authenticatedUsers.get(cbChatId) || null;
+        const rolId = authUser ? Number(authUser.id_rol) : null;
+        const isAdminOrAdvisor = rolId === 1 || rolId === 4;
+
         if (cbData === 'resend_otp') {
           await this.reenviarCodigoOTP(cbChatId);
-          if (cb.id) {
-            await this.request('answerCallbackQuery', {
-              callback_query_id: cb.id,
-              text: '📧 ¡Nuevo código enviado a tu correo!'
-            }).catch(() => {});
+          return { ok: true };
+        }
+
+        if (cbData === 'cmd_login') {
+          session.state = 'LOGIN_WAIT_EMAIL';
+          await this.sendMessage(cbChatId, '📧 Por favor escribe tu <b>Correo Electrónico o Usuario</b>:\n<i>(O escribe /cancelar para salir)</i>');
+          return { ok: true };
+        }
+
+        if (cbData === 'cmd_logout') {
+          this.authenticatedUsers.delete(cbChatId);
+          this.pendingAuth.delete(cbChatId);
+          this.sessions.set(cbChatId, { state: 'IDLE', data: {}, activeTicket: null, activeSessionId: null });
+          const kb = this.getPersistentKeyboard(null);
+          await this.sendMessage(cbChatId, '👋 <b>Sesión cerrada exitosamente.</b>\nHas vuelto al modo invitado.', { reply_markup: kb });
+          return { ok: true };
+        }
+
+        if (cbData === 'cmd_resumen') {
+          if (isAdminOrAdvisor || cbChatId === String(this.adminChatId)) {
+            await this.mostrarResumenAdmin(cbChatId);
           }
           return { ok: true };
         }
+
+        if (cbData === 'cmd_tickets') {
+          if (isAdminOrAdvisor || cbChatId === String(this.adminChatId)) {
+            await this.mostrarTicketsPendientes(cbChatId);
+          }
+          return { ok: true };
+        }
+
+        if (cbData === 'cmd_ventas') {
+          if (isAdminOrAdvisor || cbChatId === String(this.adminChatId)) {
+            await this.mostrarUltimasVentas(cbChatId);
+          }
+          return { ok: true };
+        }
+
+        if (cbData === 'cmd_stock') {
+          if (isAdminOrAdvisor || cbChatId === String(this.adminChatId)) {
+            await this.mostrarStockCritico(cbChatId);
+          }
+          return { ok: true };
+        }
+
+        if (cbData === 'cmd_misproductos') {
+          await this.mostrarProductosCampesino(cbChatId, authUser);
+          return { ok: true };
+        }
+
+        if (cbData === 'cmd_misventas') {
+          await this.mostrarVentasCampesino(cbChatId, authUser);
+          return { ok: true };
+        }
+
+        if (cbData === 'cmd_mispedidos') {
+          await this.mostrarPedidosComprador(cbChatId, authUser);
+          return { ok: true };
+        }
+
+        if (cbData === 'cmd_perfil') {
+          await this.mostrarPerfilUsuario(cbChatId, authUser);
+          return { ok: true };
+        }
+
+        if (cbData === 'cmd_soporte') {
+          await this.iniciarFlujoSoporte(cbChatId, authUser, session);
+          return { ok: true };
+        }
+
+        // Selección de categoría en soporte vía botón
+        if (cbData.startsWith('cat_')) {
+          const catMap = {
+            'cat_pedidos': '📦 Estado de Pedidos & Envíos',
+            'cat_productos': '🌱 Productos & Cosechas',
+            'cat_pagos': '💳 Pagos & Facturación',
+            'cat_campesino': '🌾 Registro de Campesino',
+            'cat_general': '❓ Consulta General'
+          };
+          const selectedCat = catMap[cbData] || 'Consulta General';
+          session.data.categoria = selectedCat;
+          session.state = 'FORM_MENSAJE';
+          await this.sendMessage(cbChatId, `✅ Categoría: <b>${selectedCat}</b>\n\n✍️ Ahora escribe tu <b>Consulta o Problema</b> en detalle:`);
+          return { ok: true };
+        }
+
+        // 1-Click Responder a Ticket
+        if (cbData.startsWith('reply_tk:')) {
+          const ticketCode = cbData.replace('reply_tk:', '').trim();
+          session.state = 'WAITING_TICKET_REPLY';
+          session.replyTicketCode = ticketCode;
+          await this.sendMessage(
+            cbChatId,
+            `✍️ <b>Modo Respuesta Activado para Ticket #${ticketCode}</b>\n━━━━━━━━━━━━━━━━━━\nEscribe a continuación el mensaje que deseas enviar al cliente:\n<i>(O escribe /cancelar para salir)</i>`
+          );
+          return { ok: true };
+        }
+
+        // 1-Click Cerrar Ticket
+        if (cbData.startsWith('close_tk:')) {
+          const ticketCode = cbData.replace('close_tk:', '').trim();
+          if (this.soporteRepository) {
+            const t = await this.soporteRepository.buscarTicketPorCodigo(ticketCode);
+            if (t) {
+              await this.soporteRepository.actualizarTicket(t.id, { estado: 'cerrado' });
+              if (this.socketHandler) {
+                this.socketHandler.emitirTicketCerrado(t.session_id, t.id);
+              }
+              await this.sendMessage(cbChatId, `✅ Ticket <code>#${ticketCode}</code> cerrado correctamente.`);
+            } else {
+              await this.sendMessage(cbChatId, `❌ No se encontró el ticket <code>#${ticketCode}</code>.`);
+            }
+          }
+          return { ok: true };
+        }
+
+        // Solicitar asesor desde botón de respuesta IA
+        if (cbData === 'escalate_agent') {
+          if (session.state === 'CHAT_ACTIVO' && session.activeTicket) {
+            const ticket = session.activeTicket;
+            if (this.soporteRepository) {
+              await this.soporteRepository.actualizarTicket(ticket.id, { estado: 'agente' });
+            }
+            this.notificarSolicitudAsesorHumano({ ticket }).catch(() => {});
+            await this.sendMessage(cbChatId, `🔔 <b>¡Solicitud de Asesor Humano Recibida!</b>\n━━━━━━━━━━━━━━━━━━\nHemos notificado a nuestro equipo. Un asesor humano te atenderá por este chat en breve.`);
+          }
+          return { ok: true };
+        }
+
+        // Finalizar ticket desde botón
+        if (cbData === 'close_my_ticket') {
+          if (session.activeTicket && this.soporteRepository) {
+            try {
+              await this.soporteRepository.actualizarTicket(session.activeTicket.id, { estado: 'cerrado' });
+              if (this.socketHandler) {
+                this.socketHandler.emitirTicketCerrado(session.activeSessionId, session.activeTicket.id);
+              }
+            } catch (_) {}
+          }
+          session.state = 'IDLE';
+          session.activeTicket = null;
+          session.activeSessionId = null;
+          await this.sendMessage(cbChatId, '✅ <b>Ticket finalizado exitosamente.</b>\n¡Gracias por preferir De los Montes de María! 🌾');
+          return { ok: true };
+        }
+
         return { ok: true };
       }
 
@@ -470,7 +774,7 @@ ${replyText}
 
       if (!chatId) return { ok: true };
 
-      // Registrar chat para alertas base
+      // Registrar chat para alertas
       this.registerSubscriber(chatId);
 
       // Obtener o inicializar sesión conversacional
@@ -483,6 +787,21 @@ ${replyText}
       const authUser = this.authenticatedUsers.get(chatId) || null;
       const rolId = authUser ? Number(authUser.id_rol) : null;
       const isAdminOrAdvisor = rolId === 1 || rolId === 4;
+
+      // ── MODO ESPERANDO RESPUESTA A TICKET (TRIGGERED BY INLINE BUTTON) ──
+      if (session.state === 'WAITING_TICKET_REPLY' && session.replyTicketCode) {
+        if (text === '/cancelar' || text === '/salir') {
+          session.state = 'IDLE';
+          session.replyTicketCode = null;
+          await this.sendMessage(chatId, '❌ Respuesta cancelada.');
+          return { ok: true };
+        }
+        const code = session.replyTicketCode;
+        session.state = 'IDLE';
+        session.replyTicketCode = null;
+        await this.responderTicket(chatId, code, text, authUser);
+        return { ok: true };
+      }
 
       // ── RESPUESTA CITADA / SWIPE-TO-REPLY (PARA ADMINS Y ASESORES) ──
       if (message.reply_to_message && text && (isAdminOrAdvisor || chatId === String(this.adminChatId))) {
@@ -499,7 +818,8 @@ ${replyText}
       if (text === '/cancelar' || text === '/reset') {
         this.sessions.set(chatId, { state: 'IDLE', data: {}, activeTicket: null, activeSessionId: null });
         this.pendingAuth.delete(chatId);
-        await this.sendMessage(chatId, '🔄 Proceso reiniciado. Si necesitas ayuda escribe /soporte.');
+        const kb = this.getPersistentKeyboard(authUser);
+        await this.sendMessage(chatId, '🔄 Proceso cancelado.', { reply_markup: kb });
         return { ok: true };
       }
 
@@ -513,61 +833,42 @@ ${replyText}
           } catch (_) {}
         }
         this.sessions.set(chatId, { state: 'IDLE', data: {}, activeTicket: null, activeSessionId: null });
-        await this.sendMessage(chatId, '✅ <b>Ticket de soporte cerrado exitosamente.</b>\n\n¡Muchas gracias por contactar a <b>De los Montes de María</b>! 🌾\nSi requieres nueva asistencia, escribe /soporte.');
+        const kb = this.getPersistentKeyboard(authUser);
+        await this.sendMessage(chatId, '✅ <b>Ticket de soporte cerrado exitosamente.</b>\n\n¡Muchas gracias por contactar a <b>De los Montes de María</b>! 🌾', { reply_markup: kb });
         return { ok: true };
       }
 
       // ── GESTIÓN DE SESIÓN Y AUTENTICACIÓN (/LOGIN, /LOGOUT, /PERFIL) ──
-      if (text === '/logout' || text === '/desconectar' || text === '/salir') {
+      if (text === '/logout' || text === '/desconectar' || text === '/salir' || text === '🚪 Cerrar Sesión') {
         this.authenticatedUsers.delete(chatId);
         this.pendingAuth.delete(chatId);
         this.sessions.set(chatId, { state: 'IDLE', data: {}, activeTicket: null, activeSessionId: null });
-        await this.sendMessage(chatId, '👋 <b>Sesión cerrada exitosamente.</b>\nHas vuelto al modo invitado. Escribe /login cuando desees volver a identificarte.');
+        const kb = this.getPersistentKeyboard(null);
+        await this.sendMessage(chatId, '👋 <b>Sesión cerrada exitosamente.</b>\nHas vuelto al modo invitado. Escribe /login cuando desees volver a identificarte.', { reply_markup: kb });
         return { ok: true };
       }
 
-      if (text === '/perfil' || text === '/cuenta' || text === '/mi_cuenta') {
-        if (!authUser) {
-          await this.sendMessage(chatId, '🔒 No has iniciado sesión.\nEscribe <code>/login</code> para vincular tu cuenta.');
-        } else {
-          const rolTexto = rolId === 1 ? '👑 Administrador' : rolId === 2 ? '🌾 Campesino / Vendedor' : rolId === 4 ? '👨‍🌾 Asesor de Soporte' : '🛒 Comprador / Cliente';
-          const perfilMsg = `
-👤 <b>PERFIL DE USUARIO</b>
-━━━━━━━━━━━━━━━━━━
-📛 <b>Nombre:</b> ${authUser.nombre || authUser.username}
-📧 <b>Correo:</b> <code>${authUser.correo}</code>
-📞 <b>Teléfono:</b> <code>${authUser.telefono || 'Sin registrar'}</code>
-🏷️ <b>Rol:</b> <b>${rolTexto}</b>
-🆔 <b>Chat ID:</b> <code>${chatId}</code>
-━━━━━━━━━━━━━━━━━━
-<i>Para cerrar tu sesión escribe /logout.</i>
-`;
-          await this.sendMessage(chatId, perfilMsg);
-        }
+      if (text === '/perfil' || text === '/cuenta' || text === '👤 Mi Perfil') {
+        await this.mostrarPerfilUsuario(chatId, authUser);
         return { ok: true };
       }
 
       // Iniciar proceso de Login
-      if (text.startsWith('/login') || text.startsWith('/conectar') || text.startsWith('/identificar')) {
+      if (text.startsWith('/login') || text.startsWith('/conectar') || text === '🔐 Iniciar Sesión') {
         const parts = text.split(' ');
-        const emailArg = parts[1] ? parts[1].trim() : '';
+        const userInput = parts[1] ? parts[1].trim() : '';
 
-        if (emailArg && emailArg.includes('@')) {
-          await this.iniciarLoginConEmail(chatId, emailArg, session);
+        if (userInput) {
+          await this.iniciarLoginConIdentificador(chatId, userInput, session);
         } else {
           session.state = 'LOGIN_WAIT_EMAIL';
-          await this.sendMessage(chatId, '📧 Por favor escribe tu <b>Correo Electrónico</b> registrado en De los Montes de María:\n<i>(O escribe /cancelar para salir)</i>');
+          await this.sendMessage(chatId, '📧 Por favor escribe tu <b>Correo Electrónico o Usuario</b>:\n<i>(O escribe /cancelar para salir)</i>');
         }
         return { ok: true };
       }
 
       if (session.state === 'LOGIN_WAIT_EMAIL') {
-        const emailInput = text.trim();
-        if (!emailInput.includes('@') || !emailInput.includes('.')) {
-          await this.sendMessage(chatId, '⚠️ Correo no válido. Por favor escribe un correo electrónico válido (ej: <code>correo@gmail.com</code>) o escribe /cancelar.');
-          return { ok: true };
-        }
-        await this.iniciarLoginConEmail(chatId, emailInput, session);
+        await this.iniciarLoginConIdentificador(chatId, text.trim(), session);
         return { ok: true };
       }
 
@@ -589,24 +890,24 @@ ${replyText}
 
         let loginSuccess = false;
 
-        // 1. Probar si ingresó el código OTP numérico de 6 dígitos
+        // 1. Código OTP de 6 dígitos
         const cleanDigits = text.replace(/\D/g, '').trim();
         if (pending && cleanDigits.length === 6 && cleanDigits === pending.code) {
           if (Date.now() <= pending.expiresAt) {
             loginSuccess = true;
           } else {
-            await this.sendMessage(chatId, '⌛ El código de 6 dígitos ha vencido. Puedes escribir tu <b>contraseña de la web</b> para entrar directo o escribir /reenviar para recibir un código nuevo.');
+            await this.sendMessage(chatId, '⌛ El código de 6 dígitos ha vencido. Puedes ingresar con tu <b>contraseña de la web</b> o pulsar reenviar código.');
             return { ok: true };
           }
         }
 
-        // 2. Si no fue código OTP, probar si ingresó la contraseña del usuario (Bcrypt)
+        // 2. Contraseña del usuario (Bcrypt)
         if (!loginSuccess && user.contrasena) {
           try {
             const passwordMatch = await bcrypt.compare(text, user.contrasena);
             if (passwordMatch) {
               loginSuccess = true;
-              // Eliminar el mensaje de Telegram que contenía la contraseña por seguridad
+              // Eliminar el mensaje de la contraseña por seguridad
               if (message.message_id) {
                 this.request('deleteMessage', {
                   chat_id: chatId,
@@ -632,64 +933,39 @@ ${replyText}
 
           const rolTexto = userRolId === 1 ? '👑 Administrador' : userRolId === 2 ? '🌾 Campesino / Vendedor' : userRolId === 4 ? '👨‍🌾 Asesor de Soporte' : '🛒 Comprador';
           
-          await this.sendMessage(chatId, `🎉 <b>¡Identidad Verificada con Éxito!</b>\n━━━━━━━━━━━━━━━━━━\nBienvenido(a), <b>${user.nombre || user.username}</b>.\nTu cuenta ha sido vinculada como <b>${rolTexto}</b>.`);
-          
-          const menuMsg = this.generarMenuRol(user, chatId);
-          await this.sendMessage(chatId, menuMsg);
-          return { ok: true };
-        } else {
+          const kb = this.getPersistentKeyboard(user);
           await this.sendMessage(
             chatId,
-            `❌ <b>Datos incorrectos</b>\n━━━━━━━━━━━━━━━━━━\nPuedes ingresar de dos formas:\n1️⃣ Escribe tu <b>contraseña</b> de la plataforma web.\n2️⃣ O escribe el código de 6 dígitos de tu correo (o pulsa /reenviar).\n\n<i>(Escribe /cancelar para salir)</i>`
+            `🎉 <b>¡Identidad Verificada con Éxito!</b>\n━━━━━━━━━━━━━━━━━━\nBienvenido(a), <b>${user.nombre || user.username}</b>.\nTu cuenta ha sido vinculada como <b>${rolTexto}</b>.`,
+            { reply_markup: kb }
+          );
+          
+          const menuData = this.generarMenuRol(user, chatId);
+          await this.sendMessage(chatId, menuData.text, { reply_markup: menuData.reply_markup });
+          return { ok: true };
+        } else {
+          const retryKeyboard = {
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  { text: '🔄 Reenviar código a mi correo', callback_data: 'resend_otp' },
+                  { text: '❌ Cancelar', callback_data: 'cmd_logout' }
+                ]
+              ]
+            }
+          };
+
+          await this.sendMessage(
+            chatId,
+            `❌ <b>Datos incorrectos</b>\n━━━━━━━━━━━━━━━━━━\nPuedes ingresar de cualquiera de estas dos formas:\n1️⃣ Escribe tu <b>contraseña</b> de la plataforma web.\n2️⃣ O escribe el código de 6 dígitos que llegó a tu correo.\n\n<i>(Escribe /cancelar para salir)</i>`,
+            retryKeyboard
           );
           return { ok: true };
         }
       }
 
-      // ── COMANDOS DE ROL: ADMINISTRADOR / ASESOR ──
-      if (text.startsWith('/responder')) {
-        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
-          await this.sendMessage(chatId, '🔒 Este comando requiere permisos de <b>Administrador</b> o <b>Asesor</b>. Escribe /login con tu cuenta de administrador.');
-          return { ok: true };
-        }
-        const parts = text.split(' ');
-        if (parts.length < 3) {
-          await this.sendMessage(chatId, '📝 <b>Uso correcto:</b> <code>/responder [CÓDIGO_TICKET] [MENSAJE]</code>\nEjemplo: <code>/responder TK-A1B2C3 Hola, con gusto te colaboramos...</code>');
-          return { ok: true };
-        }
-        const ticketCode = parts[1];
-        const replyText = parts.slice(2).join(' ');
-        await this.responderTicket(chatId, ticketCode, replyText, authUser);
-        return { ok: true };
-      }
-
-      if (text.startsWith('/cerrarticket')) {
-        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
-          await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
-          return { ok: true };
-        }
-        const parts = text.split(' ');
-        const ticketCode = parts[1];
-        if (!ticketCode) {
-          await this.sendMessage(chatId, '📝 <b>Uso correcto:</b> <code>/cerrarticket [CÓDIGO_TICKET]</code>');
-          return { ok: true };
-        }
-        if (this.soporteRepository) {
-          const t = await this.soporteRepository.buscarTicketPorCodigo(ticketCode.toUpperCase());
-          if (t) {
-            await this.soporteRepository.actualizarTicket(t.id, { estado: 'cerrado' });
-            if (this.socketHandler) {
-              this.socketHandler.emitirTicketCerrado(t.session_id, t.id);
-            }
-            await this.sendMessage(chatId, `✅ Ticket <code>#${ticketCode}</code> cerrado correctamente.`);
-          } else {
-            await this.sendMessage(chatId, `❌ No se encontró el ticket <code>#${ticketCode}</code>.`);
-          }
-        }
-        return { ok: true };
-      }
-
-      if (text === '/admin' || text === '/resumen' || text === '/metricas') {
+      // ── COMANDOS DE ACCESO RÁPIDO ──
+      if (text === '/admin' || text === '/resumen' || text === '/metricas' || text === '📊 Resumen') {
         if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
           await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador. Escribe <code>/login</code>.');
           return { ok: true };
@@ -698,7 +974,7 @@ ${replyText}
         return { ok: true };
       }
 
-      if (text === '/tickets') {
+      if (text === '/tickets' || text === '🎫 Tickets') {
         if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
           await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
           return { ok: true };
@@ -707,7 +983,7 @@ ${replyText}
         return { ok: true };
       }
 
-      if (text === '/ventas') {
+      if (text === '/ventas' || text === '🛒 Ventas') {
         if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
           await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
           return { ok: true };
@@ -716,7 +992,7 @@ ${replyText}
         return { ok: true };
       }
 
-      if (text === '/stock') {
+      if (text === '/stock' || text === '⚠️ Stock') {
         if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
           await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
           return { ok: true };
@@ -725,19 +1001,17 @@ ${replyText}
         return { ok: true };
       }
 
-      // ── COMANDOS DE ROL: CAMPESINO / VENDEDOR ──
-      if (text === '/misproductos') {
+      if (text === '/misproductos' || text === '🌾 Mis Productos') {
         await this.mostrarProductosCampesino(chatId, authUser);
         return { ok: true };
       }
 
-      if (text === '/misventas') {
+      if (text === '/misventas' || text === '💰 Mis Ventas') {
         await this.mostrarVentasCampesino(chatId, authUser);
         return { ok: true };
       }
 
-      // ── COMANDOS DE ROL: COMPRADOR / CLIENTE ──
-      if (text === '/mispedidos') {
+      if (text === '/mispedidos' || text === '📦 Mis Pedidos') {
         if (!authUser) {
           await this.sendMessage(chatId, '🔒 Para consultar tus pedidos personales, primero inicia sesión escribiendo <code>/login</code>.');
           return { ok: true };
@@ -746,11 +1020,11 @@ ${replyText}
         return { ok: true };
       }
 
-      // ── FLUJO INTERACTIVO DE SOPORTE POR PASOS (FORMULARIO) ──
+      // ── FLUJO INTERACTIVO DE SOPORTE POR PASOS ──
       if (session.state === 'FORM_NOMBRE') {
         session.data.nombre = text;
         session.state = 'FORM_CORREO';
-        await this.sendMessage(chatId, `📧 Perfecto, <b>${text}</b>.\n\nAhora escribe tu <b>Correo Electrónico</b> (para enviarte copia y seguimiento):`);
+        await this.sendMessage(chatId, `📧 Perfecto, <b>${text}</b>.\n\nAhora escribe tu <b>Correo Electrónico</b> (para seguimiento y copia):`);
         return { ok: true };
       }
 
@@ -764,29 +1038,25 @@ ${replyText}
       if (session.state === 'FORM_TELEFONO') {
         session.data.telefono = text.toLowerCase() === 'omitir' ? 'Sin registrar' : text;
         session.state = 'FORM_CATEGORIA';
-        const catMenu = `
-🏷️ Selecciona la <b>Categoría</b> de tu consulta (responde con el número del <b>1 al 5</b>):
 
-1️⃣ 📦 Estado de Pedidos y Envíos
-2️⃣ 🌱 Productos y Cosechas
-3️⃣ 💳 Pagos y Facturación
-4️⃣ 🌾 Registro de Campesino / Vendedor
-5️⃣ ❓ Otra Consulta
-`;
-        await this.sendMessage(chatId, catMenu);
+        const categoryKeyboard = {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '📦 Estado de Pedidos & Envíos', callback_data: 'cat_pedidos' }],
+              [{ text: '🌱 Productos & Cosechas', callback_data: 'cat_productos' }],
+              [{ text: '💳 Pagos & Facturación', callback_data: 'cat_pagos' }],
+              [{ text: '🌾 Registro de Campesino', callback_data: 'cat_campesino' }],
+              [{ text: '❓ Consulta General', callback_data: 'cat_general' }]
+            ]
+          }
+        };
+
+        await this.sendMessage(chatId, '🏷️ <b>Selecciona la categoría de tu consulta tocando un botón:</b>', categoryKeyboard);
         return { ok: true };
       }
 
       if (session.state === 'FORM_CATEGORIA') {
-        const catMap = {
-          '1': '📦 Estado de Pedidos & Envíos',
-          '2': '🌱 Productos & Cosechas',
-          '3': '💳 Pagos & Facturación',
-          '4': '🌾 Registro de Campesino / Vendedor',
-          '5': '❓ Consulta General'
-        };
-        const catSelected = catMap[text.trim()] || `Consulta: ${text.trim()}`;
-        session.data.categoria = catSelected;
+        session.data.categoria = text;
         session.state = 'FORM_MENSAJE';
         await this.sendMessage(chatId, `✍️ Por favor describe tu <b>Consulta o Problema</b> en detalle:`);
         return { ok: true };
@@ -809,11 +1079,10 @@ ${replyText}
               nombre_cliente: session.data.nombre || userName,
               correo_cliente: session.data.correo || 'telegram_user@montesdemaria.com',
               telefono_cliente: session.data.telefono || 'Sin registrar',
-              asunto: `${session.data.categoria}: ${userMsg.substring(0, 45)}...`,
+              asunto: `${session.data.categoria || 'Consulta'}: ${userMsg.substring(0, 45)}...`,
               estado: 'bot'
             });
 
-            // Guardar mensaje del usuario
             await this.soporteRepository.agregarMensaje({
               ticket_id: ticket.id,
               session_id: sessionId,
@@ -827,7 +1096,7 @@ ${replyText}
           }
         }
 
-        // Generar respuesta con la IA de Soporte
+        // Generar respuesta con IA
         let aiReply = `¡Hola ${session.data.nombre || userName}! 👋 He registrado tu solicitud (${ticketCode}). ¿En qué podemos colaborarte hoy?`;
         if (this.iaService && ticket) {
           try {
@@ -858,7 +1127,7 @@ ${replyText}
           }
         }
 
-        // Emitir a socket del panel admin
+        // Emitir a socket
         if (this.socketHandler && ticket) {
           this.socketHandler.emitirNuevoTicket({
             id: ticket.id,
@@ -873,12 +1142,11 @@ ${replyText}
           });
         }
 
-        // Notificar a los administradores
+        // Notificar admins
         if (ticket) {
           this.notificarNuevoTicket({ ticket, mensajeInicial: userMsg }).catch(() => {});
         }
 
-        // Pasar a estado de conversación activa con la IA
         session.state = 'CHAT_ACTIVO';
         session.activeTicket = ticket || { id: 1, ticket_code: ticketCode, session_id: sessionId };
         session.activeSessionId = sessionId;
@@ -886,41 +1154,47 @@ ${replyText}
         const confirmationMsg = `
 🎫 <b>¡TICKET DE SOPORTE CREADO!</b>
 ━━━━━━━━━━━━━━━━━━
-Código: <code>${ticketCode}</code>
+Código: <code>#${ticketCode}</code>
 Cliente: <b>${session.data.nombre}</b>
 Categoría: <b>${session.data.categoria}</b>
 ━━━━━━━━━━━━━━━━━━
 🌾 <b>Respuesta de AgroAsistente IA:</b>
 
 ${aiReply}
-
-━━━━━━━━━━━━━━━━━━
-💡 <i>Puedes seguir respondiendo en este chat. Si deseas hablar con una persona real, escribe <b>"asesor"</b> o <b>/asesor</b>. Para finalizar la consulta escribe <b>/cerrar</b>.</i>
 `;
-        await this.sendMessage(chatId, confirmationMsg);
+        const actionKeyboard = {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: '👨‍🌾 Hablar con Asesor Humano', callback_data: 'escalate_agent' },
+                { text: '✅ Finalizar Consulta', callback_data: 'close_my_ticket' }
+              ]
+            ]
+          }
+        };
+
+        await this.sendMessage(chatId, confirmationMsg, actionKeyboard);
         return { ok: true };
       }
 
-      // ── CONVERSACIÓN CONTINUA CON TICKET ACTIVO (IA / ASESOR HUMANO) ──
+      // ── CONVERSACIÓN CONTINUA CON TICKET ACTIVO ──
       if (session.state === 'CHAT_ACTIVO' && session.activeTicket) {
         const ticket = session.activeTicket;
         const sessionId = session.activeSessionId;
 
-        // Comprobar si el usuario solicita asesor humano
         const lower = text.toLowerCase();
         const isEscalate = text === '/asesor' || lower.includes('asesor') || lower.includes('humano') || lower.includes('hablar con alguien') || lower.includes('agente') || lower.includes('persona');
 
         if (isEscalate) {
           if (this.soporteRepository) {
             await this.soporteRepository.actualizarTicket(ticket.id, { estado: 'agente' });
-            const aviso = '🔔 El cliente en Telegram ha solicitado atención con un asesor humano.';
             await this.soporteRepository.agregarMensaje({
               ticket_id: ticket.id,
               session_id: sessionId,
               id_usuario: null,
               nombre_remitente: 'Sistema',
               rol: 'sistema',
-              mensaje: aviso
+              mensaje: '🔔 Cliente solicitó asesor humano desde Telegram.'
             });
           }
 
@@ -937,11 +1211,10 @@ ${aiReply}
 
           this.notificarSolicitudAsesorHumano({ ticket }).catch(() => {});
 
-          await this.sendMessage(chatId, `🔔 <b>¡Solicitud de Asesor Humano Recibida!</b>\n━━━━━━━━━━━━━━━━━━\nHemos notificado a nuestro equipo de asesores en vivo. Un asesor humano se comunicará contigo directamente por este chat en breves minutos.\n\n<i>Puedes escribir cualquier detalle adicional aquí.</i>`);
+          await this.sendMessage(chatId, `🔔 <b>¡Solicitud de Asesor Humano Recibida!</b>\n━━━━━━━━━━━━━━━━━━\nHemos notificado a nuestro equipo. Un asesor humano se comunicará contigo directamente por este chat en breves minutos.`);
           return { ok: true };
         }
 
-        // Guardar mensaje del usuario en DB
         if (this.soporteRepository) {
           await this.soporteRepository.agregarMensaje({
             ticket_id: ticket.id,
@@ -964,7 +1237,6 @@ ${aiReply}
           });
         }
 
-        // Verificar si el ticket está en estado 'agente' o 'bot'
         let currentTicket = ticket;
         if (this.soporteRepository) {
           const dbTicket = await this.soporteRepository.buscarTicketPorId(ticket.id);
@@ -976,7 +1248,6 @@ ${aiReply}
           return { ok: true };
         }
 
-        // Si está en modo bot, responder con la IA de soporte
         if (this.iaService) {
           try {
             const aiAnswer = await this.iaService.procesarMensajeSoporte({
@@ -1013,7 +1284,18 @@ ${aiReply}
               });
             }
 
-            await this.sendMessage(chatId, `${aiAnswer}\n\n<i>(Escribe /asesor para hablar con una persona o /cerrar para finalizar)</i>`);
+            const ongoingKeyboard = {
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    { text: '👨‍🌾 Hablar con Asesor Humano', callback_data: 'escalate_agent' },
+                    { text: '✅ Finalizar Consulta', callback_data: 'close_my_ticket' }
+                  ]
+                ]
+              }
+            };
+
+            await this.sendMessage(chatId, aiAnswer, ongoingKeyboard);
           } catch (iaErr) {
             console.error('[Telegram IA Followup Error]:', iaErr);
             await this.sendMessage(chatId, `🌾 Recibido. Escribe <b>/asesor</b> si requieres atención humana inmediata.`);
@@ -1023,93 +1305,38 @@ ${aiReply}
         return { ok: true };
       }
 
-      // ── INICIO DE FORMULARIO DE SOPORTE ──
+      // ── INICIO DE SOPORTE ──
       const lowerText = text.toLowerCase();
-      const wantsSupport = text === '/soporte' || text === '/ayuda' || text === '/ticket' ||
-        lowerText.includes('soporte') || lowerText.includes('ayuda') || lowerText.includes('consulta') ||
-        lowerText.includes('reclamo') || lowerText.includes('problema') || lowerText.includes('asesor');
+      const wantsSupport = text === '/soporte' || text === '/ayuda' || text === '/ticket' || text === '💬 Soporte' ||
+        lowerText.includes('soporte') || lowerText.includes('ayuda') || lowerText.includes('reclamo') || lowerText.includes('asesor');
 
       if (wantsSupport) {
-        if (authUser) {
-          // Autocompletar datos del usuario autenticado
-          session.data = {
-            nombre: authUser.nombre || authUser.username,
-            correo: authUser.correo,
-            telefono: authUser.telefono || 'Sin registrar'
-          };
-          session.state = 'FORM_CATEGORIA';
-          const catMenu = `
-👋 <b>Centro de Soporte - De los Montes de María</b> 🌾
-━━━━━━━━━━━━━━━━━━
-Sesión activa: <b>${authUser.nombre || authUser.username}</b> (<code>${authUser.correo}</code>)
-
-🏷️ Selecciona la <b>Categoría</b> de tu consulta (escribe del <b>1 al 5</b>):
-
-1️⃣ 📦 Estado de Pedidos y Envíos
-2️⃣ 🌱 Productos y Cosechas
-3️⃣ 💳 Pagos y Facturación
-4️⃣ 🌾 Registro de Campesino / Vendedor
-5️⃣ ❓ Otra Consulta
-`;
-          await this.sendMessage(chatId, catMenu);
-          return { ok: true };
-        }
-
-        session.state = 'FORM_NOMBRE';
-        session.data = {};
-        const welcomeForm = `
-👋 <b>Centro de Soporte - De los Montes de María</b> 🌾
-━━━━━━━━━━━━━━━━━━
-Vamos a registrar tu consulta personalizada para que nuestra <b>IA de Soporte</b> y asesores humanos te atiendan.
-
-📝 <b>Paso 1/5:</b> ¿Cuál es tu <b>Nombre y Apellido</b>?
-<i>(Escribe tu nombre para continuar o /cancelar para salir)</i>
-`;
-        await this.sendMessage(chatId, welcomeForm);
-        return { ok: true };
-      }
-
-      // Deep-links (/start pedido_XXX o /start producto_XXX)
-      if (text.startsWith('/start pedido_')) {
-        const orderId = text.replace('/start pedido_', '').trim();
-        const msg = `
-✅ <b>¡Seguimiento Activado!</b>
-━━━━━━━━━━━━━━━━━━
-Tu cuenta de Telegram ha quedado vinculada al pedido <code>#ORD-${orderId}</code>.
-
-Te avisaremos por aquí automáticamente en cuanto tu cosecha esté <b>en preparación, despachada y en camino a tu domicilio</b> 🚚🌾.
-`;
-        await this.sendMessage(chatId, msg);
-        return { ok: true };
-      }
-
-      if (text.startsWith('/start producto_')) {
-        const msg = `
-🌾 <b>¡Hola ${userName}!</b>
-¿Tienes alguna duda sobre nuestras cosechas o productos?
-
-Escribe <b>/soporte</b> para iniciar una consulta asistida por IA o explora el catálogo aquí:
-👉 https://delosmontesdemaria.onrender.com/catalogo
-`;
-        await this.sendMessage(chatId, msg);
+        await this.iniciarFlujoSoporte(chatId, authUser, session);
         return { ok: true };
       }
 
       // Comandos Estándar
-      if (text.startsWith('/start') || text === '/menu' || text === '/ayuda_comandos') {
-        const menu = this.generarMenuRol(authUser, chatId);
-        await this.sendMessage(chatId, menu);
-      } else if (text.startsWith('/id')) {
+      if (text.startsWith('/start') || text === '/menu' || text === '🌾 Menú Principal') {
+        const kb = this.getPersistentKeyboard(authUser);
+        const menuData = this.generarMenuRol(authUser, chatId);
+        await this.sendMessage(chatId, menuData.text, {
+          reply_markup: {
+            ...menuData.reply_markup,
+            ...kb
+          }
+        });
+      } else if (text.startsWith('/id') || text === '🆔 Mi ID') {
         await this.sendMessage(chatId, `Tu Chat ID de Telegram es: <code>${chatId}</code>`);
-      } else if (text.startsWith('/tienda') || text.startsWith('/catalogo')) {
+      } else if (text.startsWith('/tienda') || text.startsWith('/catalogo') || text === '🛒 Ver Catálogo' || text === '🌾 Catálogo') {
         await this.sendMessage(chatId, `🛒 Explora cosechas frescas y productos del campo en nuestra web oficial:\n👉 https://delosmontesdemaria.onrender.com/catalogo`);
       } else if (text.startsWith('/pedidos')) {
         await this.sendMessage(chatId, `📦 Realizamos envíos directos desde los Montes de María hasta tu hogar con frescura garantizada.`);
       } else {
         const fallback = authUser
-          ? `¡Hola ${authUser.nombre || userName}! Recibimos tu mensaje.\n\nEscribe <b>/menu</b> para ver tus opciones o <b>/soporte</b> para crear una consulta.`
-          : `¡Hola ${userName}! Recibimos tu mensaje.\n\nEscribe <b>/soporte</b> para iniciar una consulta o <b>/login</b> para conectar tu cuenta.`;
-        await this.sendMessage(chatId, fallback);
+          ? `¡Hola ${authUser.nombre || userName}! 👋\n\nElige una opción en los botones de abajo o escribe <b>/soporte</b> para abrir una consulta.`
+          : `¡Hola ${userName}! 👋\n\nToca <b>🔐 Iniciar Sesión</b> para conectar tu cuenta o <b>💬 Soporte</b> para recibir asistencia con IA.`;
+        const kb = this.getPersistentKeyboard(authUser);
+        await this.sendMessage(chatId, fallback, { reply_markup: kb });
       }
 
       return { ok: true };
@@ -1120,22 +1347,66 @@ Escribe <b>/soporte</b> para iniciar una consulta asistida por IA o explora el c
   }
 
   /**
-   * Métodos auxiliares de autenticación y vistas por rol
+   * Inicia el flujo de soporte con categoría interactiva
    */
-  async iniciarLoginConEmail(chatId, email, session) {
+  async iniciarFlujoSoporte(chatId, authUser, session) {
+    const categoryKeyboard = {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '📦 Estado de Pedidos & Envíos', callback_data: 'cat_pedidos' }],
+          [{ text: '🌱 Productos & Cosechas', callback_data: 'cat_productos' }],
+          [{ text: '💳 Pagos & Facturación', callback_data: 'cat_pagos' }],
+          [{ text: '🌾 Registro de Campesino', callback_data: 'cat_campesino' }],
+          [{ text: '❓ Consulta General', callback_data: 'cat_general' }]
+        ]
+      }
+    };
+
+    if (authUser) {
+      session.data = {
+        nombre: authUser.nombre || authUser.username,
+        correo: authUser.correo,
+        telefono: authUser.telefono || 'Sin registrar'
+      };
+      session.state = 'FORM_CATEGORIA';
+      await this.sendMessage(
+        chatId,
+        `👋 <b>Centro de Soporte - De los Montes de María</b> 🌾\n━━━━━━━━━━━━━━━━━━\nSesión activa: <b>${authUser.nombre || authUser.username}</b>\n\n🏷️ <b>Selecciona el tema de tu consulta tocando un botón:</b>`,
+        categoryKeyboard
+      );
+    } else {
+      session.state = 'FORM_NOMBRE';
+      session.data = {};
+      await this.sendMessage(
+        chatId,
+        `👋 <b>Centro de Soporte - De los Montes de María</b> 🌾\n━━━━━━━━━━━━━━━━━━\nVamos a registrar tu consulta personalizada.\n\n📝 <b>Paso 1:</b> ¿Cuál es tu <b>Nombre y Apellido</b>?\n<i>(Escribe tu nombre para continuar o /cancelar para salir)</i>`
+      );
+    }
+  }
+
+  /**
+   * Métodos auxiliares de autenticación
+   */
+  async iniciarLoginConIdentificador(chatId, identifier, session) {
     if (!this.usuarioRepository) {
       await this.sendMessage(chatId, '❌ El servicio de usuarios no está disponible en este momento.');
       return;
     }
 
     try {
-      const emailClean = email.trim().toLowerCase();
-      const user = await this.usuarioRepository.buscarPorCorreo(emailClean);
+      const cleanTerm = identifier.trim().toLowerCase();
+      let user = null;
+
+      if (typeof this.usuarioRepository.buscarPorApodoOCorreo === 'function') {
+        user = await this.usuarioRepository.buscarPorApodoOCorreo(cleanTerm);
+      } else if (typeof this.usuarioRepository.buscarPorCorreo === 'function') {
+        user = await this.usuarioRepository.buscarPorCorreo(cleanTerm);
+      }
 
       if (!user) {
         await this.sendMessage(
           chatId,
-          `❌ No encontramos ninguna cuenta registrada con el correo <b>${emailClean}</b>.\n\nPor favor verifica tu correo o regístrate en nuestra plataforma web:\n👉 https://delosmontesdemaria.onrender.com/registro`
+          `❌ No encontramos ninguna cuenta registrada con el identificador <b>${cleanTerm}</b>.\n\nPor favor verifica tu usuario o regístrate en nuestra plataforma web:\n👉 https://delosmontesdemaria.onrender.com/registro`
         );
         session.state = 'IDLE';
         return;
@@ -1144,15 +1415,13 @@ Escribe <b>/soporte</b> para iniciar una consulta asistida por IA o explora el c
       session.state = 'LOGIN_WAIT_AUTH';
       session.data = { authUser: user };
 
-      // Generar código OTP preventivo
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
       this.pendingAuth.set(chatId, {
         code: otpCode,
         userObj: user,
-        expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutos
+        expiresAt: Date.now() + 10 * 60 * 1000
       });
 
-      // Disparar envío de correo con código de verificación en segundo plano
       if (this.emailService && typeof this.emailService.enviarCodigoVerificacionTelegram === 'function') {
         this.emailService.enviarCodigoVerificacionTelegram({
           correo: user.correo,
@@ -1162,18 +1431,18 @@ Escribe <b>/soporte</b> para iniciar una consulta asistida por IA o explora el c
       }
 
       const loginPrompt = `
-🔐 <b>INICIAR SESIÓN - 2 OPCIONES DISPONIBLES</b>
+🔐 <b>VINCULACIÓN DE CUENTA EN TELEGRAM</b>
 ━━━━━━━━━━━━━━━━━━
 👤 <b>Usuario:</b> ${user.nombre || user.username}
 📧 <b>Correo:</b> <code>${user.correo}</code>
 
 Puedes ingresar de cualquiera de estas dos formas:
 
-1️⃣ <b>Opción 1: Contraseña de la web (Instantáneo)</b>
-👉 Escribe tu <b>contraseña de la página web</b> directamente en este chat. <i>(El mensaje se borrará al instante por seguridad)</i>.
+1️⃣ <b>Opción 1: Contraseña de la web (Directo)</b>
+👉 Escribe tu <b>contraseña de la plataforma web</b> en este chat <i>(se borrará de inmediato por privacidad)</i>.
 
-2️⃣ <b>Opción 2: Código por Correo</b>
-👉 O escribe el código de 6 dígitos que enviamos a tu correo (puedes pulsar el botón de abajo o escribir <b>/reenviar</b>).
+2️⃣ <b>Opción 2: Código de 6 dígitos por Correo</b>
+👉 Enviamos un código a tu correo. Escríbelo aquí o pulsa el botón de abajo.
 
 <i>(Escribe /cancelar para salir)</i>
 `;
@@ -1195,9 +1464,6 @@ Puedes ingresar de cualquiera de estas dos formas:
     }
   }
 
-  /**
-   * Reenviar código OTP por correo
-   */
   async reenviarCodigoOTP(chatId) {
     const pending = this.pendingAuth.get(chatId);
 
@@ -1212,7 +1478,7 @@ Puedes ingresar de cualquiera de estas dos formas:
     this.pendingAuth.set(chatId, {
       code: newOtpCode,
       userObj: user,
-      expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutos
+      expiresAt: Date.now() + 10 * 60 * 1000
     });
 
     if (this.emailService && typeof this.emailService.enviarCodigoVerificacionTelegram === 'function') {
@@ -1224,15 +1490,12 @@ Puedes ingresar de cualquiera de estas dos formas:
     }
 
     const resendMsg = `
-🔄 <b>¡NUEVO CÓDIGO GENERADO Y ENVIADO!</b>
+🔄 <b>¡NUEVO CÓDIGO ENVIADO!</b>
 ━━━━━━━━━━━━━━━━━━
-Hemos enviado un nuevo código de 6 dígitos a tu correo:
+Hemos enviado un nuevo código de 6 dígitos a:
 📧 <b>${user.correo}</b>
 
-✍️ <b>Revisa tu bandeja de entrada (o spam) en Gmail y escribe los 6 dígitos aquí:</b>
-
-━━━━━━━━━━━━━━━━━━
-<i>¿Aún no te llega? Puedes volver a pulsar el botón de abajo o escribir /reenviar.</i>
+✍️ <b>Escribe los 6 dígitos aquí en el chat para acceder:</b>
 `;
 
     const resendKeyboard = {
@@ -1246,6 +1509,40 @@ Hemos enviado un nuevo código de 6 dígitos a tu correo:
     };
 
     await this.sendMessage(chatId, resendMsg, resendKeyboard);
+  }
+
+  async mostrarPerfilUsuario(chatId, authUser) {
+    if (!authUser) {
+      const kb = {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🔐 Iniciar Sesión', callback_data: 'cmd_login' }]
+          ]
+        }
+      };
+      await this.sendMessage(chatId, '🔒 No has iniciado sesión.\nToca el botón para vincular tu cuenta:', kb);
+    } else {
+      const rolId = Number(authUser.id_rol);
+      const rolTexto = rolId === 1 ? '👑 Administrador' : rolId === 2 ? '🌾 Campesino / Vendedor' : rolId === 4 ? '👨‍🌾 Asesor de Soporte' : '🛒 Comprador / Cliente';
+      const perfilMsg = `
+👤 <b>PERFIL DE USUARIO</b>
+━━━━━━━━━━━━━━━━━━
+📛 <b>Nombre:</b> ${authUser.nombre || authUser.username}
+📧 <b>Correo:</b> <code>${authUser.correo}</code>
+📞 <b>Teléfono:</b> <code>${authUser.telefono || 'Sin registrar'}</code>
+🏷️ <b>Rol:</b> <b>${rolTexto}</b>
+🆔 <b>Chat ID:</b> <code>${chatId}</code>
+━━━━━━━━━━━━━━━━━━
+`;
+      const kb = {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🚪 Cerrar Sesión', callback_data: 'cmd_logout' }]
+          ]
+        }
+      };
+      await this.sendMessage(chatId, perfilMsg, kb);
+    }
   }
 
   async mostrarResumenAdmin(chatId) {
@@ -1289,14 +1586,24 @@ Hemos enviado un nuevo código de 6 dígitos a tu correo:
 💰 <b>Ventas Totales:</b> <code>${totalVentas} pedidos</code> ($${montoTotal.toLocaleString('es-CO')} COP)
 🎫 <b>Tickets Abiertos:</b> <code>${ticketsAbiertos}</code> en atención
 ⚠️ <b>Productos con Stock Bajo (≤5):</b> <code>${stockCriticoCount}</code>
-
-<b>Accesos Rápidos:</b>
-👉 <code>/tickets</code> - Ver y atender consultas
-👉 <code>/ventas</code> - Ver últimos pedidos
-👉 <code>/stock</code> - Ver inventario crítico
-👉 Panel Web: https://delosmontesdemaria.onrender.com/admin
+━━━━━━━━━━━━━━━━━━
 `;
-      await this.sendMessage(chatId, msg);
+      const keyboard = {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: `🎫 Ver Tickets (${ticketsAbiertos})`, callback_data: 'cmd_tickets' },
+              { text: '🛒 Ver Ventas', callback_data: 'cmd_ventas' }
+            ],
+            [
+              { text: `⚠️ Stock Bajo (${stockCriticoCount})`, callback_data: 'cmd_stock' },
+              { text: '🌐 Panel Web', url: 'https://delosmontesdemaria.onrender.com/admin' }
+            ]
+          ]
+        }
+      };
+
+      await this.sendMessage(chatId, msg, keyboard);
     } catch (err) {
       await this.sendMessage(chatId, `⚠️ Error al cargar resumen: ${err.message}`);
     }
@@ -1306,7 +1613,7 @@ Hemos enviado un nuevo código de 6 dígitos a tu correo:
     if (!this.soporteRepository) return;
     try {
       const tickets = await this.soporteRepository.listarTickets();
-      const pendientes = (tickets || []).filter((t) => t.estado !== 'cerrado').slice(0, 8);
+      const pendientes = (tickets || []).filter((t) => t.estado !== 'cerrado').slice(0, 6);
 
       if (pendientes.length === 0) {
         await this.sendMessage(chatId, '🎉 <b>¡Excelente!</b> No hay tickets de soporte pendientes en este momento.');
@@ -1314,14 +1621,30 @@ Hemos enviado un nuevo código de 6 dígitos a tu correo:
       }
 
       let lista = '🎫 <b>TICKETS DE SOPORTE PENDIENTES:</b>\n━━━━━━━━━━━━━━━━━━\n';
+      const inlineButtons = [];
+
       pendientes.forEach((t, idx) => {
         const code = t.ticket_code || t.id;
         const estadoTag = t.estado === 'agente' ? '👨‍🌾 En Atención' : '🤖 IA / Bot';
         lista += `\n<b>${idx + 1}.</b> <code>#${code}</code> | ${estadoTag}\n   👤 <b>${t.nombre_cliente}</b>\n   📝 <i>${t.asunto}</i>\n`;
+
+        inlineButtons.push([
+          { text: `💬 Responder #${code}`, callback_data: `reply_tk:${code}` },
+          { text: `🔒 Cerrar #${code}`, callback_data: `close_tk:${code}` }
+        ]);
       });
 
-      lista += '\n━━━━━━━━━━━━━━━━━━\n👉 <b>Para responder a un cliente escribe:</b>\n<code>/responder [CÓDIGO] [Tu respuesta]</code>\n<i>Ejemplo: <code>/responder TK-123456 Hola, tu pedido ya salió</code></i>';
-      await this.sendMessage(chatId, lista);
+      inlineButtons.push([
+        { text: '🌐 Abrir en Panel Web', url: 'https://delosmontesdemaria.onrender.com/admin/soporte' }
+      ]);
+
+      const keyboard = {
+        reply_markup: {
+          inline_keyboard: inlineButtons
+        }
+      };
+
+      await this.sendMessage(chatId, lista, keyboard);
     } catch (err) {
       await this.sendMessage(chatId, `⚠️ Error al listar tickets: ${err.message}`);
     }
@@ -1346,7 +1669,15 @@ Hemos enviado un nuevo código de 6 dígitos a tu correo:
         lista += `\n🧾 <b>#ORD-${id}</b> | <b>$${total} COP</b>\n   🚚 Estado: <code>${estado}</code>\n   💳 Pago: ${c.metodo_pago || 'Contra Entrega'}\n`;
       });
 
-      await this.sendMessage(chatId, lista);
+      const keyboard = {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🌐 Ver Todas en Web', url: 'https://delosmontesdemaria.onrender.com/admin' }]
+          ]
+        }
+      };
+
+      await this.sendMessage(chatId, lista, keyboard);
     } catch (err) {
       await this.sendMessage(chatId, `⚠️ Error al listar ventas: ${err.message}`);
     }
@@ -1365,11 +1696,18 @@ Hemos enviado un nuevo código de 6 dígitos a tu correo:
 
       let lista = '⚠️ <b>COSECHAS CON STOCK BAJO (≤5 unidades):</b>\n━━━━━━━━━━━━━━━━━━\n';
       criticos.forEach((p) => {
-        lista += `\n📦 <b>${p.nombre}</b>\n   🌾 Stock: <b>${p.stock} unidades</b> (Precio: $${Number(p.precio || 0).toLocaleString('es-CO')})\n`;
+        lista += `\n📦 <b>${p.nombre}</b>\n   🌾 Stock: <b>${p.stock} unidades</b> ($${Number(p.precio || 0).toLocaleString('es-CO')})\n`;
       });
-      lista += '\n👉 <a href="https://delosmontesdemaria.onrender.com/admin">Actualizar en el Panel Web</a>';
 
-      await this.sendMessage(chatId, lista);
+      const keyboard = {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🌐 Actualizar Stock en Web', url: 'https://delosmontesdemaria.onrender.com/admin' }]
+          ]
+        }
+      };
+
+      await this.sendMessage(chatId, lista, keyboard);
     } catch (err) {
       await this.sendMessage(chatId, `⚠️ Error al consultar stock: ${err.message}`);
     }
@@ -1411,7 +1749,14 @@ Hemos enviado un nuevo código de 6 dígitos a tu correo:
       const misPedidos = (pedidos || []).slice(0, 5);
 
       if (misPedidos.length === 0) {
-        await this.sendMessage(chatId, '🛒 No tienes compras registradas aún.\n\n🌾 ¡Explora nuestras cosechas frescas en https://delosmontesdemaria.onrender.com/catalogo!');
+        const kb = {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '🛒 Explorar Catálogo', url: 'https://delosmontesdemaria.onrender.com/catalogo' }]
+            ]
+          }
+        };
+        await this.sendMessage(chatId, '🛒 No tienes compras registradas aún.\n\n🌾 ¡Explora nuestras cosechas frescas en nuestra plataforma!', kb);
         return;
       }
 
@@ -1432,3 +1777,4 @@ Hemos enviado un nuevo código de 6 dígitos a tu correo:
 }
 
 module.exports = TelegramService;
+
