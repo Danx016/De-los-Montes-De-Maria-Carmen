@@ -21,33 +21,44 @@ class EmailService {
     const user = appConfig.smtp.user;
     const pass = appConfig.smtp.pass;
     const host = appConfig.smtp.host || 'smtp.gmail.com';
-    const port = appConfig.smtp.port || 465;
+    const port = appConfig.smtp.port || 587;
 
     if (user && pass) {
-      this.transporter = nodemailer.createTransport({
-        host,
-        port,
-        secure: port === 465,
-        auth: {
-          user,
-          pass
-        },
-        family: 4, // Forzar IPv4 para evitar errores ENETUNREACH con IPv6
-        pool: true,
-        maxConnections: 5,
-        maxMessages: 100,
-        rateLimit: 10,
-        connectionTimeout: 8000,
-        greetingTimeout: 8000,
-        socketTimeout: 10000
-      });
+      const isGmail = (host && host.includes('gmail')) || (user && user.includes('@gmail.com'));
 
-      // Validar conexión en segundo plano para calentar el pool
+      const transportConfig = isGmail
+        ? {
+            service: 'gmail',
+            auth: {
+              user,
+              pass,
+            },
+            tls: {
+              rejectUnauthorized: false,
+            },
+          }
+        : {
+            host,
+            port,
+            secure: port === 465,
+            auth: {
+              user,
+              pass,
+            },
+            family: 4,
+            tls: {
+              rejectUnauthorized: false,
+            },
+          };
+
+      this.transporter = nodemailer.createTransport(transportConfig);
+
+      // Validar conexión en segundo plano
       this.transporter.verify((error) => {
         if (error) {
           console.warn('⚠️ [SMTP] Advertencia al conectar con el servidor de correo:', error.message);
         } else {
-          console.log('✅ [SMTP] Conexión establecida y lista (Pool activo)');
+          console.log('✅ [SMTP] Conexión establecida y lista para envíos de correo');
         }
       });
     } else {
