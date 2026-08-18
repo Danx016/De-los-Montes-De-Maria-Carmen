@@ -24,40 +24,16 @@ class EmailService {
     const pass = appConfig.smtp.pass || 'gszsvbqujjebrlgk';
 
     if (user && pass) {
-      // Configuración directa y exclusiva de Google Gmail (Puerto 465 SSL) forzando IPv4 estricto
       this.transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
+        service: 'gmail',
         auth: {
           user,
           pass,
         },
-        family: 4,
-        lookup: (hostname, options, callback) => {
-          dns.lookup(hostname, { family: 4, all: false }, callback);
-        },
-        pool: true,
-        maxConnections: 5,
-        maxMessages: 100,
-        connectionTimeout: 15000,
-        greetingTimeout: 15000,
-        socketTimeout: 20000,
         tls: {
           rejectUnauthorized: false,
         },
       });
-
-      // Validar conexión en segundo plano
-      this.transporter.verify((error) => {
-        if (error) {
-          console.warn('⚠️ [Google Gmail] Advertencia al conectar con Gmail:', error.message);
-        } else {
-          console.log(`✅ [Google Gmail] Conexión establecida exitosamente con Google Gmail (${user})`);
-        }
-      });
-    } else {
-      console.warn('⚠️ [Google Gmail] No se configuraron credenciales de correo completas');
     }
   }
 
