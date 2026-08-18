@@ -1446,18 +1446,16 @@ ${aiReply}
       }
 
       const loginPrompt = `
-🔐 <b>VINCULACIÓN DE CUENTA EN TELEGRAM</b>
+📩 <b>¡CÓDIGO ENVIADO AUTOMÁTICAMENTE!</b>
 ━━━━━━━━━━━━━━━━━━
 👤 <b>Usuario:</b> ${user.nombre || user.username}
 📧 <b>Correo:</b> <code>${user.correo}</code>
 ━━━━━━━━━━━━━━━━━━
-Para autenticarte, escribe en este chat:
+Hemos enviado un <b>código de seguridad de 6 dígitos</b> a tu correo electrónico.
 
-🔑 <b>Tu contraseña</b> de la plataforma web.
-— o —
-📩 <b>El código de 6 dígitos</b> que enviamos a tu correo.
+✍️ <b>Escribe los 6 dígitos aquí en el chat para acceder:</b>
 
-<i>(Escribe tu clave o los 6 dígitos directamente en el mensaje)</i>
+<i>💡 Consejo: Si lo prefieres, también puedes ingresar escribiendo tu contraseña de la web.</i>
 `;
 
       const resendKeyboard = {
