@@ -260,6 +260,10 @@ export default function AdminPage() {
     })
   }
 
+  useEffect(() => {
+    loadData()
+  }, [])
+
   // ── Banner Handlers ──
   const handleOpenCreateBanner = () => {
     setEditingBanner(null)
