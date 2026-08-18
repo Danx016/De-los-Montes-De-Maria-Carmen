@@ -7,6 +7,24 @@ import { useToast } from '../context/ToastContext'
 import { crearTicket, enviarMensaje, calificar, buscarTicket, solicitarAgente } from '../api/soporte.api'
 import { useSocket } from '../hooks/useSocket'
 
+function formatMessageContent(text) {
+  if (!text) return ''
+  const lines = text.split('\n')
+  return lines.map((line, lIdx) => {
+    const parts = line.split(/(\*\*[^*]+\*\*)/g)
+    return (
+      <span key={lIdx} style={{ display: 'block', minHeight: line.trim() === '' ? '0.5rem' : undefined, marginBottom: line.trim() === '' ? '0.2rem' : undefined }}>
+        {parts.map((part, pIdx) => {
+          if (part.startsWith('**') && part.endsWith('**')) {
+            return <strong key={pIdx} style={{ fontWeight: 800, color: 'inherit' }}>{part.slice(2, -2)}</strong>
+          }
+          return part
+        })}
+      </span>
+    )
+  })
+}
+
 export default function SoportePage() {
   const toast = useToast()
   const { user } = useAuth()
@@ -79,10 +97,8 @@ export default function SoportePage() {
     {
       onNuevoMensaje: (msg) => {
         setMessages((prev) => {
-          // Si ya existe por id idéntico
           if (msg.id && prev.some((m) => m.id === msg.id)) return prev
 
-          // Si es el mensaje local optimista del usuario, reemplazarlo con el mensaje confirmado del servidor
           const tempIdx = prev.findIndex(
             (m) =>
               (String(m.id).startsWith('temp_') || !m.id) &&
@@ -95,7 +111,6 @@ export default function SoportePage() {
             return next
           }
 
-          // Si ya existe un mensaje idéntico reciente
           if (prev.some((m) => m.remitente === msg.remitente && m.mensaje?.trim() === msg.mensaje?.trim())) {
             return prev
           }
@@ -269,11 +284,11 @@ export default function SoportePage() {
   const getStatusBadge = (estado) => {
     switch (estado) {
       case 'cerrado':
-        return <span className="badge badge-danger"><i className="fa fa-check-circle" /> Resuelto</span>
+        return <span className="badge badge-danger" style={{ fontSize: '0.72rem' }}><i className="fa fa-check-circle" /> Resuelto</span>
       case 'agente':
-        return <span className="badge badge-warning"><i className="fa fa-user-tie" /> En espera de Asesor</span>
+        return <span className="badge badge-warning" style={{ fontSize: '0.72rem' }}><i className="fa fa-user-tie" /> En espera de Asesor</span>
       default:
-        return <span className="badge badge-success"><i className="fa fa-robot" /> Asistente en Vivo</span>
+        return <span className="badge badge-success" style={{ fontSize: '0.72rem' }}><i className="fa fa-robot" /> Asistente en Vivo</span>
     }
   }
 
@@ -281,15 +296,15 @@ export default function SoportePage() {
     <>
       <Navbar />
 
-      <main className="main-content" style={{ padding: '2rem 1rem 4rem' }}>
-        <div className="app-container" style={{ maxWidth: '820px', margin: '0 auto' }}>
+      <main className="main-content" style={{ padding: '1rem 0.5rem 5rem' }}>
+        <div className="app-container" style={{ maxWidth: '850px', margin: '0 auto', width: '100%' }}>
           {/* Clean Minimal Page Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem', padding: '0 0.25rem' }}>
             <div>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.25rem 0' }}>
+              <h1 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#0f172a', margin: '0 0 0.15rem 0' }}>
                 Centro de Ayuda & Soporte
               </h1>
-              <p style={{ margin: 0, color: '#64748b', fontSize: '0.92rem' }}>
+              <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem' }}>
                 Atención directa en vivo para compradores y campesinos.
               </p>
             </div>
@@ -299,7 +314,7 @@ export default function SoportePage() {
                 type="button"
                 className="btn btn-sm btn-outline-secondary"
                 onClick={() => setActiveTab(activeTab === 'nuevo' ? 'buscar' : 'nuevo')}
-                style={{ borderRadius: '999px', padding: '0.45rem 1.15rem', fontSize: '0.85rem', fontWeight: 600 }}
+                style={{ borderRadius: '999px', padding: '0.4rem 1rem', fontSize: '0.82rem', fontWeight: 600 }}
               >
                 <i className={`fa ${activeTab === 'nuevo' ? 'fa-search' : 'fa-edit'}`} />{' '}
                 {activeTab === 'nuevo' ? 'Consultar Ticket Anterior' : 'Crear Nueva Consulta'}
@@ -312,36 +327,36 @@ export default function SoportePage() {
             {activeTicket ? (
               /* Active Live Chat Window */
               <div className="support-chat-container fade-in">
-                <div className="support-chat-header">
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
-                      <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
+                <div className="support-chat-header" style={{ padding: '0.85rem 1rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.65rem' }}>
+                  <div style={{ flex: '1 1 180px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.15rem' }}>
+                      <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
                         {activeTicket.asunto || 'Consulta de Soporte'}
                       </h3>
                       {getStatusBadge(activeTicket.estado)}
                     </div>
-                    <span className="text-muted" style={{ fontSize: '0.85rem' }}>
-                      Código de Ticket: <strong>{activeTicket.ticket_code || activeTicket.session_id}</strong>
+                    <span className="text-muted" style={{ fontSize: '0.78rem' }}>
+                      Ticket: <strong style={{ color: '#0f172a' }}>{activeTicket.ticket_code || activeTicket.session_id}</strong>
                     </span>
                   </div>
 
-                    <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-                      {activeTicket.estado !== 'cerrado' && activeTicket.estado !== 'agente' && (
-                        <button
-                          type="button"
-                          onClick={handleRequestHuman}
-                          disabled={requestingHuman}
-                          className="btn btn-sm btn-outline-primary"
-                          style={{ borderRadius: '999px', fontWeight: 700 }}
-                        >
-                          <i className={`fa ${requestingHuman ? 'fa-spinner fa-spin' : 'fa-user-tie'}`} /> Hablar con un asesor
-                        </button>
-                      )}
+                  <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    {activeTicket.estado !== 'cerrado' && activeTicket.estado !== 'agente' && (
+                      <button
+                        type="button"
+                        onClick={handleRequestHuman}
+                        disabled={requestingHuman}
+                        className="btn btn-sm btn-outline-primary"
+                        style={{ borderRadius: '999px', fontWeight: 700, fontSize: '0.78rem', padding: '0.35rem 0.8rem' }}
+                      >
+                        <i className={`fa ${requestingHuman ? 'fa-spinner fa-spin' : 'fa-user-tie'}`} /> Asesor Humano
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => { setActiveTicket(null); setMessages([]); }}
                       className="btn btn-sm btn-secondary"
-                      style={{ borderRadius: '999px' }}
+                      style={{ borderRadius: '999px', fontSize: '0.78rem', padding: '0.35rem 0.8rem' }}
                     >
                       <i className="fa fa-plus" /> Nueva Consulta
                     </button>
@@ -349,7 +364,7 @@ export default function SoportePage() {
                 </div>
 
                 {/* Messages Feed */}
-                <div className="support-feed-wrap" ref={chatFeedRef}>
+                <div className="support-feed-wrap" ref={chatFeedRef} style={{ padding: '0.85rem', maxHeight: '520px', minHeight: '340px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.85rem', background: '#fafaf9' }}>
                   {messages.map((m, idx) => {
                     const role = m.remitente || m.rol || 'user'
                     const isMe = role === 'user' || role === 'cliente'
@@ -365,7 +380,7 @@ export default function SoportePage() {
 
                     if (isSys) {
                       return (
-                        <div key={idx} className="bubble-system">
+                        <div key={idx} className="bubble-system" style={{ alignSelf: 'center', background: '#f1f5f9', color: '#475569', border: '1px dashed #cbd5e1', padding: '0.4rem 0.85rem', borderRadius: '999px', fontSize: '0.78rem', fontWeight: 600, textAlign: 'center', maxWidth: '90%' }}>
                           <i className="fa fa-info-circle" /> {m.mensaje}
                         </div>
                       )
@@ -375,14 +390,26 @@ export default function SoportePage() {
                       <div
                         key={idx}
                         className={isMe ? 'bubble-user' : 'bubble-agent-bot'}
+                        style={{
+                          alignSelf: isMe ? 'flex-end' : 'flex-start',
+                          maxWidth: '90%',
+                          width: 'fit-content',
+                          background: isMe ? 'linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%)' : '#ffffff',
+                          color: isMe ? '#ffffff' : '#0f172a',
+                          border: isMe ? 'none' : '1px solid #e2e8f0',
+                          padding: '0.75rem 0.95rem',
+                          borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                          boxShadow: isMe ? '0 4px 12px rgba(27, 94, 32, 0.15)' : '0 2px 8px rgba(0, 0, 0, 0.04)',
+                          wordBreak: 'break-word',
+                        }}
                       >
-                        <div style={{ fontSize: '0.74rem', fontWeight: 700, marginBottom: '0.3rem', opacity: isMe ? 0.9 : 0.85, color: isMe ? '#ffffff' : '#15803d', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <div style={{ fontSize: '0.72rem', fontWeight: 700, marginBottom: '0.3rem', opacity: isMe ? 0.9 : 0.85, color: isMe ? '#ffffff' : '#15803d', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                           <i className={`fa ${isMe ? 'fa-user' : isBot ? 'fa-robot' : 'fa-headset'}`} />
                           {author} • {m.fecha ? new Date(m.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Ahora'}
                         </div>
-                        <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.55, fontSize: '0.95rem' }}>
-                          {m.mensaje}
-                        </p>
+                        <div style={{ margin: 0, lineHeight: 1.45, fontSize: '0.92rem' }}>
+                          {formatMessageContent(m.mensaje)}
+                        </div>
                       </div>
                     )
                   })}
@@ -390,30 +417,30 @@ export default function SoportePage() {
 
                 {/* Message Input or Rating Screen */}
                 {activeTicket.estado !== 'cerrado' ? (
-                  <form onSubmit={handleSendMessage} style={{ padding: '1rem 1.5rem', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '0.75rem' }}>
+                  <form onSubmit={handleSendMessage} className="support-chat-input-form" style={{ padding: '0.65rem 0.85rem', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     <input
                       type="text"
-                      placeholder="Escribe tu mensaje o respuesta aquí..."
+                      placeholder="Escribe tu mensaje..."
                       value={inputMsg}
                       onChange={(e) => {
                         setInputMsg(e.target.value)
                         emitEscribiendo()
                       }}
                       className="form-input"
-                      style={{ flex: 1, borderRadius: '999px', paddingLeft: '1.25rem' }}
+                      style={{ flex: 1, borderRadius: '999px', padding: '0.6rem 1rem', fontSize: '0.92rem' }}
                     />
-                    <button type="submit" className="btn btn-primary" style={{ borderRadius: '999px', padding: '0 1.5rem', fontWeight: 700 }}>
-                      <i className="fa fa-paper-plane" /> Enviar
+                    <button type="submit" className="btn btn-primary" style={{ borderRadius: '999px', padding: '0.6rem 1.15rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
+                      <i className="fa fa-paper-plane" /> <span>Enviar</span>
                     </button>
                   </form>
                 ) : (
-                  <div style={{ padding: '1.75rem', background: '#f8fafc', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
-                    <p style={{ margin: '0 0 1rem 0', fontWeight: 700, color: '#0f172a' }}>
+                  <div style={{ padding: '1.5rem 1rem', background: '#f8fafc', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
+                    <p style={{ margin: '0 0 0.85rem 0', fontWeight: 700, color: '#0f172a' }}>
                       Este ticket ha sido resuelto y finalizado.
                     </p>
                     {!rated ? (
                       <div>
-                        <span style={{ fontSize: '0.9rem', color: '#64748b', display: 'block', marginBottom: '0.6rem' }}>
+                        <span style={{ fontSize: '0.88rem', color: '#64748b', display: 'block', marginBottom: '0.5rem' }}>
                           ¿Cómo calificarías la atención recibida?
                         </span>
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
@@ -422,7 +449,7 @@ export default function SoportePage() {
                               key={s}
                               type="button"
                               onClick={() => handleRate(s)}
-                              style={{ background: 'none', border: 'none', fontSize: '1.8rem', cursor: 'pointer', color: s <= rating ? '#f59e0b' : '#cbd5e1', transition: 'transform 0.15s ease' }}
+                              style={{ background: 'none', border: 'none', fontSize: '1.75rem', cursor: 'pointer', color: s <= rating ? '#f59e0b' : '#cbd5e1', transition: 'transform 0.15s ease' }}
                               onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.2)')}
                               onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
                             >
@@ -432,7 +459,7 @@ export default function SoportePage() {
                         </div>
                       </div>
                     ) : (
-                      <span className="text-success font-bold" style={{ fontSize: '1rem' }}>
+                      <span className="text-success font-bold" style={{ fontSize: '0.95rem' }}>
                         <i className="fa fa-check-circle" /> ¡Muchas gracias por tu calificación! ⭐
                       </span>
                     )}
