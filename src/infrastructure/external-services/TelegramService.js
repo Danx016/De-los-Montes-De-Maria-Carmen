@@ -367,6 +367,44 @@ Asunto: <b>${ticket.asunto}</b>
   }
 
   /**
+   * Notificar cuando un cliente escribe un nuevo mensaje en un ticket
+   */
+  async notificarMensajeCliente({ ticket, mensaje, nombreRemitente = null, excludeChatId = null }) {
+    try {
+      const ticketCode = ticket.ticket_code || ticket.session_id || ticket.id;
+      const clientName = nombreRemitente || ticket.nombre_cliente || 'Cliente';
+      const msg = `
+💬 <b>NUEVO MENSAJE EN TICKET #${ticketCode}</b>
+━━━━━━━━━━━━━━━━━━
+👤 <b>Cliente:</b> ${clientName}
+🎫 <b>Asunto:</b> ${ticket.asunto || 'Consulta'}
+
+📝 <b>Mensaje:</b>
+<i>"${mensaje}"</i>
+━━━━━━━━━━━━━━━━━━
+⚡ <i>Toca Responder o usa Swipe para contestar desde Telegram:</i>
+`;
+      const keyboard = {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: `💬 Responder a #${ticketCode}`, callback_data: `reply_tk:${ticketCode}` },
+              { text: `🔒 Cerrar Ticket`, callback_data: `close_tk:${ticketCode}` }
+            ],
+            [
+              { text: `🌐 Abrir en Panel Web`, url: 'https://delosmontesdemaria.onrender.com/admin/soporte' }
+            ]
+          ]
+        }
+      };
+
+      await this.broadcastAdmins(msg, keyboard, excludeChatId);
+    } catch (err) {
+      console.error('[Telegram] Error al notificar mensaje cliente:', err);
+    }
+  }
+
+  /**
    * Generar menú interactivo según el rol del usuario autenticado
    */
   generarMenuRol(authUser, chatId) {
@@ -715,15 +753,34 @@ ${replyText}
 
         // 1-Click Cerrar Ticket
         if (cbData.startsWith('close_tk:')) {
-          const ticketCode = cbData.replace('close_tk:', '').trim();
+          const ticketCode = cbData.replace('close_tk:', '').replace('#', '').trim().toUpperCase();
           if (this.soporteRepository) {
             const t = await this.soporteRepository.buscarTicketPorCodigo(ticketCode);
             if (t) {
-              await this.soporteRepository.actualizarTicket(t.id, { estado: 'cerrado' });
+              await this.soporteRepository.actualizarTicket(t.id, {
+                estado: 'cerrado',
+                id_agente: authUser?.id_usuario || t.id_agente,
+                nombre_agente: authUser?.nombre || 'Administrador'
+              });
+              await this.soporteRepository.agregarMensaje({
+                ticket_id: t.id,
+                session_id: t.session_id,
+                id_usuario: authUser?.id_usuario || null,
+                nombre_remitente: authUser?.nombre || 'Administrador',
+                rol: 'sistema',
+                mensaje: '🔒 El ticket ha sido cerrado y resuelto por el equipo de soporte.'
+              });
               if (this.socketHandler) {
                 this.socketHandler.emitirTicketCerrado(t.session_id, t.id);
               }
-              await this.sendMessage(cbChatId, `✅ Ticket <code>#${ticketCode}</code> cerrado correctamente.`);
+              if (t.session_id && t.session_id.startsWith('tg_')) {
+                const parts = t.session_id.split('_');
+                const clientChatId = parts[1];
+                if (clientChatId && clientChatId !== cbChatId) {
+                  await this.sendMessage(clientChatId, `✅ Tu ticket de soporte <code>#${ticketCode}</code> ha sido marcado como resuelto y cerrado. ¡Muchas gracias por contactarnos! 🌾`);
+                }
+              }
+              await this.sendMessage(cbChatId, `✅ <b>Ticket #${ticketCode} cerrado exitosamente.</b>`);
             } else {
               await this.sendMessage(cbChatId, `❌ No se encontró el ticket <code>#${ticketCode}</code>.`);
             }
@@ -820,6 +877,71 @@ ${replyText}
         this.pendingAuth.delete(chatId);
         const kb = this.getPersistentKeyboard(authUser);
         await this.sendMessage(chatId, '🔄 Proceso cancelado.', { reply_markup: kb });
+        return { ok: true };
+      }
+
+      // ── COMANDOS DE ATENCIÓN Y CIERRE DE TICKETS CON CÓDIGO (PARA ADMINS / ASESORES) ──
+      if (text.startsWith('/cerrar ') || text.startsWith('/cerrarticket ')) {
+        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
+          await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
+          return { ok: true };
+        }
+        const ticketCode = text.replace(/^\/(cerrar|cerrarticket)\s+/, '').replace('#', '').trim().toUpperCase();
+        if (this.soporteRepository) {
+          const t = await this.soporteRepository.buscarTicketPorCodigo(ticketCode);
+          if (t) {
+            await this.soporteRepository.actualizarTicket(t.id, {
+              estado: 'cerrado',
+              id_agente: authUser?.id_usuario || t.id_agente,
+              nombre_agente: authUser?.nombre || 'Administrador'
+            });
+            await this.soporteRepository.agregarMensaje({
+              ticket_id: t.id,
+              session_id: t.session_id,
+              id_usuario: authUser?.id_usuario || null,
+              nombre_remitente: authUser?.nombre || 'Administrador',
+              rol: 'sistema',
+              mensaje: '🔒 El ticket ha sido cerrado y resuelto por el equipo de soporte.'
+            });
+            if (this.socketHandler) {
+              this.socketHandler.emitirTicketCerrado(t.session_id, t.id);
+            }
+            if (t.session_id && t.session_id.startsWith('tg_')) {
+              const parts = t.session_id.split('_');
+              const clientChatId = parts[1];
+              if (clientChatId && clientChatId !== chatId) {
+                await this.sendMessage(clientChatId, `✅ Tu ticket de soporte <code>#${ticketCode}</code> ha sido cerrado y resuelto por el equipo de soporte. ¡Muchas gracias! 🌾`);
+              }
+            }
+            await this.sendMessage(chatId, `✅ <b>Ticket #${ticketCode} cerrado exitosamente.</b>`);
+          } else {
+            await this.sendMessage(chatId, `❌ No se encontró ningún ticket con el código <code>#${ticketCode}</code>.`);
+          }
+        }
+        return { ok: true };
+      }
+
+      if (text.startsWith('/responder ') || text.startsWith('/atender ')) {
+        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
+          await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
+          return { ok: true };
+        }
+        const afterCmd = text.replace(/^\/(responder|atender)\s+/, '').trim();
+        const parts = afterCmd.split(' ');
+        const ticketCode = parts[0].replace('#', '').trim().toUpperCase();
+        const replyMsg = parts.slice(1).join(' ').trim();
+
+        if (!replyMsg) {
+          session.state = 'WAITING_TICKET_REPLY';
+          session.replyTicketCode = ticketCode;
+          await this.sendMessage(
+            chatId,
+            `✍️ <b>Modo Respuesta Activado para Ticket #${ticketCode}</b>\n━━━━━━━━━━━━━━━━━━\nEscribe a continuación el mensaje que deseas enviar al cliente:\n<i>(O escribe /cancelar para salir)</i>`
+          );
+          return { ok: true };
+        }
+
+        await this.responderTicket(chatId, ticketCode, replyMsg, authUser);
         return { ok: true };
       }
 

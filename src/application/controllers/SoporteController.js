@@ -223,8 +223,15 @@ class SoporteController {
         return res.json({ ok: true });
       }
 
-      // Si el ticket ya está transferido a un agente o no está en modo bot, no procesar con IA
+      // Si el ticket ya está transferido a un agente o no está en modo bot, notificar a los admins de Telegram y no procesar con IA
       if (ticket.estado !== 'bot') {
+        if (this.telegramService) {
+          this.telegramService.notificarMensajeCliente({
+            ticket,
+            mensaje: cleanMsg,
+            nombreRemitente: senderName
+          }).catch((tErr) => console.warn('[Telegram Msg Alert Warning]:', tErr.message));
+        }
         return res.json({ ok: true });
       }
 
