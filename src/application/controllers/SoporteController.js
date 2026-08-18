@@ -13,7 +13,7 @@ function generateTicketCode() {
 }
 
 class SoporteController {
-  constructor({ soporteRepository, usuarioRepository, productoRepository, compraRepository, emailService, iaService, socketHandler }) {
+  constructor({ soporteRepository, usuarioRepository, productoRepository, compraRepository, emailService, iaService, socketHandler, telegramService }) {
     this.soporteRepository = soporteRepository;
     this.usuarioRepository = usuarioRepository;
     this.productoRepository = productoRepository;
@@ -21,6 +21,7 @@ class SoporteController {
     this.emailService = emailService;
     this.iaService = iaService;
     this.socketHandler = socketHandler;
+    this.telegramService = telegramService;
     this.processSupportAIChat = new ProcessSupportAIChat(iaService, {
       usuarioRepository,
       productoRepository,
@@ -125,6 +126,14 @@ class SoporteController {
 
       if (this.socketHandler) {
         this.socketHandler.emitirNuevoTicket(ticketPayload);
+      }
+
+      // Notificar a Telegram de nuevo ticket
+      if (this.telegramService) {
+        this.telegramService.notificarNuevoTicket({
+          ticket,
+          mensajeInicial: mensaje || asunto,
+        }).catch((tErr) => console.warn('[Telegram Ticket Alert Warning]:', tErr.message));
       }
 
       const mensajes = await this.soporteRepository.obtenerMensajes(ticket.id);
@@ -301,6 +310,13 @@ class SoporteController {
           fecha: new Date().toISOString()
         });
       }
+
+      // Notificar a Telegram de asesor humano solicitado
+      if (this.telegramService) {
+        this.telegramService.notificarSolicitudAsesorHumano({ ticket })
+          .catch((tErr) => console.warn('[Telegram Asesor Alert Warning]:', tErr.message));
+      }
+
       res.json({ ok: true, mensaje: aviso });
     } catch (error) {
       res.status(500).json({ error: 'Error al solicitar asesor.' });

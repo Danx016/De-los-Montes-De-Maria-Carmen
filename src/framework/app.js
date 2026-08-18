@@ -25,6 +25,7 @@ const EmailService = require('../infrastructure/external-services/EmailService')
 const GoogleAuthService = require('../infrastructure/external-services/GoogleAuthService');
 const IAService = require('../infrastructure/external-services/IAService');
 const PaymentService = require('../infrastructure/external-services/PaymentService');
+const TelegramService = require('../infrastructure/external-services/TelegramService');
 
 // WebSockets
 const SocketHandler = require('../infrastructure/websocket/SocketHandler');
@@ -61,6 +62,7 @@ const emailService = new EmailService();
 const googleAuthService = new GoogleAuthService();
 const iaService = new IAService(emailService);
 const paymentService = new PaymentService();
+const telegramService = new TelegramService();
 
 // Variable para el manejador de websockets
 let socketHandler = null;
@@ -93,7 +95,8 @@ const compraController = new CompraController({
   tokenRepository,
   emailService,
   paymentService,
-  couponRepository
+  couponRepository,
+  telegramService
 });
 
 const soporteController = new SoporteController({
@@ -103,7 +106,8 @@ const soporteController = new SoporteController({
   compraRepository,
   emailService,
   iaService,
-  socketHandler: null // Se asigna dinámicamente cuando el servidor inicia Socket.IO
+  socketHandler: null, // Se asigna dinámicamente cuando el servidor inicia Socket.IO
+  telegramService
 });
 
 const chatController = new ChatController({
@@ -179,7 +183,8 @@ setupRoutes(app, {
   chatController,
   adminController,
   bannerController,
-  couponController
+  couponController,
+  telegramService
 });
 
 // 6. SPA Catch-All para React (en producción o cuando build existe)

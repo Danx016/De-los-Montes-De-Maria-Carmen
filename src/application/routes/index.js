@@ -8,6 +8,7 @@ const createChatRoutes = require('./chat.routes');
 const createAdminRoutes = require('./admin.routes');
 const createBannerRoutes = require('./banner.routes');
 const createCouponRoutes = require('./coupon.routes');
+const createTelegramRoutes = require('./telegram.routes');
 
 function setupRoutes(app, controllers) {
   const {
@@ -19,7 +20,8 @@ function setupRoutes(app, controllers) {
     chatController,
     adminController,
     bannerController,
-    couponController
+    couponController,
+    telegramService
   } = controllers;
 
   // Montar rutas de la API REST
@@ -33,6 +35,9 @@ function setupRoutes(app, controllers) {
   app.use('/api/admin', createAdminRoutes(adminController));
   app.use('/api/banners', createBannerRoutes(bannerController));
   app.use('/api/cupones', createCouponRoutes(couponController));
+  if (telegramService) {
+    app.use('/api/telegram', createTelegramRoutes(telegramService));
+  }
 
   // Rutas de compatibilidad directa
   app.use('/register', createAuthRoutes(authController));

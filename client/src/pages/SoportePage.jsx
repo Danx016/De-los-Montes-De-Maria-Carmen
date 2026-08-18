@@ -468,13 +468,35 @@ export default function SoportePage() {
               </div>
             ) : activeTab === 'nuevo' ? (
               /* New Ticket Creation Form */
-              <div className="card fade-in" style={{ padding: '2.5rem', borderRadius: '20px', border: '1px solid #e2e8f0', background: '#ffffff', boxShadow: '0 10px 30px rgba(0,0,0,0.04)' }}>
+              <div className="card fade-in" style={{ padding: '2rem', borderRadius: '20px', border: '1px solid #e2e8f0', background: '#ffffff', boxShadow: '0 10px 30px rgba(0,0,0,0.04)' }}>
+                {/* Telegram Bot Direct Channel Alert */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.85rem', background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', color: '#ffffff', padding: '0.85rem 1.25rem', borderRadius: '14px', marginBottom: '1.5rem', boxShadow: '0 4px 15px rgba(2,132,199,0.25)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>
+                      <i className="fab fa-telegram" />
+                    </div>
+                    <div>
+                      <strong style={{ fontSize: '0.95rem', display: 'block' }}>Canal de Atención en Telegram</strong>
+                      <span style={{ fontSize: '0.8rem', opacity: 0.9 }}>¿Prefieres chatear por Telegram? Escríbele a nuestro bot oficial.</span>
+                    </div>
+                  </div>
+                  <a
+                    href="https://t.me/montesdemariabot"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn btn-sm"
+                    style={{ background: '#ffffff', color: '#0369a1', fontWeight: 800, borderRadius: '999px', padding: '0.45rem 1.15rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none' }}
+                  >
+                    <i className="fab fa-telegram" /> Abrir Telegram
+                  </a>
+                </div>
+
                 <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
                   <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <i className="fa fa-edit" style={{ color: '#2e7d32' }} /> Iniciar Consulta
+                    <i className="fa fa-edit" style={{ color: '#2e7d32' }} /> Iniciar Consulta Web
                   </h2>
                   <p className="text-muted" style={{ margin: '0.35rem 0 0 0', fontSize: '0.9rem' }}>
-                    Completa los datos para conectarte de inmediato con nuestro soporte.
+                    Completa los datos para conectarte de inmediato con nuestro soporte aquí en la plataforma.
                   </p>
                 </div>
 

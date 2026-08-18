@@ -6,7 +6,7 @@ const UpdateOrderStatus = require('../../domain/use-cases/purchase/UpdateOrderSt
 const GenerateWompiSignature = require('../../domain/use-cases/purchase/GenerateWompiSignature');
 
 class CompraController {
-  constructor({ compraRepository, productoRepository, usuarioRepository, tokenRepository, emailService, paymentService, couponRepository }) {
+  constructor({ compraRepository, productoRepository, usuarioRepository, tokenRepository, emailService, paymentService, couponRepository, telegramService }) {
     this.compraRepository = compraRepository;
     this.productoRepository = productoRepository;
     this.usuarioRepository = usuarioRepository;
@@ -14,6 +14,7 @@ class CompraController {
     this.emailService = emailService;
     this.paymentService = paymentService;
     this.couponRepository = couponRepository;
+    this.telegramService = telegramService;
     this.updateOrderStatus = new UpdateOrderStatus(compraRepository, usuarioRepository, emailService);
     this.generateWompiSignature = new GenerateWompiSignature(paymentService);
   }
@@ -88,8 +89,21 @@ class CompraController {
         if (recibo && recibo.correo_cliente) {
           await this.emailService.sendInvoiceEmail(recibo, recibo.correo_cliente);
         }
+
+        // Notificar por Telegram de forma asíncrona
+        if (this.telegramService) {
+          const userBuyer = await this.usuarioRepository.buscarPorId(userId);
+          this.telegramService.notificarNuevaCompra({
+            compra: compraCreada,
+            usuario: userBuyer || { nombre: 'Cliente Web', correo: recibo?.correo_cliente },
+            productos,
+            total,
+            metodoPago: paymentMethod,
+            direccion: shippingAddress,
+          }).catch((tErr) => console.warn('[Telegram Compra Alert Warning]:', tErr.message));
+        }
       } catch (emailErr) {
-        console.warn('No se pudo enviar la factura por correo:', emailErr.message);
+        console.warn('No se pudo procesar alertas de orden:', emailErr.message);
       }
 
       res.status(201).json({
