@@ -65,7 +65,7 @@ class GoogleAuthUser {
         avatar: user.avatar
       },
       this.jwtSecret,
-      { expiresIn: '7d', algorithm: 'HS256' }
+      { expiresIn: '365d', algorithm: 'HS256' }
     );
 
     const userJson = typeof user.toJSON === 'function'

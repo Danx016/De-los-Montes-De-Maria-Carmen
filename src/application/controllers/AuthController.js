@@ -45,7 +45,7 @@ class AuthController {
           avatar: user.avatar || null
         },
         appConfig.jwtSecret,
-        { expiresIn: '7d', algorithm: 'HS256' }
+        { expiresIn: '365d', algorithm: 'HS256' }
       );
 
       const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https' || req.protocol === 'https';
@@ -54,7 +54,7 @@ class AuthController {
         secure: isHttps,
         sameSite: isHttps ? 'none' : 'lax',
         path: '/',
-        maxAge: 7 * 24 * 60 * 60 * 1000
+        maxAge: 365 * 24 * 60 * 60 * 1000
       });
 
       res.status(200).json({
@@ -90,7 +90,7 @@ class AuthController {
         secure: isHttps,
         sameSite: isHttps ? 'none' : 'lax',
         path: '/',
-        maxAge: 7 * 24 * 60 * 60 * 1000
+        maxAge: 365 * 24 * 60 * 60 * 1000
       });
 
       const rolId = user.id_rol !== null && user.id_rol !== undefined ? parseInt(user.id_rol, 10) : 3;

@@ -236,7 +236,7 @@ class UsuarioController {
           avatar: updatedUser.avatar || null
         },
         appConfig.jwtSecret,
-        { expiresIn: '7d', algorithm: 'HS256' }
+        { expiresIn: '365d', algorithm: 'HS256' }
       );
 
       const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https' || req.protocol === 'https';
@@ -245,7 +245,7 @@ class UsuarioController {
         secure: isHttps,
         sameSite: isHttps ? 'none' : 'lax',
         path: '/',
-        maxAge: 7 * 24 * 60 * 60 * 1000
+        maxAge: 365 * 24 * 60 * 60 * 1000
       });
 
       res.json({

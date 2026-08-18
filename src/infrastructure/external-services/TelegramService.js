@@ -535,6 +535,87 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
   }
 
   /**
+   * Persistencia de sesión de Telegram en Base de Datos (para evitar cierres por reinicio de servidor)
+   */
+  async guardarSesionTelegram(chatId, user) {
+    try {
+      const strChatId = String(chatId);
+      const userObj = {
+        id_usuario: user.id_usuario || user.id,
+        id: user.id_usuario || user.id,
+        nombre: user.nombre,
+        apodo: user.apodo,
+        correo: user.correo,
+        telefono: user.telefono,
+        contrasena: user.contrasena,
+        id_rol: Number(user.id_rol),
+        rolNombre: Number(user.id_rol) === 1 ? 'Administrador' : Number(user.id_rol) === 4 ? 'Asesor' : Number(user.id_rol) === 2 ? 'Campesino' : 'Comprador'
+      };
+      this.authenticatedUsers.set(strChatId, userObj);
+      if (Number(user.id_rol) === 1 || Number(user.id_rol) === 4) {
+        this.registerSubscriber(strChatId);
+      }
+      const db = require('../persistence/Database');
+      const sql = `INSERT INTO telegram_sesiones (chat_id, id_usuario) VALUES (?, ?) ON DUPLICATE KEY UPDATE id_usuario = VALUES(id_usuario), updated_at = CURRENT_TIMESTAMP`;
+      await new Promise((resolve) => db.query(sql, [strChatId, userObj.id_usuario], () => resolve()));
+    } catch (err) {
+      console.warn('[Telegram guardarSesion Error]:', err.message);
+    }
+  }
+
+  async obtenerSesionTelegram(chatId) {
+    try {
+      const strChatId = String(chatId);
+      if (this.authenticatedUsers.has(strChatId)) {
+        return this.authenticatedUsers.get(strChatId);
+      }
+      const db = require('../persistence/Database');
+      const sql = `SELECT u.* FROM telegram_sesiones ts JOIN usuarios u ON ts.id_usuario = u.id_usuario WHERE ts.chat_id = ? LIMIT 1`;
+      const rows = await new Promise((resolve, reject) => {
+        db.query(sql, [strChatId], (err, res) => {
+          if (err) return resolve([]);
+          resolve(res || []);
+        });
+      });
+
+      if (rows && rows.length > 0) {
+        const u = rows[0];
+        const userObj = {
+          id_usuario: u.id_usuario,
+          id: u.id_usuario,
+          nombre: u.nombre,
+          apodo: u.apodo,
+          correo: u.correo,
+          telefono: u.telefono,
+          contrasena: u.contrasena,
+          id_rol: Number(u.id_rol),
+          rolNombre: Number(u.id_rol) === 1 ? 'Administrador' : Number(u.id_rol) === 4 ? 'Asesor' : Number(u.id_rol) === 2 ? 'Campesino' : 'Comprador'
+        };
+        this.authenticatedUsers.set(strChatId, userObj);
+        if (Number(u.id_rol) === 1 || Number(u.id_rol) === 4) {
+          this.registerSubscriber(strChatId);
+        }
+        return userObj;
+      }
+      return null;
+    } catch (err) {
+      console.warn('[Telegram obtenerSesion Error]:', err.message);
+      return null;
+    }
+  }
+
+  async eliminarSesionTelegram(chatId) {
+    try {
+      const strChatId = String(chatId);
+      this.authenticatedUsers.delete(strChatId);
+      const db = require('../persistence/Database');
+      await new Promise((resolve) => db.query(`DELETE FROM telegram_sesiones WHERE chat_id = ?`, [strChatId], () => resolve()));
+    } catch (err) {
+      console.warn('[Telegram eliminarSesion Error]:', err.message);
+    }
+  }
+
+  /**
    * Responder a un ticket desde Telegram (por Admin o Asesor)
    */
   async responderTicket(chatId, ticketCode, replyText, authUser) {
@@ -634,7 +715,7 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
           this.sessions.set(cbChatId, session);
         }
 
-        const authUser = this.authenticatedUsers.get(cbChatId) || null;
+        const authUser = (await this.obtenerSesionTelegram(cbChatId)) || this.authenticatedUsers.get(cbChatId) || null;
         const rolId = authUser ? Number(authUser.id_rol) : null;
         const isAdminOrAdvisor = rolId === 1 || rolId === 4;
 
@@ -650,7 +731,7 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
         }
 
         if (cbData === 'cmd_logout') {
-          this.authenticatedUsers.delete(cbChatId);
+          await this.eliminarSesionTelegram(cbChatId);
           this.pendingAuth.delete(cbChatId);
           this.sessions.set(cbChatId, { state: 'IDLE', data: {}, activeTicket: null, activeSessionId: null });
           const kb = this.getPersistentKeyboard(null);
@@ -829,7 +910,7 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
         this.sessions.set(chatId, session);
       }
 
-      const authUser = this.authenticatedUsers.get(chatId) || null;
+      const authUser = (await this.obtenerSesionTelegram(chatId)) || this.authenticatedUsers.get(chatId) || null;
       const rolId = authUser ? Number(authUser.id_rol) : null;
       const isAdminOrAdvisor = rolId === 1 || rolId === 4;
 
@@ -950,7 +1031,7 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
 
       // ── GESTIÓN DE SESIÓN Y AUTENTICACIÓN (/LOGIN, /LOGOUT, /PERFIL) ──
       if (text === '/logout' || text === '/desconectar' || text === '/salir' || text === '🚪 Cerrar Sesión') {
-        this.authenticatedUsers.delete(chatId);
+        await this.eliminarSesionTelegram(chatId);
         this.pendingAuth.delete(chatId);
         this.sessions.set(chatId, { state: 'IDLE', data: {}, activeTicket: null, activeSessionId: null });
         const kb = this.getPersistentKeyboard(null);
@@ -1045,7 +1126,7 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
         }
 
         if (loginSuccess) {
-          this.authenticatedUsers.set(chatId, user);
+          await this.guardarSesionTelegram(chatId, user);
           this.pendingAuth.delete(chatId);
           session.state = 'IDLE';
           session.data = {};

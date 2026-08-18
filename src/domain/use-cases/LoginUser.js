@@ -61,7 +61,7 @@ class LoginUser {
     };
 
     return jwt.sign(payload, JWT_SECRET, {
-      expiresIn: '24h'
+      expiresIn: '365d'
     });
   }
 

@@ -4,10 +4,17 @@ import { getMe } from '../api/usuario.api'
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('user')
+      return saved ? JSON.parse(saved) : null
+    } catch (_) {
+      return null
+    }
+  })
   const [loading, setLoading] = useState(true)
 
-  // Cargar usuario desde el token almacenado al iniciar la app
+  // Cargar y sincronizar usuario desde el token almacenado al iniciar la app
   useEffect(() => {
     const token = localStorage.getItem('jwt')
     if (!token) {
@@ -20,9 +27,13 @@ export function AuthProvider({ children }) {
         setUser(userData)
         localStorage.setItem('user', JSON.stringify(userData))
       })
-      .catch(() => {
-        localStorage.removeItem('jwt')
-        localStorage.removeItem('user')
+      .catch((err) => {
+        // Solo desloguear si el servidor explícitamente respondió 401 No Autorizado o 403 Prohibido
+        if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+          localStorage.removeItem('jwt')
+          localStorage.removeItem('user')
+          setUser(null)
+        }
       })
       .finally(() => setLoading(false))
   }, [])
@@ -51,10 +62,11 @@ export function AuthProvider({ children }) {
       localStorage.setItem('user', JSON.stringify(userData))
       setUser(userData)
     } catch (error) {
-      console.error('Error al refrescar usuario:', error)
-      localStorage.removeItem('jwt')
-      localStorage.removeItem('user')
-      setUser(null)
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        localStorage.removeItem('jwt')
+        localStorage.removeItem('user')
+        setUser(null)
+      }
     }
   }, [])
 
