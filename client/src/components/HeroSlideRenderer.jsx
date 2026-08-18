@@ -285,32 +285,34 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
             </h1>
 
             <p style={{ fontSize: isPreview ? '0.95rem' : '1.2rem', color: '#dcfce7', maxWidth: '680px', margin: '0 auto 1.5rem auto', lineHeight: 1.5, fontWeight: 400 }}>
-              {slide.subtitle || slide.subtitulo || 'Tubérculos, quesos artesanales, semillas nativas y cosechas frescas con el sabor de nuestra tierra.'}
+              {slide.subtitle || slide.subtitulo || 'Cosechas frescas, productos artesanales y alimentos del campo sin intermediarios.'}
             </p>
 
-            {/* Feature Horizontal Strip */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.8rem' }}>
-              {(features.length > 0 ? features : ['🌿 100% Orgánico', '🚚 Despachos Seguros', '🤝 Trato Directo']).map((feat, idx) => (
-                <span
-                  key={idx}
-                  style={{
-                    background: 'rgba(0,0,0,0.35)',
-                    backdropFilter: 'blur(8px)',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    padding: '0.35rem 0.9rem',
-                    borderRadius: '8px',
-                    fontSize: isPreview ? '0.75rem' : '0.85rem',
-                    fontWeight: 600,
-                    color: '#ffffff',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                  }}
-                >
-                  <i className="fa fa-sparkles" style={{ color: '#facc15' }} /> {feat}
-                </span>
-              ))}
-            </div>
+            {/* Feature Horizontal Strip from Database */}
+            {features.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.8rem' }}>
+                {features.map((feat, idx) => (
+                  <span
+                    key={idx}
+                    style={{
+                      background: 'rgba(0,0,0,0.35)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      padding: '0.35rem 0.9rem',
+                      borderRadius: '8px',
+                      fontSize: isPreview ? '0.75rem' : '0.85rem',
+                      fontWeight: 600,
+                      color: '#ffffff',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                    }}
+                  >
+                    <i className="fa fa-check-circle" style={{ color: '#4ade80' }} /> {feat}
+                  </span>
+                ))}
+              </div>
+            )}
 
             <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
               {renderPrimaryBtn('btn-lg-pulse')}
@@ -325,12 +327,12 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
         {estilo === 'oferta_flash' && (
           <div className="hero-oferta-flash-grid" style={{ display: 'grid', gridTemplateColumns: isPreview ? '1fr' : '1.1fr 0.9fr', gap: '1.5rem', alignItems: 'center' }}>
             <div className="oferta-left">
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#ef4444', color: '#ffffff', padding: '0.35rem 1rem', borderRadius: '999px', fontWeight: 800, fontSize: '0.8rem', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '1rem', boxShadow: '0 4px 14px rgba(239,68,68,0.4)', animation: 'pulse 2s infinite' }}>
-                ⚡ OFERTA LIMITADA • HASTA AGOTAR EXISTENCIAS
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#ef4444', color: '#ffffff', padding: '0.35rem 1rem', borderRadius: '999px', fontWeight: 800, fontSize: '0.8rem', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '1rem', boxShadow: '0 4px 14px rgba(239,68,68,0.4)' }}>
+                ⚡ OFERTA LIMITADA • {badgeTop}
               </div>
 
               <h1 style={{ fontSize: isPreview ? '1.5rem' : '2.5rem', fontWeight: 900, marginBottom: '0.75rem', lineHeight: 1.2 }}>
-                {slide.title || slide.titulo || '¡Gran Cosecha con Descuento Especial!'}
+                {slide.title || slide.titulo || 'Gran Descuento Especial'}
               </h1>
 
               <p style={{ fontSize: isPreview ? '0.85rem' : '1.05rem', color: '#fed7aa', marginBottom: '1.25rem', lineHeight: 1.45 }}>
@@ -338,7 +340,7 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
               </p>
 
               {/* Cupón Card con Botón Copiar */}
-              {(cuponCod || isPreview) && (
+              {cuponCod && (
                 <div
                   style={{
                     background: 'rgba(255,255,255,0.12)',
@@ -359,13 +361,13 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
                       🎟️ Cupón de Descuento
                     </span>
                     <strong style={{ fontSize: '1.25rem', letterSpacing: '2px', color: '#ffffff', fontFamily: 'monospace' }}>
-                      {cuponCod || 'CAMPO20'}
+                      {cuponCod}
                     </strong>
                     {cuponTxt && <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem', color: '#ffedd5' }}>{cuponTxt}</p>}
                   </div>
                   <button
                     type="button"
-                    onClick={(e) => handleCopyCoupon(e, cuponCod || 'CAMPO20')}
+                    onClick={(e) => handleCopyCoupon(e, cuponCod)}
                     style={{
                       background: copied ? '#22c55e' : '#f59e0b',
                       color: '#ffffff',
@@ -389,7 +391,7 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
               )}
 
               <div className="ofercampo-actions">
-                {renderPrimaryBtn('', '¡Comprar con Descuento!', 'fa-bolt')}
+                {renderPrimaryBtn('', slide.boton_principal_texto || '¡Comprar con Descuento!', 'fa-bolt')}
                 {renderSecondaryBtn()}
               </div>
             </div>
@@ -442,14 +444,11 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
                   <span style={{ fontSize: isPreview ? '1.1rem' : '1.3rem', fontWeight: 900, color: '#facc15' }}>
                     {prodPrice}
                   </span>
-                  <span style={{ fontSize: '0.8rem', textDecoration: 'line-through', color: '#fca5a5' }}>
-                    $12.000 COP
-                  </span>
                 </div>
 
                 <div style={{ background: 'rgba(0,0,0,0.25)', padding: '0.4rem 0.65rem', borderRadius: '6px', fontSize: '0.75rem', color: '#86efac', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <i className="fa fa-box-open" />
-                  <span>Stock disponible • Despacho directo desde finca</span>
+                  <i className="fa fa-user-check" />
+                  <span>Vendido por {vendorName} • {vendorRating}</span>
                 </div>
               </div>
             </div>
@@ -457,7 +456,7 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
         )}
 
         {/* =========================================================================
-            ESTILO 4: MOSAICO CAMPESINO (3 Pilares del Campo)
+            ESTILO 4: MOSAICO CAMPESINO (Pilares y Beneficios Directos)
            ========================================================================= */}
         {estilo === 'mosaico' && (
           <div className="hero-mosaico-grid" style={{ display: 'grid', gridTemplateColumns: isPreview ? '1fr' : '1.05fr 0.95fr', gap: '1.5rem', alignItems: 'center' }}>
@@ -481,13 +480,21 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
               </div>
             </div>
 
-            {/* Right: 3 Visual Pillars Grid */}
+            {/* Right: Dynamic Feature Pillars Grid from Database */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {[
-                { icon: 'fa-seedling', color: '#4ade80', title: '100% Cosecha Orgánica y Natural', desc: 'Cultivado en tierras fértiles de los Montes de María sin químicos invasivos.' },
-                { icon: 'fa-truck-fast', color: '#60a5fa', title: 'Despacho Directo en 24-48 Horas', desc: 'Recibe en la puerta de tu hogar o negocio con pago contra entrega.' },
-                { icon: 'fa-hand-holding-dollar', color: '#facc15', title: 'Pago 100% Justo al Campesino', desc: 'Cada compra apoya de forma directa a familias campesinas locales.' },
-              ].map((pill, pIdx) => (
+              {(features.length > 0
+                ? features.map((featText, fIdx) => ({
+                    icon: fIdx === 0 ? 'fa-seedling' : fIdx === 1 ? 'fa-truck-fast' : 'fa-hand-holding-dollar',
+                    color: fIdx === 0 ? '#4ade80' : fIdx === 1 ? '#60a5fa' : '#facc15',
+                    title: featText,
+                    desc: fIdx === 0 ? 'Cultivado y producido directamente en el campo montemariano.' : fIdx === 1 ? 'Despacho rápido y garantizado a tu domicilio o negocio.' : 'Apoyo 100% directo a las familias productoras.',
+                  }))
+                : [
+                    { icon: 'fa-seedling', color: '#4ade80', title: '100% Cosecha Orgánica y Natural', desc: 'Cultivado en tierras fértiles de los Montes de María sin químicos invasivos.' },
+                    { icon: 'fa-truck-fast', color: '#60a5fa', title: 'Despacho Directo Garantizado', desc: 'Recibe en la puerta de tu hogar o negocio con máxima frescura.' },
+                    { icon: 'fa-hand-holding-dollar', color: '#facc15', title: 'Pago 100% Justo al Campesino', desc: 'Cada compra apoya de forma directa a familias campesinas locales.' },
+                  ]
+              ).map((pill, pIdx) => (
                 <div
                   key={pIdx}
                   style={{
@@ -547,7 +554,7 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
                 {slide.title || slide.titulo || 'Cosechado con Amor en Montes de María'}
               </h1>
 
-              {/* Farmer Quote Box */}
+              {/* Farmer Quote Box from Database */}
               <div
                 style={{
                   background: 'rgba(255,255,255,0.12)',
@@ -563,31 +570,33 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
                 </p>
               </div>
 
-              {/* Farmer Profile Strip */}
+              {/* Farmer Profile Strip from Database */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                <img
-                  src={slide.farmerAvatar || 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=150&q=80'}
-                  alt={vendorName}
-                  style={{ width: '46px', height: '46px', borderRadius: '50%', border: '2px solid #facc15', objectFit: 'cover' }}
-                  onError={(e) => { e.target.src = '/img/Logo.jpg' }}
-                />
+                <div style={{ width: '46px', height: '46px', borderRadius: '50%', border: '2px solid #facc15', backgroundColor: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                  <img
+                    src={catThumb || '/img/Logo.jpg'}
+                    alt={vendorName}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={(e) => { e.target.src = '/img/Logo.jpg' }}
+                  />
+                </div>
                 <div>
                   <strong style={{ fontSize: '0.92rem', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     {vendorName} <i className="fa fa-check-circle" style={{ color: '#4ade80', fontSize: '0.85rem' }} title="Productor Verificado" />
                   </strong>
                   <span style={{ fontSize: '0.75rem', color: '#bbf7d0' }}>
-                    {badgeTop} • San Jacinto & Carmen de Bolívar
+                    {badgeTop} • {vendorRating}
                   </span>
                 </div>
               </div>
 
               <div className="ofercampo-actions">
-                {renderPrimaryBtn('', 'Comprar Cosecha', 'fa-seedling')}
-                {renderSecondaryBtn('', 'Conocer al Productor', 'fa-user-astronaut')}
+                {renderPrimaryBtn('', slide.boton_principal_texto || 'Comprar Cosecha', 'fa-seedling')}
+                {renderSecondaryBtn('', slide.boton_secundario_texto || 'Conocer al Productor', 'fa-store')}
               </div>
             </div>
 
-            {/* Right: Rustic Postal Card with Product Photo */}
+            {/* Right: Rustic Postal Card with Product Photo from Database */}
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <div
                 style={{
@@ -614,7 +623,7 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
                   </span>
                 </div>
                 <p style={{ margin: '4px 0 0 0', fontSize: '0.72rem', color: '#64748b' }}>
-                  📍 Cosechado en Montes de María • Calidad Garantizada
+                  📍 {badgeTop} • Calidad Garantizada
                 </p>
               </div>
             </div>

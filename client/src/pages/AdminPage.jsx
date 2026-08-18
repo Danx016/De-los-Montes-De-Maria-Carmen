@@ -269,28 +269,40 @@ export default function AdminPage() {
   // ── Banner Handlers ──
   const handleOpenCreateBanner = () => {
     setEditingBanner(null)
+    const defaultCat = categorias && categorias.length > 0 ? categorias[0] : null
+    const defaultProd = productos && productos.length > 0 ? productos[0] : null
+
+    const catSlug = defaultCat ? (defaultCat.slug || defaultCat.nombre_categoria?.toLowerCase().replace(/\s+/g, '-')) : 'cosechas'
+    const catName = defaultCat ? (defaultCat.nombre_categoria || defaultCat.nombre) : 'Cosechas Frescas'
+    const catImg = defaultCat?.imagen ? (defaultCat.imagen.startsWith('http') || defaultCat.imagen.startsWith('/') ? defaultCat.imagen : `/uploads/categories/${defaultCat.imagen}`) : '/img/verduras.avif'
+
+    const prodTitle = defaultProd ? (defaultProd.nombre_producto || defaultProd.nombre) : 'Ñame Criollo Espino'
+    const prodPrice = defaultProd?.precio ? `$${Number(defaultProd.precio).toLocaleString('es-CO')} COP / ${defaultProd.unidad_medida || 'Kilo'}` : '$6.000 COP / Kilo'
+    const prodImg = defaultProd?.imagen ? (defaultProd.imagen.startsWith('http') || defaultProd.imagen.startsWith('/') ? defaultProd.imagen : `/uploads/products/${defaultProd.imagen}`) : '/img/Ñame.avif'
+    const vendorName = defaultProd?.origen ? `${defaultProd.origen} • Productor Local` : (defaultProd?.vendedor_nombre || 'Roberto Carlos Salcedo')
+
     setBannerForm({
-      titulo: 'Cosechas Frescas de los Montes de María',
-      subtitulo: 'Ñame espino, yuca campesina, plátano hartón y aguacate cultivados con amor.',
-      categoria_nombre: 'Cosechas Frescas',
-      categoria_slug: 'cosechas',
-      categoria_thumb: '/img/verduras.avif',
+      titulo: `Cosechas Frescas: ${prodTitle}`,
+      subtitulo: `Directamente desde las parcelas y fincas de los Montes de María a tu mesa.`,
+      categoria_nombre: catName,
+      categoria_slug: catSlug,
+      categoria_thumb: catImg,
       imagen_fondo: '/img/montes-de-maria-paisaje.jpg',
-      color_acento: '#22c55e',
+      color_acento: defaultCat?.color || '#22c55e',
       estilo_plantilla: 'clasico',
       filtro_blur: 0,
       features: ['100% Campo Colombiano Directo', 'Pago 100% Directo al Productor', 'Envíos Seguros a Bolívar y Sucre'],
       boton_principal_texto: 'Explorar Catálogo',
-      boton_principal_link: '/catalogo',
+      boton_principal_link: `/categoria/${catSlug}`,
       boton_secundario_texto: 'Vender mis Productos',
       boton_secundario_link: '/vendedor',
       tarjeta_badge_top: '🌿 100% Campo',
-      tarjeta_imagen: '/img/Ñame.avif',
-      tarjeta_titulo: 'Ñame Criollo Espino',
-      tarjeta_precio: '$6.000 COP / Kilo',
-      tarjeta_vendedor_nombre: 'Roberto Carlos Salcedo',
+      tarjeta_imagen: prodImg,
+      tarjeta_titulo: prodTitle,
+      tarjeta_precio: prodPrice,
+      tarjeta_vendedor_nombre: vendorName,
       tarjeta_vendedor_rating: '⭐ 4.9/5 Calidad',
-      tarjeta_vendedor_id: 47,
+      tarjeta_vendedor_id: defaultProd?.id_vendedor || 47,
       cupon_codigo: 'CAMPO20',
       cupon_texto: '⚡ ¡Usa el cupón CAMPO20 y obtén 20% OFF en tu compra!',
       orden: banners.length + 1,
@@ -298,11 +310,11 @@ export default function AdminPage() {
     })
     setFeaturesInput('100% Campo Colombiano Directo\nPago 100% Directo al Productor\nEnvíos Seguros a Bolívar y Sucre')
     setBannerThumbFile(null)
-    setBannerThumbPreview('/img/verduras.avif')
+    setBannerThumbPreview(catImg)
     setBannerBgFile(null)
     setBannerBgPreview('/img/montes-de-maria-paisaje.jpg')
     setBannerProdImgFile(null)
-    setBannerProdImgPreview('/img/Ñame.avif')
+    setBannerProdImgPreview(prodImg)
     setBannerError('')
     setBannerModalTab('estilo')
     setShowBannerModal(true)

@@ -439,6 +439,164 @@ function seedDataIfEmpty() {
       `);
     }
   });
+
+  // Sembrar banners reales en MySQL si la tabla está vacía
+  pool.query("SELECT COUNT(*) as count FROM banners_hero", (err, rows) => {
+    if (!err && rows && rows[0] && rows[0].count === 0) {
+      console.log("Sembrando banners_hero iniciales en MySQL con los 5 estilos reales...");
+      const initialBanners = [
+        [
+          'Cosechas Frescas y Tubérculos Tradicionales',
+          'Ñame espino, yuca campesina, plátano hartón y aguacate cultivados en las tierras fértiles de los Montes de María.',
+          'Cosechas Frescas',
+          'cosechas',
+          '/img/verduras.avif',
+          '/img/montes-de-maria-paisaje.jpg',
+          '#22c55e',
+          JSON.stringify(['Ñame Espino y Criollo', 'Yuca Campesina Fresca', 'Pago 100% Directo al Productor']),
+          'Ver Cosechas',
+          '/categoria/cosechas',
+          'Vender mis Productos',
+          '/vendedor',
+          '🌿 100% Campo',
+          '/img/Ñame.avif',
+          'Ñame Criollo Espino',
+          '$6.000 COP / Kilo',
+          'Roberto Carlos Salcedo',
+          '⭐ 4.9/5 Calidad',
+          47,
+          'CAMPO20',
+          '⚡ ¡Usa el cupón CAMPO20 y obtén 20% OFF en tu compra!',
+          'clasico',
+          0,
+          1,
+          1
+        ],
+        [
+          'Semillas Seleccionadas de Alto Rendimiento',
+          'Semillas de maíz amarillo, fríjol rojo, hortalizas y granos con alto porcentaje de germinación para agricultores.',
+          'Semillas',
+          'semillas',
+          '/img/Maiz amarillo.jpg',
+          '/img/montes-de-maria-paisaje.jpg',
+          '#f59e0b',
+          JSON.stringify(['Maíz Amarillo Seleccionado', 'Fríjol Rojo Criollo', 'Alta Germinación Garantizada']),
+          'Ver Semillas',
+          '/categoria/semillas',
+          'Registrarme Gratis',
+          '/registro',
+          '🌱 Alta Germinación',
+          '/img/Maiz amarillo.jpg',
+          'Semilla de Maíz Amarillo',
+          '$8.000 COP / Libra',
+          'Pedro Montes',
+          '⭐ 4.8/5 Productor',
+          2,
+          'AGRO10',
+          '🌱 Usa AGRO10 para 10% OFF en semillas seleccionadas',
+          'inmersivo',
+          2,
+          2,
+          1
+        ],
+        [
+          'Queso Costeño Artesanal y Lácteos del Campo',
+          'Queso fresco, cuajada y suero tradicional elaborado artesanalmente con leche 100% pura de ordeño en San Jacinto.',
+          'Lácteos',
+          'lacteos',
+          '/img/fondo vaca2.png',
+          '/img/montes-de-maria-paisaje.jpg',
+          '#ea580c',
+          JSON.stringify(['Queso Costeño Fresco', 'Suero Tradicional Costeño', 'Leche Pura de Ordeño']),
+          '¡Aprovechar Oferta!',
+          '/categoria/lacteos',
+          'Conoce los Productores',
+          '/vendedores',
+          '🧀 100% Artesanal',
+          '/img/fondo vaca2.png',
+          'Queso Costeño Fresco',
+          '$15.000 COP / Libra',
+          'Roberto Carlos Salcedo',
+          '⭐ 5.0/5 Ganadería',
+          47,
+          'QUESO15',
+          '⚡ ¡Usa el cupón QUESO15 y obtén 15% OFF en lácteos artesanales!',
+          'oferta_flash',
+          0,
+          3,
+          1
+        ],
+        [
+          'Herramientas de Campo y Maquinaria Agrícola',
+          'Fumigadoras, motobombas, machetes, palas y sistemas de riego para el trabajo diario en la finca.',
+          'Herramientas',
+          'agro',
+          '/img/agro-campo.jpeg',
+          '/img/montes-de-maria-paisaje.jpg',
+          '#0284c7',
+          JSON.stringify(['Fumigadoras y Bombas de Agua', 'Herramientas Manuales de Acero', 'Garantía Directa de Fábrica']),
+          'Ver Herramientas',
+          '/categoria/agro',
+          'Explorar Catálogo',
+          '/catalogo',
+          '🚜 Trabajo Pesado',
+          '/img/agro-campo.jpeg',
+          'Fumigadora Manual RoyalCondor',
+          '$250.000 COP',
+          'AgroFertil SAS',
+          '⭐ 4.9/5 Proveedor',
+          47,
+          '',
+          '',
+          'mosaico',
+          0,
+          4,
+          1
+        ],
+        [
+          'Raíces y Tradición de los Montes de María',
+          'Cada fruto que sembramos lleva el sudor, la esperanza y la memoria de nuestras familias montemarianas.',
+          'Cosechas Tradicionales',
+          'cosechas',
+          '/img/verduras.avif',
+          '/img/montes-de-maria-paisaje.jpg',
+          '#15803d',
+          JSON.stringify(['Comercio Justo y Solidario', 'Productores Verificados', 'Apoyo Directo a la Paz y el Campo']),
+          'Apoyar al Productor',
+          '/vendedores',
+          'Ver Todas las Fincas',
+          '/catalogo',
+          '🌾 Herencia Campesina',
+          '/img/Ñame.avif',
+          'Cosechas Agroecológicas',
+          '$6.000 COP / Kilo',
+          'Roberto Carlos Salcedo',
+          '⭐ 5.0 Productor Verificado',
+          47,
+          'BIENVENIDO',
+          '¡Bienvenido! Usa BIENVENIDO para 15% OFF en tu primer pedido.',
+          'historia_campesina',
+          0,
+          5,
+          1
+        ]
+      ];
+
+      const insertSql = `
+        INSERT INTO banners_hero (
+          titulo, subtitulo, categoria_nombre, categoria_slug, categoria_thumb,
+          imagen_fondo, color_acento, features, boton_principal_texto, boton_principal_link,
+          boton_secundario_texto, boton_secundario_link, tarjeta_badge_top, tarjeta_imagen,
+          tarjeta_titulo, tarjeta_precio, tarjeta_vendedor_nombre, tarjeta_vendedor_rating,
+          tarjeta_vendedor_id, cupon_codigo, cupon_texto, estilo_plantilla, filtro_blur, orden, activo
+        ) VALUES ?
+      `;
+      pool.query(insertSql, [initialBanners], (insertErr) => {
+        if (insertErr) console.error("Error al sembrar banners_hero iniciales:", insertErr.message);
+        else console.log("✅ 5 Banners iniciales sembrados exitosamente en la base de datos MySQL.");
+      });
+    }
+  });
 }
 
 module.exports = dbProxy;
