@@ -280,11 +280,10 @@ export default function AIAssistantWidget() {
         >
           <div className="ai-launcher-icon-wrap">
             <i className="fa fa-robot ai-icon-robot" />
-            <span className="ai-launcher-sparkle"><i className="fa fa-seedling" /></span>
           </div>
           <div className="ai-launcher-text-col">
             <span className="ai-launcher-title">Asistente IA</span>
-            <span className="ai-launcher-sub">En línea 🟢</span>
+            <span className="ai-launcher-sub"><span className="ai-status-dot" /> En línea</span>
           </div>
         </button>
       )}
