@@ -61,7 +61,71 @@ class EmailService {
     }
   }
 
+  /**
+   * Envío a través de APIs HTTP REST (Puerto 443 HTTPS - 100% compatible con Render)
+   */
+  async sendViaHttpApi({ to, subject, html }) {
+    const brevoKey = process.env.BREVO_API_KEY;
+    const resendKey = process.env.RESEND_API_KEY;
+
+    if (brevoKey) {
+      try {
+        const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'accept': 'application/json',
+            'api-key': brevoKey,
+            'content-type': 'application/json'
+          },
+          body: JSON.stringify({
+            sender: { name: 'De los Montes de María', email: appConfig.smtp.user || 'danilorodelo355@gmail.com' },
+            to: [{ email: to }],
+            subject,
+            htmlContent: html
+          })
+        });
+        if (response.ok) {
+          console.log(`✉️ [Brevo HTTPS] Correo enviado exitosamente a: ${to}`);
+          return true;
+        }
+      } catch (e) {
+        console.warn('⚠️ [Brevo HTTPS Error]:', e.message);
+      }
+    }
+
+    if (resendKey) {
+      try {
+        const response = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: 'De los Montes de María <onboarding@resend.dev>',
+            to: [to],
+            subject,
+            html
+          })
+        });
+        if (response.ok) {
+          console.log(`✉️ [Resend HTTPS] Correo enviado exitosamente a: ${to}`);
+          return true;
+        }
+      } catch (e) {
+        console.warn('⚠️ [Resend HTTPS Error]:', e.message);
+      }
+    }
+
+    return false;
+  }
+
   async sendMailSafe({ to, subject, html, attachments, fallbackLog }) {
+    // 1. Intentar por HTTP REST API primero si hay API key configurada (Puerto 443)
+    const httpSuccess = await this.sendViaHttpApi({ to, subject, html });
+    if (httpSuccess) return true;
+
+    // 2. Intentar por SMTP Gmail directo
     if (!this.transporter) {
       this.inicializarTransporter();
     }
