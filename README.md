@@ -33,16 +33,25 @@
 ### 🤖 3. AgroAsistente Virtual con Inteligencia Artificial
 - Asistente conversacional en vivo para asesorar a los clientes en la selección de tubérculos (ñame, yuca, plátano), recomendaciones de siembra, abonos orgánicos, cálculo de costos de envío y agregar productos al carrito con 1 clic.
 
-### 💬 4. Centro de Soporte y Chat en Tiempo Real
+### 📱 4. Bot Oficial de Telegram (`@montesdemariabot`)
+- **Gestión 1-Click:** Notificaciones automáticas de pedidos, stock bajo y tickets de soporte.
+- **Atención Bidireccional:** Los administradores pueden responder y cerrar tickets directamente desde Telegram con sincronización instantánea hacia el chat web vía WebSockets.
+- **Autenticación Segura:** Conexión de cuenta mediante código OTP enviado al correo o validación directa.
+
+### 💬 5. Centro de Soporte y Chat en Tiempo Real
 - Soporte en vivo impulsado por **WebSockets (Socket.io)** para conectar compradores con asesores y administradores en tiempo real.
 - Notificaciones de escritorio y calificaciones de atención al cliente (1 a 5 estrellas).
 
-### ⚙️ 5. Panel de Control Administrativo Integral (`/admin`)
+### ⚙️ 6. Panel de Control Administrativo Integral (`/admin`)
 - **Dashboard Estadístico:** Métricas de ventas en COP, total de transacciones, inventario global y usuarios registrados.
 - **Gestión de Inventario y Productos:** Creación, edición, cambio de precios, control de stock y subida de fotos.
 - **Gestor de Banners y Carrusel Hero:** Personalización completa del carrusel de la página de inicio (subida de imágenes de fondo, filtros de color/tinte, efecto de desenfoque/blur, botones de llamado a la acción y selección de productos destacados).
 - **Gestor de Cupones y Barra Promocional:** Creación de cupones con porcentaje o descuento fijo, fecha límite y activación en la marquesina superior de la tienda.
 - **Control de Roles y Usuarios:** Asignación de roles (Administrador, Vendedor, Cliente, Soporte) y auditoría de cuentas.
+
+---
+
+> 📖 **Para consultar la guía técnica detallada, esquemas de base de datos y especificación de endpoints REST, revisa la [Documentación Completa (DOCUMENTACION.md)](./DOCUMENTACION.md).**
 
 ---
 
