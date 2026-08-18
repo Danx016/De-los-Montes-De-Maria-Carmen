@@ -208,6 +208,18 @@ class SoporteController {
           id_agente: req.user?.id || ticket.id_agente,
           nombre_agente: senderName
         });
+
+        // Si el ticket proviene de Telegram (session_id: tg_CHATID_TIMESTAMP)
+        if (ticket.session_id && ticket.session_id.startsWith('tg_') && this.telegramService) {
+          const parts = ticket.session_id.split('_');
+          const tgChatId = parts[1];
+          if (tgChatId) {
+            const advisorMsg = `👨‍🌾 <b>Asesor (${senderName}):</b>\n\n${cleanMsg}`;
+            this.telegramService.sendMessage(tgChatId, advisorMsg)
+              .catch((err) => console.warn('[Telegram Agent Forward Error]:', err.message));
+          }
+        }
+
         return res.json({ ok: true });
       }
 

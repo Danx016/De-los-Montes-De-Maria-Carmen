@@ -62,7 +62,14 @@ const emailService = new EmailService();
 const googleAuthService = new GoogleAuthService();
 const iaService = new IAService(emailService);
 const paymentService = new PaymentService();
-const telegramService = new TelegramService();
+const telegramService = new TelegramService({
+  soporteRepository,
+  iaService,
+  productoRepository,
+  usuarioRepository,
+  compraRepository,
+  emailService
+});
 
 // Variable para el manejador de websockets
 let socketHandler = null;
@@ -212,6 +219,7 @@ app.use((err, req, res, next) => {
 app.setupSocketIO = (io) => {
   socketHandler = new SocketHandler(io);
   soporteController.socketHandler = socketHandler;
+  telegramService.socketHandler = socketHandler;
 };
 
 module.exports = app;
