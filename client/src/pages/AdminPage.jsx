@@ -3417,21 +3417,59 @@ export default function AdminPage() {
                           </div>
                         </div>
 
-                        {/* Nivel de Desenfoque (Blur) */}
-                        <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                          <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            <i className="fa fa-magic" /> 🌫️ Nivel de Desenfoque / Nitidez del Fondo
-                          </h4>
-                          <p className="text-muted" style={{ fontSize: '0.8rem', margin: '0 0 0.75rem 0' }}>
-                            Ajusta el efecto de desenfoque para dar mayor protagonismo al texto sobre la fotografía de fondo:
+                        {/* Nivel de Desenfoque (Blur) con Slider en Tiempo Real y Botones de Acceso Rápido */}
+                        <div style={{ background: 'var(--bg-alt)', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                            <h4 style={{ margin: 0, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <i className="fa fa-magic" /> 🌫️ Nivel de Desenfoque (Efecto Borroso del Fondo)
+                            </h4>
+                            <span
+                              style={{
+                                background: 'var(--primary-color)',
+                                color: '#ffffff',
+                                padding: '3px 10px',
+                                borderRadius: '999px',
+                                fontWeight: 800,
+                                fontSize: '0.82rem',
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                              }}
+                            >
+                              {bannerForm.filtro_blur !== undefined ? Number(bannerForm.filtro_blur) : 0}px
+                            </span>
+                          </div>
+                          <p className="text-muted" style={{ fontSize: '0.82rem', margin: '0 0 0.85rem 0' }}>
+                            Mueve la barra deslizante para ver el desenfoque en tiempo real en la vista previa a la derecha:
                           </p>
 
-                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          {/* Slider Range Interactivo */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem', background: 'var(--card-bg)', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>0px (Nítido)</span>
+                            <input
+                              type="range"
+                              min="0"
+                              max="30"
+                              step="1"
+                              value={bannerForm.filtro_blur !== undefined ? Number(bannerForm.filtro_blur) : 0}
+                              onChange={(e) => setBannerForm({ ...bannerForm, filtro_blur: Number(e.target.value) })}
+                              style={{
+                                flex: 1,
+                                height: '8px',
+                                borderRadius: '4px',
+                                accentColor: 'var(--primary-color)',
+                                cursor: 'pointer',
+                              }}
+                            />
+                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-muted)' }}>30px (Ultra Borroso)</span>
+                          </div>
+
+                          {/* Botones de Presets Rápidos */}
+                          <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
                             {[
-                              { label: '🔍 100% Nítido (0px)', blur: 0 },
-                              { label: '🌫️ Leve (2px)', blur: 2 },
-                              { label: '💨 Medio (4px)', blur: 4 },
-                              { label: '☁️ Suave / Borroso (8px)', blur: 8 },
+                              { label: '🔍 0px (100% Nítido)', blur: 0 },
+                              { label: '🌫️ 4px (Leve)', blur: 4 },
+                              { label: '💨 10px (Medio / Cristal)', blur: 10 },
+                              { label: '☁️ 18px (Fuerte)', blur: 18 },
+                              { label: '🌌 28px (Ultra Borroso)', blur: 28 },
                             ].map((b) => {
                               const currentBlur = bannerForm.filtro_blur !== undefined ? Number(bannerForm.filtro_blur) : 0
                               const isSelected = currentBlur === b.blur
@@ -3441,7 +3479,7 @@ export default function AdminPage() {
                                   type="button"
                                   onClick={() => setBannerForm({ ...bannerForm, filtro_blur: b.blur })}
                                   className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-outline-primary'}`}
-                                  style={{ fontSize: '0.78rem', padding: '0.4rem 0.8rem', fontWeight: 700 }}
+                                  style={{ fontSize: '0.78rem', padding: '0.4rem 0.8rem', fontWeight: 700, borderRadius: '8px' }}
                                 >
                                   {b.label}
                                 </button>
@@ -3450,11 +3488,51 @@ export default function AdminPage() {
                           </div>
                         </div>
 
-                        {/* Foto de Fondo */}
-                        <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                          <h4 style={{ margin: '0 0 0.75rem 0', color: 'var(--primary-color)' }}>
-                            <i className="fa fa-image" /> Imagen de Fondo
+                        {/* Foto de Fondo con Galería Rápida y Subida */}
+                        <div style={{ background: 'var(--bg-alt)', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                          <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <i className="fa fa-image" /> Fotografía de Fondo del Paisaje
                           </h4>
+                          <p className="text-muted" style={{ fontSize: '0.8rem', margin: '0 0 0.75rem 0' }}>
+                            Selecciona una foto panorámica de los Montes de María o sube tu propia imagen:
+                          </p>
+
+                          {/* Fotos de fondo predeterminadas */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.5rem', marginBottom: '0.85rem' }}>
+                            {[
+                              { label: 'Panorámica Montes', img: '/img/montes-de-maria-paisaje.jpg' },
+                              { label: 'Cultivos y Finca', img: 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&w=800&q=80' },
+                              { label: 'Montañas Campesinas', img: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80' },
+                              { label: 'Cosecha de Tierra', img: 'https://images.unsplash.com/photo-1464226184884-fa280b87c399?auto=format&fit=crop&w=800&q=80' },
+                            ].map((p, pIdx) => {
+                              const isSelected = (bannerBgPreview || bannerForm.imagen_fondo) === p.img
+                              return (
+                                <div
+                                  key={pIdx}
+                                  onClick={() => {
+                                    setBannerBgFile(null)
+                                    setBannerBgPreview(p.img)
+                                    setBannerForm((prev) => ({ ...prev, imagen_fondo: p.img }))
+                                  }}
+                                  style={{
+                                    border: isSelected ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
+                                    borderRadius: '8px',
+                                    overflow: 'hidden',
+                                    cursor: 'pointer',
+                                    position: 'relative',
+                                    height: '70px',
+                                  }}
+                                >
+                                  <img src={p.img} alt={p.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  <span style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: '0.68rem', padding: '2px 4px', textAlign: 'center', fontWeight: 600 }}>
+                                    {p.label}
+                                  </span>
+                                </div>
+                              )
+                            })}
+                          </div>
+
+                          <label className="form-label" style={{ fontWeight: 600, fontSize: '0.82rem' }}>O Subir Fotografía Personalizada:</label>
                           <input
                             type="file"
                             accept="image/*"

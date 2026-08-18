@@ -146,21 +146,24 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
         className="hero-bg-layer"
         style={{
           position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
+          top: '-15px',
+          left: '-15px',
+          right: '-15px',
+          bottom: '-15px',
           backgroundImage: `url('${bgImg}')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           filter: blurVal > 0 ? `blur(${blurVal}px)` : 'none',
-          transform: blurVal > 0 ? 'scale(1.08)' : 'none',
+          WebkitFilter: blurVal > 0 ? `blur(${blurVal}px)` : 'none',
+          transform: blurVal > 0 ? 'scale(1.12)' : 'scale(1)',
+          transformOrigin: 'center center',
           zIndex: 0,
-          transition: 'all 0.4s ease',
+          willChange: 'filter, transform',
+          transition: 'filter 0.3s ease, transform 0.3s ease',
         }}
       />
 
-      {/* Capa de Tinte Gradiente Personalizado */}
+      {/* Capa de Tinte Gradiente Personalizado con Transparencia Balanceada */}
       <div
         className="hero-gradient-overlay"
         style={{
@@ -171,12 +174,12 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
           bottom: 0,
           background:
             estilo === 'inmersivo'
-              ? `radial-gradient(circle at center, ${accent}aa 0%, #031008f2 80%)`
+              ? `radial-gradient(circle at center, ${accent}88 0%, rgba(3, 16, 8, 0.82) 80%)`
               : estilo === 'oferta_flash'
-              ? `linear-gradient(135deg, ${accent}dd 0%, #1c0a00f2 100%)`
+              ? `linear-gradient(135deg, ${accent}aa 0%, rgba(28, 10, 0, 0.82) 100%)`
               : estilo === 'historia_campesina'
-              ? `linear-gradient(135deg, #1b3d1cee 0%, #07190bee 60%, ${accent}aa 100%)`
-              : `linear-gradient(135deg, ${accent}cc 0%, #06140ce6 100%)`,
+              ? `linear-gradient(135deg, rgba(27, 61, 28, 0.82) 0%, rgba(7, 25, 11, 0.82) 60%, ${accent}88 100%)`
+              : `linear-gradient(135deg, ${accent}99 0%, rgba(6, 20, 12, 0.80) 100%)`,
           zIndex: 1,
         }}
       />
