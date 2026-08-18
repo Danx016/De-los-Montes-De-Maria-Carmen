@@ -4,6 +4,8 @@
  * adaptadas a la identidad visual campestre y moderna de "De los Montes de María".
  */
 const nodemailer = require('nodemailer');
+const path = require('path');
+const fs = require('fs');
 const appConfig = require('../config/app.config');
 
 const dns = require('dns');
@@ -57,14 +59,28 @@ class EmailService {
     }
   }
 
-  async sendMailSafe({ to, subject, html, fallbackLog }) {
+  async sendMailSafe({ to, subject, html, attachments, fallbackLog }) {
     if (this.transporter) {
       try {
+        const logoPath = path.resolve(__dirname, '../../../public/img/Logo.jpg');
+        const defaultAttachments = fs.existsSync(logoPath)
+          ? [{
+              filename: 'Logo.jpg',
+              path: logoPath,
+              cid: 'logo_montesdemaria'
+            }]
+          : [];
+
+        const finalAttachments = Array.isArray(attachments) && attachments.length > 0
+          ? [...defaultAttachments, ...attachments]
+          : defaultAttachments;
+
         const info = await this.transporter.sendMail({
           from: `"De los Montes de María" <${appConfig.smtp.user}>`,
           to,
           subject,
-          html
+          html,
+          attachments: finalAttachments
         });
         console.log(`✉️ Correo enviado exitosamente a: ${to} | Asunto: ${subject} | ID: ${info?.messageId || 'OK'}`);
         return true;
@@ -111,9 +127,9 @@ class EmailService {
               <table width="100%" border="0" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center">
-                    <!-- Project Logo -->
+                    <!-- Project Logo (Embedded CID) -->
                     <div style="margin-bottom: 12px;">
-                      <img src="${baseUrl}/img/Logo.jpg" alt="De los Montes de María" style="height: 65px; width: auto; max-width: 140px; background-color: #ffffff; border-radius: 12px; padding: 4px 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: inline-block;" />
+                      <img src="cid:logo_montesdemaria" alt="De los Montes de María" style="height: 65px; width: auto; max-width: 140px; background-color: #ffffff; border-radius: 12px; padding: 4px 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: inline-block;" />
                     </div>
                     <!-- Brand Top Badge -->
                     <div style="display: inline-block; background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3); border-radius: 999px; padding: 4px 14px; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: #86efac; margin-bottom: 10px;">
