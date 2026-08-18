@@ -310,6 +310,17 @@ export default function AIAssistantWidget() {
             </div>
 
             <div className="ai-header-actions">
+              <a
+                href="https://t.me/montesdemariabot"
+                target="_blank"
+                rel="noreferrer"
+                className="ai-action-btn"
+                title="Abrir en Telegram (@montesdemariabot)"
+                aria-label="Abrir en Telegram"
+                style={{ color: '#38bdf8', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <i className="fab fa-telegram" />
+              </a>
               <button
                 type="button"
                 className="ai-action-btn"

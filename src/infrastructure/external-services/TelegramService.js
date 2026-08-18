@@ -155,6 +155,54 @@ ${productsList}
   }
 
   /**
+   * Alerta de Stock Bajo (cuando un producto tiene 5 o menos unidades)
+   */
+  async notificarStockBajo({ producto, stockRestante }) {
+    try {
+      const prodName = producto?.nombre || producto?.nombre_producto || 'Producto';
+      const prodId = producto?.id_producto || producto?.id || '';
+      const msg = `
+⚠️ <b>¡ALERTA DE STOCK BAJO!</b>
+━━━━━━━━━━━━━━━━━━
+📦 <b>Producto:</b> ${prodName}
+🌾 <b>Stock Restante:</b> <code>${stockRestante} unidades</code>
+🏷️ <b>Categoría:</b> ${producto?.categoria || 'General'}
+━━━━━━━━━━━━━━━━━━
+👉 <a href="https://delosmontesdemaria.onrender.com/admin">Actualizar Inventario en el Panel</a>
+`;
+      await this.broadcastAdmins(msg);
+    } catch (err) {
+      console.error('[Telegram] Error al notificar stock bajo:', err);
+    }
+  }
+
+  /**
+   * Notificar Cambio de Estado de Pedido (En preparación, En camino, Entregado)
+   */
+  async notificarCambioEstadoPedido({ compra, nuevoEstado, usuario }) {
+    try {
+      const orderId = compra?.id_compra || compra?.id || '';
+      const stateEmoji =
+        nuevoEstado === 'en_camino' || nuevoEstado === 'despachado' ? '🚚' :
+        nuevoEstado === 'entregado' ? '✅' :
+        nuevoEstado === 'en_preparacion' ? '👨‍🌾' : '📦';
+
+      const msg = `
+${stateEmoji} <b>ACTUALIZACIÓN DE DESPACHO</b>
+━━━━━━━━━━━━━━━━━━
+🧾 <b>Pedido:</b> <code>#ORD-${orderId}</code>
+🚚 <b>Estado:</b> <b>${(nuevoEstado || '').toUpperCase()}</b>
+${usuario?.nombre ? `👤 <b>Cliente:</b> ${usuario.nombre}\n` : ''}
+━━━━━━━━━━━━━━━━━━
+🌿 <i>De los Montes de María - Cosechas Directas</i>
+`;
+      await this.broadcastAdmins(msg);
+    } catch (err) {
+      console.error('[Telegram] Error al notificar cambio de estado:', err);
+    }
+  }
+
+  /**
    * Notificar Nuevo Ticket de Soporte
    */
   async notificarNuevoTicket({ ticket, mensajeInicial }) {
@@ -220,16 +268,42 @@ Asunto: <b>${ticket.asunto}</b>
       // Registrar chat para alertas
       this.registerSubscriber(chatId);
 
-      // Comandos
+      // Deep-links (/start pedido_XXX o /start producto_XXX)
+      if (text.startsWith('/start pedido_')) {
+        const orderId = text.replace('/start pedido_', '').trim();
+        const msg = `
+✅ <b>¡Seguimiento Activado!</b>
+━━━━━━━━━━━━━━━━━━
+Tu cuenta de Telegram ha quedado vinculada al pedido <code>#ORD-${orderId}</code>.
+
+Te avisaremos por aquí automáticamente en cuanto tu cosecha esté <b>en preparación, despachada y en camino a tu domicilio</b> 🚚🌾.
+`;
+        await this.sendMessage(chatId, msg);
+        return { ok: true };
+      }
+
+      if (text.startsWith('/start producto_') || text.includes('producto')) {
+        const msg = `
+🌾 <b>¡Hola ${userName}!</b>
+¿Tienes alguna duda sobre nuestras cosechas o productos?
+
+Escríbenos tu pregunta y te responderemos de inmediato o explora todo el catálogo aquí:
+👉 https://delosmontesdemaria.onrender.com/catalogo
+`;
+        await this.sendMessage(chatId, msg);
+        return { ok: true };
+      }
+
+      // Comandos Estándar
       if (text.startsWith('/start')) {
         const welcome = `
 👋 <b>¡Hola ${userName}!</b> Bienvenido al bot oficial de <b>De los Montes de María</b> 🌾
 
 Tu <b>Chat ID</b> es: <code>${chatId}</code>
-<i>(Tu chat ha quedado registrado para recibir alertas de pedidos y soporte)</i>
+<i>(Tu chat ha quedado registrado para recibir alertas de pedidos, stock y soporte)</i>
 
 <b>Comandos disponibles:</b>
-🛒 <code>/tienda</code> - Ver la plataforma web
+🛒 <code>/tienda</code> - Ver catálogo de cosechas
 📦 <code>/pedidos</code> - Información sobre despachos
 🌾 <code>/campesinos</code> - Conocer a nuestros productores
 ❓ <code>/ayuda</code> - Contacto directo con soporte

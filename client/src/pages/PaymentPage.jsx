@@ -209,6 +209,28 @@ export default function PaymentPage() {
               <p className="order-desc">
                 Tu pago contra entrega ha sido registrado con éxito. Hemos enviado tu <strong>factura electrónica oficial</strong> a tu correo (<strong>{user?.correo || shippingInfo?.correo}</strong>).
               </p>
+              {/* Telegram Tracking Card */}
+              <div style={{ marginTop: '1.5rem', padding: '1rem 1.25rem', background: '#f0f9ff', border: '1.5px solid #bae6fd', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.85rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: '#0284c7', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem' }}>
+                    <i className="fab fa-telegram" />
+                  </div>
+                  <div style={{ textAlign: 'left' }}>
+                    <strong style={{ fontSize: '0.98rem', color: '#0369a1', display: 'block' }}>¿Recibir rastreo de tu despacho en Telegram?</strong>
+                    <span style={{ fontSize: '0.84rem', color: '#475569' }}>Te avisamos automáticamente cuando tu pedido esté en camino a tu puerta.</span>
+                  </div>
+                </div>
+                <a
+                  href={`https://t.me/montesdemariabot?start=pedido_${orderSuccess.id_compra}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn"
+                  style={{ background: '#0284c7', color: '#ffffff', fontWeight: 800, borderRadius: '999px', padding: '0.55rem 1.25rem', display: 'inline-flex', alignItems: 'center', gap: '0.45rem', textDecoration: 'none' }}
+                >
+                  <i className="fab fa-telegram" /> Activar Rastreo en Telegram
+                </a>
+              </div>
+
               <div style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
                 <button type="button" onClick={() => setShowInvoice(true)} className="btn btn-primary btn-lg">
                   <i className="fa fa-file-invoice" /> Ver Factura Electrónica

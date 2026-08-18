@@ -101,6 +101,23 @@ class CompraController {
             metodoPago: paymentMethod,
             direccion: shippingAddress,
           }).catch((tErr) => console.warn('[Telegram Compra Alert Warning]:', tErr.message));
+
+          // Verificar stock bajo de los productos comprados (stock <= 5)
+          if (Array.isArray(productos)) {
+            for (const item of productos) {
+              const pId = item.id_producto || item.id;
+              if (pId) {
+                this.productoRepository.buscarPorId(pId).then((prodDb) => {
+                  if (prodDb && Number(prodDb.stock) <= 5) {
+                    this.telegramService.notificarStockBajo({
+                      producto: prodDb,
+                      stockRestante: prodDb.stock,
+                    }).catch(() => {});
+                  }
+                }).catch(() => {});
+              }
+            }
+          }
         }
       } catch (emailErr) {
         console.warn('No se pudo procesar alertas de orden:', emailErr.message);
@@ -176,6 +193,15 @@ class CompraController {
       if (!estado) return res.status(400).json({ error: 'Falta especificar el estado de despacho' });
 
       const result = await this.updateOrderStatus.execute(id_compra, estado);
+
+      // Notificar cambio de estado por Telegram
+      if (this.telegramService) {
+        this.telegramService.notificarCambioEstadoPedido({
+          compra: { id_compra },
+          nuevoEstado: estado,
+        }).catch((tErr) => console.warn('[Telegram Status Warning]:', tErr.message));
+      }
+
       res.json(result);
     } catch (error) {
       res.status(400).json({ error: error.message });
