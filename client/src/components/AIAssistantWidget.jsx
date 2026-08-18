@@ -255,7 +255,16 @@ export default function AIAssistantWidget() {
     )
   }
 
-  if (location.pathname.startsWith('/admin') || location.pathname === '/soporte') {
+  // Mostrar el Asistente IA ÚNICAMENTE en Inicio y Catálogo / Categorías
+  const isAllowedPath =
+    location.pathname === '/' ||
+    location.pathname === '/catalogo' ||
+    location.pathname === '/categorias' ||
+    location.pathname === '/explorar' ||
+    location.pathname === '/buscar' ||
+    location.pathname.startsWith('/categoria/')
+
+  if (!isAllowedPath) {
     return null
   }
 
