@@ -7,6 +7,7 @@
  * - Alertas en tiempo real a administradores (compras, stock bajo, tickets)
  */
 const https = require('https');
+const bcrypt = require('bcrypt');
 
 function generateTicketCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -570,33 +571,59 @@ ${replyText}
         return { ok: true };
       }
 
-      if (session.state === 'LOGIN_WAIT_CODE') {
+      if (session.state === 'LOGIN_WAIT_CODE' || session.state === 'LOGIN_WAIT_AUTH') {
         const lower = text.toLowerCase();
-        if (lower === '/reenviar' || lower === 'reenviar' || lower === 'reenviar codigo' || lower === '/resend') {
+        if (lower === '/reenviar' || lower === 'reenviar' || lower === 'reenviar codigo' || lower === '/resend' || lower === '/codigo') {
           await this.reenviarCodigoOTP(chatId);
           return { ok: true };
         }
 
         const pending = this.pendingAuth.get(chatId);
-        if (!pending) {
+        const user = pending?.userObj || session.data?.authUser || null;
+
+        if (!user) {
           session.state = 'IDLE';
-          await this.sendMessage(chatId, '⚠️ Tu solicitud de verificación expiró. Escribe <b>/login</b> para intentarlo nuevamente.');
+          await this.sendMessage(chatId, '⚠️ Tu solicitud de inicio de sesión expiró. Escribe <b>/login</b> para intentarlo nuevamente.');
           return { ok: true };
         }
 
-        if (Date.now() > pending.expiresAt) {
-          this.pendingAuth.delete(chatId);
-          session.state = 'IDLE';
-          await this.sendMessage(chatId, '⌛ El código de 6 dígitos ha vencido. Escribe <b>/login</b> para solicitar un código nuevo.');
-          return { ok: true };
+        let loginSuccess = false;
+
+        // 1. Probar si ingresó el código OTP numérico de 6 dígitos
+        const cleanDigits = text.replace(/\D/g, '').trim();
+        if (pending && cleanDigits.length === 6 && cleanDigits === pending.code) {
+          if (Date.now() <= pending.expiresAt) {
+            loginSuccess = true;
+          } else {
+            await this.sendMessage(chatId, '⌛ El código de 6 dígitos ha vencido. Puedes escribir tu <b>contraseña de la web</b> para entrar directo o escribir /reenviar para recibir un código nuevo.');
+            return { ok: true };
+          }
         }
 
-        const inputCode = text.replace(/\D/g, '').trim();
-        if (inputCode === pending.code) {
-          const user = pending.userObj;
+        // 2. Si no fue código OTP, probar si ingresó la contraseña del usuario (Bcrypt)
+        if (!loginSuccess && user.contrasena) {
+          try {
+            const passwordMatch = await bcrypt.compare(text, user.contrasena);
+            if (passwordMatch) {
+              loginSuccess = true;
+              // Eliminar el mensaje de Telegram que contenía la contraseña por seguridad
+              if (message.message_id) {
+                this.request('deleteMessage', {
+                  chat_id: chatId,
+                  message_id: message.message_id
+                }).catch(() => {});
+              }
+            }
+          } catch (err) {
+            console.error('[Bcrypt Compare Error]:', err.message);
+          }
+        }
+
+        if (loginSuccess) {
           this.authenticatedUsers.set(chatId, user);
           this.pendingAuth.delete(chatId);
           session.state = 'IDLE';
+          session.data = {};
 
           const userRolId = Number(user.id_rol);
           if (userRolId === 1 || userRolId === 4) {
@@ -611,7 +638,10 @@ ${replyText}
           await this.sendMessage(chatId, menuMsg);
           return { ok: true };
         } else {
-          await this.sendMessage(chatId, '❌ <b>Código incorrecto.</b>\nPor favor verifica los 6 dígitos enviados a tu correo e ingrésalos nuevamente (o escribe /cancelar).');
+          await this.sendMessage(
+            chatId,
+            `❌ <b>Datos incorrectos</b>\n━━━━━━━━━━━━━━━━━━\nPuedes ingresar de dos formas:\n1️⃣ Escribe tu <b>contraseña</b> de la plataforma web.\n2️⃣ O escribe el código de 6 dígitos de tu correo (o pulsa /reenviar).\n\n<i>(Escribe /cancelar para salir)</i>`
+          );
           return { ok: true };
         }
       }
@@ -1111,16 +1141,18 @@ Escribe <b>/soporte</b> para iniciar una consulta asistida por IA o explora el c
         return;
       }
 
-      // Generar código OTP de 6 dígitos
+      session.state = 'LOGIN_WAIT_AUTH';
+      session.data = { authUser: user };
+
+      // Generar código OTP preventivo
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
       this.pendingAuth.set(chatId, {
         code: otpCode,
         userObj: user,
         expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutos
       });
-      session.state = 'LOGIN_WAIT_CODE';
 
-      // Disparar envío de correo con código de verificación
+      // Disparar envío de correo con código de verificación en segundo plano
       if (this.emailService && typeof this.emailService.enviarCodigoVerificacionTelegram === 'function') {
         this.emailService.enviarCodigoVerificacionTelegram({
           correo: user.correo,
@@ -1129,31 +1161,34 @@ Escribe <b>/soporte</b> para iniciar una consulta asistida por IA o explora el c
         }).catch((err) => console.error('[Telegram OTP Email Error]:', err));
       }
 
-      const otpPrompt = `
-🔐 <b>¡CÓDIGO DE SEGURIDAD ENVIADO!</b>
+      const loginPrompt = `
+🔐 <b>INICIAR SESIÓN - 2 OPCIONES DISPONIBLES</b>
 ━━━━━━━━━━━━━━━━━━
-Hemos enviado un código de seguridad de 6 dígitos a tu correo:
-📧 <b>${user.correo}</b>
+👤 <b>Usuario:</b> ${user.nombre || user.username}
+📧 <b>Correo:</b> <code>${user.correo}</code>
 
-✍️ <b>Revisa tu bandeja de entrada (o spam) en Gmail y escribe los 6 dígitos aquí</b> para confirmar tu identidad.
+Puedes ingresar de cualquiera de estas dos formas:
 
-━━━━━━━━━━━━━━━━━━
-<i>¿No te ha llegado el código?</i>
-👉 Pulsa el botón de abajo o escribe <b>/reenviar</b> para enviarte uno nuevo.
-<i>(El código vence en 10 minutos. Escribe /cancelar para salir)</i>
+1️⃣ <b>Opción 1: Contraseña de la web (Instantáneo)</b>
+👉 Escribe tu <b>contraseña de la página web</b> directamente en este chat. <i>(El mensaje se borrará al instante por seguridad)</i>.
+
+2️⃣ <b>Opción 2: Código por Correo</b>
+👉 O escribe el código de 6 dígitos que enviamos a tu correo (puedes pulsar el botón de abajo o escribir <b>/reenviar</b>).
+
+<i>(Escribe /cancelar para salir)</i>
 `;
 
       const resendKeyboard = {
         reply_markup: {
           inline_keyboard: [
             [
-              { text: '🔄 ¿No te ha llegado? Reenviar código', callback_data: 'resend_otp' }
+              { text: '🔄 Reenviar código a mi correo', callback_data: 'resend_otp' }
             ]
           ]
         }
       };
 
-      await this.sendMessage(chatId, otpPrompt, resendKeyboard);
+      await this.sendMessage(chatId, loginPrompt, resendKeyboard);
     } catch (err) {
       console.error('[Telegram Login Error]:', err);
       await this.sendMessage(chatId, `⚠️ Error al procesar tu solicitud: ${err.message}`);
