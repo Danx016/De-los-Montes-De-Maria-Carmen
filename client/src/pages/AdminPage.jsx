@@ -3188,18 +3188,18 @@ export default function AdminPage() {
                           </div>
                         </div>
 
-                        {/* Selector de Categoría Real */}
-                        <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        {/* Selector de Categoría Real y Campos Editables de Identidad */}
+                        <div style={{ background: 'var(--bg-alt)', padding: '1.15rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
                             <h4 style={{ margin: 0, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                              <i className="fa fa-tags" /> Categoría Real con Foto
+                              <i className="fa fa-tags" /> 🏷️ Seleccionar Categoría Real con Foto
                             </h4>
                             <span className="badge badge-primary" style={{ fontSize: '0.72rem' }}>
                               {categorias.length} Categorías en Base de Datos
                             </span>
                           </div>
 
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(125px, 1fr))', gap: '0.55rem', maxHeight: '180px', overflowY: 'auto', padding: '4px', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--card-bg)' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(125px, 1fr))', gap: '0.55rem', maxHeight: '180px', overflowY: 'auto', padding: '4px', border: '1px solid var(--border-color)', borderRadius: '8px', background: 'var(--card-bg)', marginBottom: '0.85rem' }}>
                             {categorias.map((cat) => {
                               const catSlug = cat.slug || cat.nombre_categoria?.toLowerCase().replace(/\s+/g, '-')
                               const isSelected = bannerForm.categoria_slug === catSlug || bannerForm.categoria_nombre === cat.nombre_categoria
@@ -3213,11 +3213,11 @@ export default function AdminPage() {
                                       ...prev,
                                       categoria_nombre: cat.nombre_categoria || cat.nombre,
                                       categoria_slug: catSlug,
-                                      categoria_thumb: catImg || '',
+                                      categoria_thumb: catImg || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
                                       color_acento: cat.color || prev.color_acento,
                                       boton_principal_link: `/categoria/${catSlug}`,
                                     }))
-                                    setBannerThumbPreview(catImg || '')
+                                    setBannerThumbPreview(catImg || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80')
                                     setBannerThumbFile(null)
                                   }}
                                   style={{
@@ -3234,7 +3234,7 @@ export default function AdminPage() {
                                   }}
                                 >
                                   <div style={{ width: '38px', height: '38px', borderRadius: '50%', overflow: 'hidden', backgroundColor: `${cat.color || '#22c55e'}18`, border: `2px solid ${cat.color || '#22c55e'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    {catImg ? <img src={catImg} alt={cat.nombre_categoria} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <i className={`fa ${cat.icono || 'fa-seedling'}`} style={{ color: cat.color || '#22c55e' }} />}
+                                    {catImg ? <img src={catImg} alt={cat.nombre_categoria} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.src = '/img/Logo.jpg' }} /> : <i className={`fa ${cat.icono || 'fa-seedling'}`} style={{ color: cat.color || '#22c55e' }} />}
                                   </div>
                                   <span style={{ fontSize: '0.74rem', fontWeight: 700, lineHeight: 1.2, color: isSelected ? 'var(--primary-color)' : 'inherit' }}>
                                     {cat.nombre_categoria || cat.nombre}
@@ -3242,6 +3242,58 @@ export default function AdminPage() {
                                 </div>
                               )
                             })}
+                          </div>
+
+                          {/* Campos Editables de Categoría, Productor y Badges */}
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.5rem', background: 'var(--card-bg)', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                            <div className="form-group">
+                              <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>
+                                Nombre de Categoría Visible
+                              </label>
+                              <input
+                                type="text"
+                                value={bannerForm.categoria_nombre}
+                                onChange={(e) => setBannerForm({ ...bannerForm, categoria_nombre: e.target.value })}
+                                className="form-input"
+                                placeholder="Ej: Lácteos Artesanales"
+                              />
+                            </div>
+                            <div className="form-group">
+                              <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>
+                                Badge / Sello Flotante (Ej: 🌿 100% Campo)
+                              </label>
+                              <input
+                                type="text"
+                                value={bannerForm.tarjeta_badge_top}
+                                onChange={(e) => setBannerForm({ ...bannerForm, tarjeta_badge_top: e.target.value })}
+                                className="form-input"
+                                placeholder="Ej: 🌿 100% Campo / 🧀 100% Artesanal"
+                              />
+                            </div>
+                            <div className="form-group" style={{ marginTop: '0.4rem' }}>
+                              <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>
+                                Nombre del Productor / Campesino
+                              </label>
+                              <input
+                                type="text"
+                                value={bannerForm.tarjeta_vendedor_nombre}
+                                onChange={(e) => setBannerForm({ ...bannerForm, tarjeta_vendedor_nombre: e.target.value })}
+                                className="form-input"
+                                placeholder="Ej: Roberto Carlos Salcedo / Montes de María"
+                              />
+                            </div>
+                            <div className="form-group" style={{ marginTop: '0.4rem' }}>
+                              <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700 }}>
+                                Ubicación / Rating del Productor
+                              </label>
+                              <input
+                                type="text"
+                                value={bannerForm.tarjeta_vendedor_rating}
+                                onChange={(e) => setBannerForm({ ...bannerForm, tarjeta_vendedor_rating: e.target.value })}
+                                className="form-input"
+                                placeholder="Ej: ⭐ 4.9/5 Calidad / San Jacinto, Bolívar"
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>

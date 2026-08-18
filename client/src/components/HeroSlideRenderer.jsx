@@ -110,11 +110,11 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
     ? slide.features.split('\n').map((f) => f.trim()).filter(Boolean)
     : []
 
-  const catThumb = slide.categoryThumb || slide.categoria_thumb || '/img/verduras.avif'
+  const catThumb = slide.categoryThumb || slide.categoria_thumb || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80'
   const catName = slide.categoryName || slide.categoria_nombre || 'Cosechas Frescas'
   const catSlug = slide.categorySlug || slide.categoria_slug || 'cosechas'
 
-  const prodImg = slide.showcaseImage || slide.tarjeta_imagen || '/img/Ñame.avif'
+  const prodImg = slide.showcaseImage || slide.tarjeta_imagen || 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=600&q=80'
   const prodTitle = slide.showcaseTitle || slide.tarjeta_titulo || slide.title || slide.titulo || 'Cosecha Campesina'
   const prodPrice = slide.showcasePrice || slide.tarjeta_precio || '$6.000 COP'
   const vendorName = slide.farmerName || slide.tarjeta_vendedor_nombre || 'Roberto Carlos Salcedo'
@@ -543,7 +543,7 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
           <div className="hero-historia-grid" style={{ display: 'grid', gridTemplateColumns: isPreview ? '1.15fr 0.85fr' : '1.1fr 0.9fr', gap: isPreview ? '0.75rem' : '1.5rem', alignItems: 'center' }}>
             <div>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: '#d97706', color: '#ffffff', padding: isPreview ? '0.2rem 0.6rem' : '0.3rem 0.85rem', borderRadius: '999px', fontSize: isPreview ? '0.65rem' : '0.75rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: isPreview ? '0.4rem' : '0.75rem' }}>
-                🇨🇴 HISTORIA & TRADICIÓN
+                🇨🇴 {catName ? `${catName.toUpperCase()}` : 'HISTORIA & TRADICIÓN'}
               </div>
 
               <h1 style={{ fontSize: isPreview ? '1.15rem' : '2.4rem', fontWeight: 900, marginBottom: isPreview ? '0.35rem' : '0.75rem', lineHeight: 1.2 }}>
