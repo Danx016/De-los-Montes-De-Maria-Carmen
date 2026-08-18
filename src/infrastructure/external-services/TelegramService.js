@@ -595,7 +595,7 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
         }
       }
 
-      // 5. Mantener la sesión activa en el ticket para conversación fluida y directa
+      // 5. Mantener la sesión activa en el ticket para conversación 100% directa y limpia (sin mensajes de confirmación)
       let session = this.sessions.get(chatId);
       if (!session) {
         session = { state: 'WAITING_TICKET_REPLY', data: {}, activeTicket: ticket, activeSessionId: ticket.session_id, replyTicketCode: cleanCode };
@@ -604,23 +604,6 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
         session.state = 'WAITING_TICKET_REPLY';
         session.replyTicketCode = cleanCode;
       }
-
-      // 6. Confirmación limpia y compacta estilo chat
-      const confirmKeyboard = {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: `🔒 Cerrar #${cleanCode}`, callback_data: `close_tk:${cleanCode}` }
-            ]
-          ]
-        }
-      };
-
-      await this.sendMessage(
-        chatId,
-        `✓ <i>Enviado a ${ticket.nombre_cliente}</i>`,
-        confirmKeyboard
-      );
     } catch (err) {
       console.error('[Telegram responderTicket Error]:', err);
       await this.sendMessage(chatId, `⚠️ Error al enviar respuesta: ${err.message}`);
