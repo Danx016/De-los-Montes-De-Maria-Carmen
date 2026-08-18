@@ -21,14 +21,21 @@ class EmailService {
 
   inicializarTransporter() {
     const user = appConfig.smtp.user || 'danilorodelo355@gmail.com';
-    const pass = appConfig.smtp.pass || 'gszsvbqujjebrlgk';
+    const rawPass = appConfig.smtp.pass || 'zfcnratccvmbmdxp';
+    const pass = rawPass.replace(/\s+/g, '');
 
     if (user && pass) {
       this.transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
         auth: {
           user,
           pass,
+        },
+        family: 4,
+        lookup: (hostname, options, callback) => {
+          dns.lookup(hostname, { family: 4, all: false }, callback);
         },
         tls: {
           rejectUnauthorized: false,
