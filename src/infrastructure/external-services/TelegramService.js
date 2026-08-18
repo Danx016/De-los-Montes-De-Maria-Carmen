@@ -1093,41 +1093,24 @@ Escribe <b>/soporte</b> para iniciar una consulta asistida por IA o explora el c
       });
       session.state = 'LOGIN_WAIT_CODE';
 
-      // Enviar correo con código
-      let emailEnviado = false;
+      // Disparar envío de correo con código de verificación
       if (this.emailService && typeof this.emailService.enviarCodigoVerificacionTelegram === 'function') {
-        try {
-          emailEnviado = await this.emailService.enviarCodigoVerificacionTelegram({
-            correo: user.correo,
-            nombre: user.nombre || user.username,
-            codigo: otpCode
-          });
-        } catch (err) {
-          console.error('[Telegram OTP Email Error]:', err);
-        }
+        this.emailService.enviarCodigoVerificacionTelegram({
+          correo: user.correo,
+          nombre: user.nombre || user.username,
+          codigo: otpCode
+        }).catch((err) => console.error('[Telegram OTP Email Error]:', err));
       }
 
-      let otpPrompt = '';
-      if (emailEnviado) {
-        otpPrompt = `
+      const otpPrompt = `
 🔐 <b>¡CÓDIGO DE SEGURIDAD ENVIADO!</b>
 ━━━━━━━━━━━━━━━━━━
-Hemos enviado un código de 6 dígitos a tu correo:
+Hemos enviado un código de seguridad de 6 dígitos a tu correo:
 📧 <b>${user.correo}</b>
 
-✍️ <b>Escribe el código de 6 dígitos aquí</b> para confirmar tu identidad:
+✍️ <b>Revisa tu bandeja de entrada (o carpeta de spam) y escribe el código de 6 dígitos aquí</b> para confirmar tu identidad:
 <i>(El código vence en 10 minutos. Escribe /cancelar para salir)</i>
 `;
-      } else {
-        otpPrompt = `
-🔐 <b>VERIFICACIÓN DE ACCESO TELEGRAM</b>
-━━━━━━━━━━━━━━━━━━
-Usuario: <b>${user.nombre || user.username}</b> (<code>${user.correo}</code>)
-Tu código de seguridad temporal es: <code>${otpCode}</code>
-
-✍️ <b>Escribe el código de 6 dígitos aquí</b> para verificar tu cuenta al instante:
-`;
-      }
 
       await this.sendMessage(chatId, otpPrompt);
     } catch (err) {
