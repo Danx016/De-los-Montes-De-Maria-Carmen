@@ -4,7 +4,7 @@
 [![React Version](https://img.shields.io/badge/React-18.x-61DAFB?logo=react)](https://react.dev)
 [![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?logo=vite)](https://vitejs.dev)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql)](https://www.mysql.com)
-[![Deployed on Render](https://img.shields.io/badge/Render-Live-46E3B7?logo=render)](https://de-los-montes-de-maria-carmen.onrender.com)
+[![Deployed on Render](https://img.shields.io/badge/Render-Live-46E3B7?logo=render)](https://delosmontesdemaria.onrender.com)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 > **De los Montes de María** es una plataforma tecnológica integral de comercio electrónico y gestión agropecuaria diseñada para conectar de forma directa y sin intermediarios a los productores campesinos de la subregión de los **Montes de María** (El Carmen de Bolívar, San Jacinto, Ovejas, San Juan Nepomuceno, etc.) con consumidores y compradores de toda Colombia.
@@ -13,8 +13,8 @@
 
 ## 🌐 Enlaces del Proyecto
 
-- **Sitio Web en Producción:** [https://de-los-montes-de-maria-carmen.onrender.com](https://de-los-montes-de-maria-carmen.onrender.com)
-- **Repositorio Oficial en GitHub:** [https://github.com/Danx016/De-los-Montes-De-Maria-Carmen](https://github.com/Danx016/De-los-Montes-De-Maria-Carmen)
+- **Sitio Web en Producción:** [https://delosmontesdemaria.onrender.com](https://delosmontesdemaria.onrender.com)
+- **Repositorio Oficial en GitHub:** [https://github.com/Danx016/delosmontesdemaria](https://github.com/Danx016/delosmontesdemaria)
 
 ---
 
@@ -106,8 +106,8 @@ El proyecto está estructurado bajo **Arquitectura Limpia (Clean Architecture)**
 
 ### 1. Clonar el Repositorio
 ```bash
-git clone https://github.com/Danx016/De-los-Montes-De-Maria-Carmen.git
-cd De-los-Montes-De-Maria-Carmen
+git clone https://github.com/Danx016/delosmontesdemaria.git
+cd delosmontesdemaria
 ```
 
 ### 2. Configurar Variables de Entorno (`.env`)

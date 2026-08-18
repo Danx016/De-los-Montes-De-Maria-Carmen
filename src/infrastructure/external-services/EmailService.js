@@ -6,6 +6,11 @@
 const nodemailer = require('nodemailer');
 const appConfig = require('../config/app.config');
 
+const dns = require('dns');
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
+
 class EmailService {
   constructor() {
     this.transporter = null;
@@ -27,6 +32,7 @@ class EmailService {
           user,
           pass
         },
+        family: 4, // Forzar IPv4 para evitar errores ENETUNREACH con IPv6
         pool: true,
         maxConnections: 5,
         maxMessages: 100,
