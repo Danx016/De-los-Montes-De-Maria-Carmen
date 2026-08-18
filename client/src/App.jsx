@@ -8,6 +8,7 @@ import ToastPortal from './components/ToastPortal'
 import GlobalSupportNotifier from './components/GlobalSupportNotifier'
 import AIAssistantWidget from './components/AIAssistantWidget'
 import ScrollToTop from './components/ScrollToTop'
+import BottomMobileNav from './components/BottomMobileNav'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
 import SupportRoute from './components/SupportRoute'
@@ -97,6 +98,7 @@ export default function App() {
               {/* 404 */}
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
+            <BottomMobileNav />
           </BrowserRouter>
           <ToastPortal />
         </CartProvider>
