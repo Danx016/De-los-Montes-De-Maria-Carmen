@@ -13,29 +13,52 @@ class EmailService {
   }
 
   inicializarTransporter() {
-    if (appConfig.smtp.user && appConfig.smtp.pass) {
+    const user = appConfig.smtp.user;
+    const pass = appConfig.smtp.pass;
+    const host = appConfig.smtp.host || 'smtp.gmail.com';
+    const port = appConfig.smtp.port || 465;
+
+    if (user && pass) {
       this.transporter = nodemailer.createTransport({
-        host: appConfig.smtp.host,
-        port: appConfig.smtp.port,
-        secure: appConfig.smtp.port !== 587,
+        host,
+        port,
+        secure: port === 465,
         auth: {
-          user: appConfig.smtp.user,
-          pass: appConfig.smtp.pass
+          user,
+          pass
+        },
+        pool: true,
+        maxConnections: 5,
+        maxMessages: 100,
+        rateLimit: 10,
+        connectionTimeout: 8000,
+        greetingTimeout: 8000,
+        socketTimeout: 10000
+      });
+
+      // Validar conexión en segundo plano para calentar el pool
+      this.transporter.verify((error) => {
+        if (error) {
+          console.warn('⚠️ [SMTP] Advertencia al conectar con el servidor de correo:', error.message);
+        } else {
+          console.log('✅ [SMTP] Conexión establecida y lista (Pool activo)');
         }
       });
+    } else {
+      console.warn('⚠️ [SMTP] No se configuraron credenciales de correo completas en .env');
     }
   }
 
   async sendMailSafe({ to, subject, html, fallbackLog }) {
     if (this.transporter) {
       try {
-        await this.transporter.sendMail({
+        const info = await this.transporter.sendMail({
           from: `"De los Montes de María" <${appConfig.smtp.user}>`,
           to,
           subject,
           html
         });
-        console.log(`✉️ Correo enviado exitosamente a: ${to} | Asunto: ${subject}`);
+        console.log(`✉️ Correo enviado exitosamente a: ${to} | Asunto: ${subject} | ID: ${info?.messageId || 'OK'}`);
         return true;
       } catch (err) {
         console.error(`⚠️ Error al enviar correo SMTP a ${to}:`, err.message);

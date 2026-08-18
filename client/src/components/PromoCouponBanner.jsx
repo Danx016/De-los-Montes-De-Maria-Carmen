@@ -71,14 +71,15 @@ export default function PromoCouponBanner() {
       }}
     >
       <div
-        className="container"
+        className="app-container"
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: '1rem',
-          maxWidth: '1280px',
+          gap: '0.75rem',
+          maxWidth: '1240px',
           margin: '0 auto',
+          width: '100%',
         }}
       >
         {/* Left / Prev arrow if multiple */}

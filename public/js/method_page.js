@@ -435,13 +435,15 @@ function showSecurityModal(method) {
           <i class="fa-solid fa-shield-halved"></i>
         </div>
         <h3 class="agro-modal-title" style="color: #1e3a8a;">Verificación de Seguridad</h3>
-        <p class="agro-modal-message">Hemos enviado un código de 4 dígitos a tu correo electrónico:<br><strong style="color: #1e3a8a;">${maskedEmail}</strong></p>
+        <p class="agro-modal-message">Hemos enviado un código de 6 dígitos a tu correo electrónico:<br><strong style="color: #1e3a8a;">${maskedEmail}</strong></p>
         
-        <div style="display: flex; justify-content: center; gap: 12px; margin-bottom: 20px;">
-          <input type="text" class="otp-input" maxlength="1" inputmode="numeric" style="width: 50px; height: 55px; font-size: 26px; text-align: center; border: 2px solid #cbd5e1; border-radius: 12px; font-weight: 800; color: #1e293b; background: #f8fafc; outline: none; transition: border 0.2s;" />
-          <input type="text" class="otp-input" maxlength="1" inputmode="numeric" style="width: 50px; height: 55px; font-size: 26px; text-align: center; border: 2px solid #cbd5e1; border-radius: 12px; font-weight: 800; color: #1e293b; background: #f8fafc; outline: none; transition: border 0.2s;" />
-          <input type="text" class="otp-input" maxlength="1" inputmode="numeric" style="width: 50px; height: 55px; font-size: 26px; text-align: center; border: 2px solid #cbd5e1; border-radius: 12px; font-weight: 800; color: #1e293b; background: #f8fafc; outline: none; transition: border 0.2s;" />
-          <input type="text" class="otp-input" maxlength="1" inputmode="numeric" style="width: 50px; height: 55px; font-size: 26px; text-align: center; border: 2px solid #cbd5e1; border-radius: 12px; font-weight: 800; color: #1e293b; background: #f8fafc; outline: none; transition: border 0.2s;" />
+        <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 20px;">
+          <input type="text" class="otp-input" maxlength="1" inputmode="numeric" style="width: 44px; height: 52px; font-size: 24px; text-align: center; border: 2px solid #cbd5e1; border-radius: 10px; font-weight: 800; color: #1e293b; background: #f8fafc; outline: none; transition: all 0.2s;" />
+          <input type="text" class="otp-input" maxlength="1" inputmode="numeric" style="width: 44px; height: 52px; font-size: 24px; text-align: center; border: 2px solid #cbd5e1; border-radius: 10px; font-weight: 800; color: #1e293b; background: #f8fafc; outline: none; transition: all 0.2s;" />
+          <input type="text" class="otp-input" maxlength="1" inputmode="numeric" style="width: 44px; height: 52px; font-size: 24px; text-align: center; border: 2px solid #cbd5e1; border-radius: 10px; font-weight: 800; color: #1e293b; background: #f8fafc; outline: none; transition: all 0.2s;" />
+          <input type="text" class="otp-input" maxlength="1" inputmode="numeric" style="width: 44px; height: 52px; font-size: 24px; text-align: center; border: 2px solid #cbd5e1; border-radius: 10px; font-weight: 800; color: #1e293b; background: #f8fafc; outline: none; transition: all 0.2s;" />
+          <input type="text" class="otp-input" maxlength="1" inputmode="numeric" style="width: 44px; height: 52px; font-size: 24px; text-align: center; border: 2px solid #cbd5e1; border-radius: 10px; font-weight: 800; color: #1e293b; background: #f8fafc; outline: none; transition: all 0.2s;" />
+          <input type="text" class="otp-input" maxlength="1" inputmode="numeric" style="width: 44px; height: 52px; font-size: 24px; text-align: center; border: 2px solid #cbd5e1; border-radius: 10px; font-weight: 800; color: #1e293b; background: #f8fafc; outline: none; transition: all 0.2s;" />
         </div>
         
         <p id="otp-error" style="color: #ef4444; font-size: 0.9em; font-weight: bold; margin-top: -10px; margin-bottom: 15px; display: none;"></p>
@@ -492,6 +494,21 @@ function showSecurityModal(method) {
           inputs[index + 1].focus();
         }
       });
+      input.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const pasteData = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+        if (pasteData) {
+          const chars = pasteData.slice(0, 6).split('');
+          chars.forEach((c, i) => {
+            if (inputs[i]) inputs[i].value = c;
+          });
+          const nextIndex = Math.min(chars.length, inputs.length - 1);
+          inputs[nextIndex].focus();
+          if (chars.length === 6) {
+            verifyCode();
+          }
+        }
+      });
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Backspace' && e.target.value === '' && index > 0) {
           inputs[index - 1].focus();
@@ -507,8 +524,8 @@ function showSecurityModal(method) {
       const errorEl = document.getElementById('otp-error');
       const verifyBtn = document.getElementById('otp-verify-btn');
       
-      if (code.length !== 4) {
-        errorEl.textContent = 'Ingresa los 4 dígitos del código.';
+      if (code.length !== 6) {
+        errorEl.textContent = 'Ingresa los 6 dígitos del código.';
         errorEl.style.display = 'block';
         shakeCard();
         return;

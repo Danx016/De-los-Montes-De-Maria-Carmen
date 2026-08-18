@@ -31,9 +31,10 @@ module.exports = {
   },
 
   smtp: {
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    host: sanitize(process.env.SMTP_HOST) || 'smtp.gmail.com',
     port: parseInt(process.env.SMTP_PORT, 10) || 465,
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
+    user: sanitize(process.env.SMTP_USER),
+    pass: sanitize(process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : '')
   }
 };
+
