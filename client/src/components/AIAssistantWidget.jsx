@@ -4,6 +4,15 @@ import { chatPublico } from '../api/chat.api'
 import { useCart } from '../context/CartContext'
 import { useToast } from '../context/ToastContext'
 
+const QUICK_PROMPTS = [
+  { label: '🌾 Cosechas y tubérculos', query: '¿Qué cosechas frescas y tubérculos tienen disponibles hoy?' },
+  { label: '🌱 Semillas y siembra', query: '¿Qué semillas y variedades tienen para siembra?' },
+  { label: '🚜 Abonos y fertilizantes', query: '¿Qué abonos orgánicos y fertilizantes me recomiendas?' },
+  { label: '🚚 Envíos y cobertura', query: '¿Cómo funcionan los envíos a los municipios de Colombia?' },
+  { label: '💳 Medios de pago', query: '¿Qué medios de pago aceptan en la tienda?' },
+  { label: '👨‍💼 Soporte con asesor', query: 'Quiero hablar con un asesor humano de soporte' },
+]
+
 export default function AIAssistantWidget() {
   const location = useLocation()
   const [open, setOpen] = useState(false)
@@ -22,20 +31,6 @@ export default function AIAssistantWidget() {
   const { addToCart } = useCart()
   const toast = useToast()
   const navigate = useNavigate()
-
-  // Ocultar en el panel admin y en la vista completa de soporte
-  if (location.pathname.startsWith('/admin') || location.pathname === '/soporte') {
-    return null
-  }
-
-  const QUICK_PROMPTS = useMemo(() => [
-    { label: '🌾 Cosechas y tubérculos', query: '¿Qué cosechas frescas y tubérculos tienen disponibles hoy?' },
-    { label: '🌱 Semillas y siembra', query: '¿Qué semillas y variedades tienen para siembra?' },
-    { label: '🚜 Abonos y fertilizantes', query: '¿Qué abonos orgánicos y fertilizantes me recomiendas?' },
-    { label: '🚚 Envíos y cobertura', query: '¿Cómo funcionan los envíos a los municipios de Colombia?' },
-    { label: '💳 Medios de pago', query: '¿Qué medios de pago aceptan en la tienda?' },
-    { label: '👨‍💼 Soporte con asesor', query: 'Quiero hablar con un asesor humano de soporte' },
-  ], [])
 
   useEffect(() => {
     if (open) {
@@ -258,6 +253,10 @@ export default function AIAssistantWidget() {
         )}
       </div>
     )
+  }
+
+  if (location.pathname.startsWith('/admin') || location.pathname === '/soporte') {
+    return null
   }
 
   return (

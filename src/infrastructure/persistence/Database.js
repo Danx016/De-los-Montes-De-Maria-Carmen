@@ -237,6 +237,34 @@ function initializeDatabaseTables() {
       promocionar_en_barra TINYINT(1) DEFAULT 0,
       mensaje_promocional VARCHAR(255) DEFAULT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`,
+
+    `CREATE TABLE IF NOT EXISTS banners_hero (
+      id_banner INT AUTO_INCREMENT PRIMARY KEY,
+      titulo VARCHAR(255) NOT NULL,
+      subtitulo TEXT,
+      categoria_nombre VARCHAR(150),
+      categoria_slug VARCHAR(100),
+      categoria_thumb VARCHAR(255),
+      imagen_fondo VARCHAR(255),
+      color_acento VARCHAR(50) DEFAULT '#22c55e',
+      features TEXT,
+      boton_principal_texto VARCHAR(100) DEFAULT 'Ver Productos',
+      boton_principal_link VARCHAR(255) DEFAULT '/catalogo',
+      boton_secundario_texto VARCHAR(100) DEFAULT 'Vender mis Productos',
+      boton_secundario_link VARCHAR(255) DEFAULT '/vendedor',
+      tarjeta_badge_top VARCHAR(100) DEFAULT '🌿 100% Campo',
+      tarjeta_imagen VARCHAR(255),
+      tarjeta_titulo VARCHAR(200),
+      tarjeta_precio VARCHAR(100),
+      tarjeta_vendedor_nombre VARCHAR(150),
+      tarjeta_vendedor_rating VARCHAR(100),
+      tarjeta_vendedor_id INT DEFAULT 47,
+      cupon_codigo VARCHAR(50) DEFAULT NULL,
+      cupon_texto VARCHAR(255) DEFAULT NULL,
+      orden INT DEFAULT 0,
+      activo TINYINT(1) DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`
   ];
 
