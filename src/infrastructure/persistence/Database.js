@@ -382,21 +382,29 @@ function seedDataIfEmpty() {
   pool.query("SELECT COUNT(*) as count FROM productos", (err, rows) => {
     if (err) return;
     if (rows && rows[0] && rows[0].count === 0) {
-      console.log("Sembrando datos iniciales en MySQL (categorías, proveedores, productos)...");
-      pool.query(`INSERT IGNORE INTO categorias (id_categoria, nombre_categoria, descripcion) VALUES
-        (1, 'Fertilizantes', 'Productos para mejorar cultivos'),
-        (2, 'Semillas', 'Semillas agrícolas'),
-        (3, 'Herramientas', 'Herramientas de trabajo agrícola'),
-        (4, 'Riego', 'Sistemas y accesorios de riego')`);
+      console.log("Sembrando datos iniciales en MySQL (categorías, proveedores, productos reales de Montes de María)...");
+      pool.query(`INSERT IGNORE INTO categorias (id_categoria, nombre_categoria, descripcion, imagen, icono, color) VALUES
+        (1, 'Cosechas Frescas', 'Frutas, verduras y tubérculos recién cosechados en el campo montemariano', '/img/verduras.avif', 'fa-leaf', '#16a34a'),
+        (2, 'Lácteos Artesanales', 'Quesos costeños, sueros y lácteos tradicionales de ordeño puro', '/img/fondo vaca2.png', 'fa-cheese', '#ea580c'),
+        (3, 'Semillas Nativas', 'Semillas de maíz, fríjol y granos seleccionados de alta germinación', '/img/Maiz amarillo.jpg', 'fa-seedling', '#ca8a04'),
+        (4, 'Abonos y Fertilizantes', 'Compost y abonos orgánicos para cultivos saludables', '/img/agro-campo.jpeg', 'fa-flask', '#0284c7'),
+        (5, 'Ferretería & Herramientas', 'Machetes, palas, motobombas y equipos de campo', 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80', 'fa-tools', '#78350f'),
+        (6, 'Miel y Derivados', 'Miel pura de abejas de la serranía y panela campesina', 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=600&q=80', 'fa-jar', '#d97706')`);
 
       pool.query(`INSERT IGNORE INTO proveedores (id_proveedor, nombre_empresa, representante, telefono, correo, direccion, ciudad) VALUES
-        (1, 'AgroFertil SAS', 'Carlos Perez', '3001112233', 'contacto@agrofertil.com', 'Calle 10 #20-30', 'Barranquilla'),
-        (2, 'Semillas del Norte', 'Laura Diaz', '3015557788', 'ventas@semillasnorte.com', 'Carrera 15 #40-22', 'Cartagena')`);
+        (1, 'Asociación Campesina Montes de María', 'Roberto Carlos Salcedo', '3001112233', 'contacto@montesdemaria.org', 'Vereda Las Palmas', 'San Jacinto'),
+        (2, 'Semillas y Frutos del Campo', 'Pedro Montes', '3015557788', 'ventas@semillasdelcampo.co', 'Sector El Carmen', 'El Carmen de Bolívar')`);
 
-      pool.query(`INSERT IGNORE INTO productos (id_producto, id_vendedor, nombre_producto, descripcion, precio, stock, unidad_medida, imagen, id_categoria, id_proveedor, categoria, presentacion, disponibilidad) VALUES
-        (1, 47, 'Fertilizante Premium', 'Fertilizante orgánico para cultivos', 85000, 50, 'Bolsa', 'fertilizante.jpg', 1, 1, 'abonos', 'Bolsa', '50'),
-        (2, 47, 'Semilla de Maíz', 'Semilla híbrida de maíz', 45000, 100, 'Paquete', 'maiz.jpg', 2, 2, 'semillas', 'Paquete', '100'),
-        (3, 47, 'Pala Agrícola', 'Pala resistente de acero', 70000, 25, 'Unidad', 'pala.jpg', 3, 1, 'ferre', 'Unidad', '25')`);
+      pool.query(`INSERT IGNORE INTO productos (id_producto, id_vendedor, nombre_producto, descripcion, precio, stock, unidad_medida, imagen, id_categoria, id_proveedor, categoria, origen, presentacion, disponibilidad) VALUES
+        (1, 47, 'Ñame Criollo Espino', 'Ñame espino de primera calidad recién cosechado en tierras montemarianas, ideal para sancocho.', 6000, 150, 'Kilo', '/img/Ñame.avif', 1, 1, 'cosechas', 'San Juan Nepomuceno', 'Kilo', '150'),
+        (2, 47, 'Yuca Campesina Fresca', 'Yuca blanca suave de cocción rápida, recién arrancada de la parcela.', 3500, 200, 'Kilo', '/img/Yuca.jpg', 1, 1, 'cosechas', 'El Carmen de Bolívar', 'Kilo', '200'),
+        (3, 47, 'Aguacate Criollo Mantecoso', 'Aguacate criollo de gran tamaño, pulpa cremosa y sabor tradicional.', 5000, 80, 'Unidad', '/img/Aguacate.jpg', 1, 1, 'cosechas', 'San Jacinto', 'Unidad', '80'),
+        (4, 2, 'Semilla de Maíz Amarillo', 'Semilla seleccionada y tratada artesanalmente para siembra de alto rendimiento.', 8000, 100, 'Libra', '/img/Maiz amarillo.jpg', 3, 2, 'semillas', 'San Jacinto', 'Libra', '100'),
+        (5, 47, 'Queso Costeño Fresco', 'Queso artesanal con bajo nivel de sal, elaborado con leche pura de ordeño.', 15000, 50, 'Libra', '/img/fondo vaca2.png', 2, 1, 'lacteos', 'San Jacinto', 'Libra', '50'),
+        (6, 47, 'Fríjol Rojo Criollo', 'Grano seco seleccionado, libre de impurezas, excelente rendimiento en cocina.', 7500, 70, 'Libra', '/img/frijol rojo.jpg', 3, 2, 'semillas', 'El Carmen de Bolívar', 'Libra', '70'),
+        (7, 47, 'Limón Tahití Jugoso', 'Limones verdes jugosos de exportación, acidez balanceada y abundante jugo.', 4000, 120, 'Kilo', '/img/Limon tahiti.jpg', 1, 1, 'cosechas', 'San Juan Nepomuceno', 'Kilo', '120'),
+        (8, 47, 'Papaya Criolla Dulce', 'Papaya madurada al sol en árbol con gran dulzura y textura firme.', 4500, 60, 'Unidad', '/img/Papaya.webp', 1, 1, 'cosechas', 'San Jacinto', 'Unidad', '60'),
+        (9, 47, 'Banano Criollo Maduro', 'Racimos de banano dulce cultivados bajo sombra natural.', 3000, 90, 'Kilo', '/img/banano.png', 1, 1, 'cosechas', 'El Carmen de Bolívar', 'Kilo', '90')`);
     }
   });
 
