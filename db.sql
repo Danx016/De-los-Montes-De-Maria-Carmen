@@ -49,12 +49,12 @@ CREATE TABLE `categorias` (
   `color` VARCHAR(50) DEFAULT '#2e7d32'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `categorias` (`id_categoria`, `nombre_categoria`, `slug`, `descripcion`, `icono`, `color`) VALUES
-(1, 'Cosechas Frescas', 'cosechas', 'Frutas, verduras, hortalizas y tubérculos recién cosechados.', 'fa-carrot', '#16a34a'),
-(2, 'Lácteos Artesanales', 'lacteos', 'Quesos, suero, mantequilla y leche pura de vaca.', 'fa-cheese', '#f59e0b'),
-(3, 'Semillas Nativas', 'semillas', 'Semillas seleccionadas y certificadas de alta pureza y rendimiento.', 'fa-seedling', '#059669'),
-(4, 'Abonos y Fertilizantes', 'abonos', 'Compost orgánico, humus de lombriz y biofertilizantes.', 'fa-leaf', '#10b981'),
-(5, 'Ferretería & Herramientas', 'ferre', 'Machetes, palas, mangueras y herramientas agrícolas.', 'fa-tools', '#64748b');
+INSERT INTO `categorias` (`id_categoria`, `nombre_categoria`, `slug`, `descripcion`, `imagen`, `icono`, `color`) VALUES
+(1, 'Cosechas Frescas', 'cosechas', 'Frutas, verduras, hortalizas y tubérculos recién cosechados.', 'https://blog.mentta.com/wp-content/uploads/2024/06/pexels-daniel-dan-47825192-7543155-scaled.jpg', 'fa-carrot', '#16a34a'),
+(2, 'Lácteos Artesanales', 'lacteos', 'Quesos, suero, mantequilla y leche pura de vaca.', 'https://es.edairynews.com/wp-content/uploads/2024/09/A-como-esta-el-kilo-de-queso-en-Colombia.png', 'fa-cheese', '#f59e0b'),
+(3, 'Semillas Nativas', 'semillas', 'Semillas seleccionadas y certificadas de alta pureza y rendimiento.', 'https://http2.mlstatic.com/D_NQ_NP_942124-MCO95273155376_102025-O.webp', 'fa-seedling', '#059669'),
+(4, 'Abonos y Fertilizantes', 'abonos', 'Compost orgánico, humus de lombriz y biofertilizantes.', 'https://fertilizantesecoforce.es/wp-content/uploads/2019/09/forceorganic.jpg', 'fa-leaf', '#10b981'),
+(5, 'Ferretería & Herramientas', 'ferre', 'Machetes, palas, mangueras y herramientas agrícolas.', 'https://http2.mlstatic.com/D_NQ_NP_693816-MLA92561820026_092025-O.webp', 'fa-tools', '#64748b');
 
 -- 3. Tabla de Proveedores
 CREATE TABLE `proveedores` (
