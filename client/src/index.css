@@ -7397,15 +7397,16 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 4px;
   }
 
-  /* ── 2. Hero Carousel Ofercampo Mobile Optimization ── */
+  /* ── 2. Hero Carousel Ofercampo & All 5 Banner Styles Mobile Optimization ── */
   .ofercampo-hero-wrapper {
     min-height: auto !important;
   }
 
+  .hero-slide-container,
   .ofercampo-hero-slide {
     position: relative !important;
     min-height: auto !important;
-    padding: 1.75rem 1rem 2.25rem !important;
+    padding: 1.5rem 0.85rem 2rem !important;
     box-sizing: border-box !important;
   }
 
@@ -7413,24 +7414,38 @@ h1, h2, h3, h4, h5, h6 {
     display: none !important;
   }
 
-  .ofercampo-hero-grid {
+  .ofercampo-hero-grid,
+  .hero-oferta-flash-grid,
+  .hero-mosaico-grid,
+  .hero-historia-grid {
     grid-template-columns: 1fr !important;
-    gap: 1.5rem !important;
+    gap: 1.15rem !important;
     text-align: center !important;
+    width: 100% !important;
   }
 
-  .ofercampo-hero-left {
+  .ofercampo-hero-left,
+  .oferta-left,
+  .hero-historia-grid > div:first-child,
+  .hero-mosaico-grid > div:first-child {
     align-items: center !important;
     text-align: center !important;
+    width: 100% !important;
   }
 
-  .ofercampo-title {
-    font-size: clamp(1.4rem, 5.5vw, 1.85rem) !important;
-    line-height: 1.25 !important;
-    margin-bottom: 0.5rem !important;
+  .ofercampo-title,
+  .hero-historia-grid h1,
+  .hero-oferta-flash-grid h1,
+  .hero-mosaico-grid h1 {
+    font-size: clamp(1.25rem, 5vw, 1.75rem) !important;
+    line-height: 1.22 !important;
+    margin-bottom: 0.45rem !important;
   }
 
-  .ofercampo-subtitle {
+  .ofercampo-subtitle,
+  .hero-historia-grid p,
+  .hero-oferta-flash-grid p,
+  .hero-mosaico-grid p {
     font-size: 0.88rem !important;
     line-height: 1.45 !important;
     max-width: 100% !important;
@@ -7439,111 +7454,196 @@ h1, h2, h3, h4, h5, h6 {
 
   .ofercampo-features {
     justify-content: center !important;
-    gap: 0.4rem !important;
-    margin-bottom: 1.1rem !important;
+    gap: 0.35rem !important;
+    margin-bottom: 0.85rem !important;
   }
 
   .ofercampo-feature-item {
-    font-size: 0.78rem !important;
-    padding: 0.25rem 0.6rem !important;
+    font-size: 0.76rem !important;
+    padding: 0.25rem 0.55rem !important;
   }
 
   .ofercampo-actions {
     flex-direction: column !important;
     width: 100% !important;
-    gap: 0.6rem !important;
+    gap: 0.5rem !important;
+    align-items: stretch !important;
   }
 
   .btn-ofercampo-primary,
   .btn-ofercampo-secondary {
     width: 100% !important;
     justify-content: center !important;
-    padding: 0.75rem 1.25rem !important;
-    font-size: 0.92rem !important;
+    padding: 0.65rem 1.15rem !important;
+    font-size: 0.88rem !important;
+    box-sizing: border-box !important;
   }
 
-  .ofercampo-hero-right {
+  .ofercampo-hero-right,
+  .hero-oferta-flash-grid > div:last-child,
+  .hero-historia-grid > div:last-child {
     width: 100% !important;
     display: flex !important;
     justify-content: center !important;
   }
 
   .ofercampo-visual-card {
-    max-width: 100% !important;
+    max-width: 280px !important;
     width: 100% !important;
+    margin: 0 auto !important;
   }
 
   .ofercampo-product-preview-box {
-    height: 160px !important;
+    height: 140px !important;
   }
 
   .ofercampo-carousel-arrow {
-    width: 34px !important;
-    height: 34px !important;
-    font-size: 0.9rem !important;
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 0.85rem !important;
   }
 
-  .ofercampo-carousel-arrow.prev { left: 6px !important; }
-  .ofercampo-carousel-arrow.next { right: 6px !important; }
+  .ofercampo-carousel-arrow.prev { left: 4px !important; }
+  .ofercampo-carousel-arrow.next { right: 4px !important; }
 
-  /* ── 3. Product Grids on Mobile (2 crisp columns) ── */
+  /* ── 3. Product Grids on Mobile (2 crisp balanced columns) ── */
   .products-grid,
+  .products-grid-container,
   .productos-grid-container,
+  .seller-products-grid,
+  .vendor-products-grid,
   .catalog-grid {
+    display: grid !important;
     grid-template-columns: repeat(2, 1fr) !important;
-    gap: 0.75rem !important;
+    gap: 0.65rem !important;
     padding: 0 !important;
+    width: 100% !important;
   }
 
+  .marketplace-product-card,
   .product-card,
   .producto-card-agro {
     border-radius: 12px !important;
-    padding: 0.6rem !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
-  .product-card-img-wrap,
-  .prod-img-box {
-    height: 130px !important;
-    border-radius: 8px !important;
+  .product-card-media {
+    height: 135px !important;
+    padding: 0.25rem !important;
   }
 
-  .product-card-title,
+  .product-card-img,
+  .prod-img-box img {
+    height: 100% !important;
+    max-height: 120px !important;
+    object-fit: contain !important;
+    padding: 0.25rem !important;
+  }
+
+  .product-card-body {
+    padding: 0.6rem 0.5rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+  }
+
+  .product-card-name,
   .prod-title {
-    font-size: 0.85rem !important;
-    margin-bottom: 0.25rem !important;
+    font-size: 0.86rem !important;
+    margin-bottom: 0.2rem !important;
+    line-height: 1.25 !important;
+    font-weight: 700 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
   }
 
-  .product-card-price,
-  .prod-price {
-    font-size: 0.92rem !important;
+  .product-card-summary {
+    display: none !important; /* Ocultar resumen largo en tarjetas móviles compactas de 2 columnas */
   }
 
+  .product-card-footer {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.35rem !important;
+    padding-top: 0.35rem !important;
+    margin-top: auto !important;
+  }
+
+  .product-card-pricing {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: baseline !important;
+  }
+
+  .price-tag-value {
+    font-size: 0.95rem !important;
+    font-weight: 800 !important;
+  }
+
+  .btn-product-add,
   .btn-add-cart-card {
-    padding: 0.45rem 0.65rem !important;
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 0.45rem 0.5rem !important;
     font-size: 0.78rem !important;
+    border-radius: 6px !important;
   }
 
-  /* ── 4. Categories Ribbon Horizontal Scroll ── */
+  /* ── 4. Categories Grid on Mobile (2 crisp columns) ── */
+  .featured-cat-grid,
+  .categorias-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.65rem !important;
+    margin-top: 1rem !important;
+  }
+
+  .featured-cat-card {
+    padding: 0.85rem 0.55rem !important;
+    border-radius: 12px !important;
+  }
+
+  .featured-cat-card h3 {
+    font-size: 0.88rem !important;
+  }
+
+  .featured-cat-card p {
+    font-size: 0.74rem !important;
+    line-height: 1.25 !important;
+  }
+
+  /* ── 5. Ribbon Horizontal Scroll on Mobile ── */
   .ribbon-wrapper {
-    padding: 0 0.5rem !important;
+    padding: 0 0.4rem !important;
   }
 
   .ribbon-inner {
-    gap: 0.4rem !important;
-    padding: 0.35rem 0 !important;
+    gap: 0.35rem !important;
+    padding: 0.25rem 0 !important;
     -webkit-overflow-scrolling: touch !important;
   }
 
   .ribbon-cat-chip {
-    padding: 0.35rem 0.65rem !important;
-    font-size: 0.78rem !important;
+    padding: 0.3rem 0.6rem !important;
+    font-size: 0.76rem !important;
   }
 
   .ribbon-arrow-btn {
     display: none !important;
   }
 
-  /* ── 5. AgroAsistente IA Widget Mobile Bottom Sheet ── */
+  /* ── 6. Vendedores Grid on Mobile ── */
+  .vendedores-grid,
+  .sellers-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* ── 7. AgroAsistente IA Widget Mobile Bottom Sheet ── */
   .ai-agro-chat-dialog {
     position: fixed !important;
     bottom: 0 !important;
@@ -7567,28 +7667,29 @@ h1, h2, h3, h4, h5, h6 {
     z-index: 9990 !important;
   }
 
-  /* ── 6. Modals on Mobile ── */
+  /* ── 8. Modals on Mobile ── */
   .modal-content,
   .modal-dialog {
     max-width: 95% !important;
     width: 95% !important;
     max-height: 88vh !important;
-    padding: 1.25rem !important;
+    padding: 1.15rem !important;
     border-radius: 14px !important;
     margin: auto !important;
   }
 
   .banner-admin-preview-sticky {
     position: static !important;
-    margin-top: 1.5rem !important;
+    margin-top: 1.25rem !important;
   }
 
-  /* ── 7. Checkout & Cart Page Single Column Flow ── */
+  /* ── 9. Checkout & Cart Page Single Column Flow ── */
   .checkout-container,
   .cart-page-grid,
+  .cart-grid,
   .profile-layout-grid {
     grid-template-columns: 1fr !important;
-    gap: 1.25rem !important;
+    gap: 1rem !important;
   }
 
   .cart-summary-card,
@@ -7597,7 +7698,7 @@ h1, h2, h3, h4, h5, h6 {
     width: 100% !important;
   }
 
-  /* ── 8. Forms & Inputs Mobile Usability ── */
+  /* ── 10. Forms & Inputs Mobile Usability ── */
   .form-row {
     grid-template-columns: 1fr !important;
     gap: 0.75rem !important;
@@ -7609,39 +7710,45 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 16px !important; /* Previene zoom automático en iOS Safari */
   }
 
-  /* ── 9. Header & Top Navbar Compact Mobile ── */
+  /* ── 11. Header & Top Navbar Compact Mobile ── */
   .main-navbar-inner {
-    padding: 0.6rem 0.85rem !important;
-    gap: 0.5rem !important;
+    padding: 0.5rem 0.75rem !important;
+    gap: 0.4rem !important;
   }
 
   .nav-brand-logo {
-    height: 32px !important;
+    height: 30px !important;
   }
 
   .nav-brand-name {
-    font-size: 0.95rem !important;
+    font-size: 0.9rem !important;
   }
 
   .nav-search-bar {
     order: 3 !important;
     width: 100% !important;
-    margin-top: 0.4rem !important;
+    margin-top: 0.35rem !important;
   }
 }
 
-/* ── 10. Extra Small Phones (< 400px) ── */
-@media (max-width: 400px) {
+/* ── 12. Extra Small Phones (< 380px) ── */
+@media (max-width: 380px) {
   .products-grid,
+  .products-grid-container,
   .productos-grid-container {
     grid-template-columns: 1fr !important;
   }
 
+  .featured-cat-grid,
+  .categorias-grid {
+    grid-template-columns: 1fr !important;
+  }
+
   .ofercampo-title {
-    font-size: 1.3rem !important;
+    font-size: 1.2rem !important;
   }
 
   .bottom-nav-label {
-    font-size: 0.65rem !important;
+    font-size: 0.62rem !important;
   }
 }
