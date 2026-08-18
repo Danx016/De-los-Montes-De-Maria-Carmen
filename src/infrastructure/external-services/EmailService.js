@@ -142,14 +142,6 @@ class EmailService {
       }
     }
 
-    if (fallbackLog) {
-      console.log(`\n==================================================`);
-      console.log(`📧 [EMAIL NOTIFICACIÓN - DE LOS MONTES DE MARÍA]`);
-      console.log(`Para: ${to}`);
-      console.log(`Asunto: ${subject}`);
-      console.log(fallbackLog);
-      console.log(`==================================================\n`);
-    }
     return false;
   }
 

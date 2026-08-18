@@ -227,12 +227,8 @@ class CompraController {
 
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       await this.tokenRepository.guardarOtp(targetEmail, code, 10);
-      console.log(`[OTP] Generado código para ${targetEmail}: ${code}`);
 
-      const sent = await this.emailService.sendPurchaseOtpEmail(targetEmail, nombre || req.user?.nombre, code, total);
-      if (!sent) {
-        console.warn(`[OTP] Advertencia: El correo SMTP falló para ${targetEmail}, pero el código de respaldo en sesión es válido.`);
-      }
+      await this.emailService.sendPurchaseOtpEmail(targetEmail, nombre || req.user?.nombre, code, total);
 
       res.json({ 
         success: true, 
