@@ -223,21 +223,17 @@ export default function HomePage() {
         <section className="ofercampo-hero-wrapper">
           {slides.map((slide, idx) => {
             const isActive = idx === currentSlide
-            const bgImg = slide.backgroundImage
+            const bgImg = slide.backgroundImage || '/img/montes-de-maria-paisaje.jpg'
             const accent = slide.accentColor || '#22c55e'
-            const slideStyle = bgImg
-              ? {
-                  '--slide-accent': accent,
-                  backgroundImage: `linear-gradient(135deg, rgba(10, 28, 16, 0.82) 0%, rgba(8, 18, 12, 0.90) 100%), url('${bgImg}')`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                }
-              : { '--slide-accent': accent }
+            const slideStyle = {
+              '--slide-accent': accent,
+              background: `linear-gradient(135deg, ${accent}cc 0%, #06140ce6 100%), url('${bgImg}') center/cover no-repeat`,
+            }
 
             return (
               <div
                 key={slide.id}
-                className={`ofercampo-hero-slide ${slide.bgClass} ${isActive ? 'active' : ''}`}
+                className={`ofercampo-hero-slide ${isActive ? 'active' : ''}`}
                 style={slideStyle}
               >
                 <div className="ofercampo-hero-grid">
