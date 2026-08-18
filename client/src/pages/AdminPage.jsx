@@ -3550,7 +3550,7 @@ export default function AdminPage() {
                       </div>
 
                       {/* Fondos Predeterminados Campesinos en 1 Clic */}
-                      <div>
+                      <div style={{ marginBottom: '0.9rem' }}>
                         <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
                           🌄 Paisajes Recomendados de Montes de María (1 Clic):
                         </span>
@@ -3624,6 +3624,87 @@ export default function AdminPage() {
                           })}
                         </div>
                       </div>
+
+                      {/* Selector de Filtro de Color / Tinte */}
+                      <div className="form-group" style={{ marginBottom: '0.85rem', paddingTop: '0.75rem', borderTop: '1px dashed var(--border-color)' }}>
+                        <label className="form-label" style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <i className="fa fa-palette" /> 🎨 Filtro de Color / Tinte sobre la Imagen
+                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', marginBottom: '0.4rem' }}>
+                          <input
+                            type="color"
+                            value={bannerForm.color_acento || '#22c55e'}
+                            onChange={(e) => setBannerForm({ ...bannerForm, color_acento: e.target.value })}
+                            style={{ width: '42px', height: '34px', padding: '2px', border: '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer' }}
+                            title="Elegir color personalizado de filtro"
+                          />
+                          <input
+                            type="text"
+                            value={bannerForm.color_acento || '#22c55e'}
+                            onChange={(e) => setBannerForm({ ...bannerForm, color_acento: e.target.value })}
+                            className="form-input"
+                            style={{ width: '110px', fontSize: '0.82rem' }}
+                          />
+                          <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                            {[
+                              { label: '🌿 Verde Campo', color: '#16a34a' },
+                              { label: '🌑 Oscuro Carbón', color: '#090d16' },
+                              { label: '🌾 Ámbar Cosecha', color: '#b45309' },
+                              { label: '☕ Café Tierra', color: '#78350f' },
+                              { label: '🌊 Azul Noche', color: '#0369a1' },
+                              { label: '🍇 Púrpura Andino', color: '#7e22ce' },
+                            ].map((c) => (
+                              <button
+                                key={c.color}
+                                type="button"
+                                onClick={() => setBannerForm({ ...bannerForm, color_acento: c.color })}
+                                style={{
+                                  backgroundColor: c.color,
+                                  color: '#fff',
+                                  border: bannerForm.color_acento === c.color ? '2px solid #fff' : '1px solid rgba(0,0,0,0.15)',
+                                  outline: bannerForm.color_acento === c.color ? '2px solid var(--primary-color)' : 'none',
+                                  padding: '0.2rem 0.55rem',
+                                  borderRadius: '6px',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                {c.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Desenfoque y Nitidez (Blur Effect) */}
+                      <div className="form-group" style={{ marginBottom: '0.25rem' }}>
+                        <label className="form-label" style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <i className="fa fa-magic" /> 🌫️ Nivel de Desenfoque / Nitidez de la Imagen
+                        </label>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          {[
+                            { label: '🔍 100% Nítido (0px)', blur: 0 },
+                            { label: '🌫️ Leve (2px)', blur: 2 },
+                            { label: '💨 Medio (4px)', blur: 4 },
+                            { label: '☁️ Suave / Borroso (8px)', blur: 8 },
+                          ].map((b) => {
+                            const currentBlur = bannerForm.filtro_blur !== undefined ? bannerForm.filtro_blur : 0
+                            const isSelected = currentBlur === b.blur
+                            return (
+                              <button
+                                key={b.blur}
+                                type="button"
+                                onClick={() => setBannerForm({ ...bannerForm, filtro_blur: b.blur })}
+                                className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-outline-primary'}`}
+                                style={{ fontSize: '0.74rem', padding: '0.3rem 0.65rem', fontWeight: 700 }}
+                              >
+                                {b.label}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
                     </div>
 
                     {/* Section 6: Orden & Activación */}
@@ -3679,17 +3760,43 @@ export default function AdminPage() {
                     <div
                       className="banner-admin-preview-card"
                       style={{
-                        '--slide-accent': bannerForm.color_acento,
-                        backgroundImage: `linear-gradient(rgba(10, 30, 15, 0.78), rgba(10, 30, 15, 0.88)), url('${bannerBgPreview || bannerForm.imagen_fondo || '/img/montes-de-maria-paisaje.jpg'}')`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
+                        '--slide-accent': bannerForm.color_acento || '#22c55e',
+                        position: 'relative',
                         borderRadius: '16px',
                         overflow: 'hidden',
                         padding: '1.25rem',
                         boxShadow: '0 10px 25px rgba(0,0,0,0.25)',
                       }}
                     >
-                      <div className="banner-admin-preview-grid">
+                      {/* Fondo con foto y desenfoque dinámico */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          backgroundImage: `url('${bannerBgPreview || bannerForm.imagen_fondo || '/img/montes-de-maria-paisaje.jpg'}')`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                          filter: bannerForm.filtro_blur ? `blur(${bannerForm.filtro_blur}px)` : 'none',
+                          transform: bannerForm.filtro_blur ? 'scale(1.06)' : 'none',
+                          zIndex: 0,
+                        }}
+                      />
+                      {/* Tinte / Filtro de color superpuesto */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          background: `linear-gradient(135deg, ${bannerForm.color_acento || '#14532d'}cc 0%, #06140ce6 100%)`,
+                          zIndex: 1,
+                        }}
+                      />
+                      <div className="banner-admin-preview-grid" style={{ position: 'relative', zIndex: 2 }}>
                         {/* Left Column in Preview */}
                         <div className="ofercampo-hero-left" style={{ alignItems: 'flex-start' }}>
                           <div className="ofercampo-badge" style={{ marginBottom: '0.85rem' }}>

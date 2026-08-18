@@ -174,6 +174,7 @@ export default function HomePage() {
         showcaseTitle: b.tarjeta_titulo || b.titulo,
         showcaseDesc: b.subtitulo,
         targetCategory: `/categoria/${b.categoria_slug || 'cosechas'}`,
+        backgroundImage: b.imagen_fondo,
         floatPillTop: b.tarjeta_badge_top || '🌿 100% Campo',
         floatPillBottom: b.tarjeta_vendedor_rating || '⭐ 4.9/5 Calidad',
         vendorId: b.tarjeta_vendedor_id || 47,
@@ -222,12 +223,22 @@ export default function HomePage() {
         <section className="ofercampo-hero-wrapper">
           {slides.map((slide, idx) => {
             const isActive = idx === currentSlide
+            const bgImg = slide.backgroundImage
+            const accent = slide.accentColor || '#22c55e'
+            const slideStyle = bgImg
+              ? {
+                  '--slide-accent': accent,
+                  backgroundImage: `linear-gradient(135deg, rgba(10, 28, 16, 0.82) 0%, rgba(8, 18, 12, 0.90) 100%), url('${bgImg}')`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }
+              : { '--slide-accent': accent }
 
             return (
               <div
                 key={slide.id}
                 className={`ofercampo-hero-slide ${slide.bgClass} ${isActive ? 'active' : ''}`}
-                style={{ '--slide-accent': slide.accentColor }}
+                style={slideStyle}
               >
                 <div className="ofercampo-hero-grid">
                   {/* Left Column */}
