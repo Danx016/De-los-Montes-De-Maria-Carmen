@@ -372,31 +372,33 @@ Asunto: <b>${ticket.asunto}</b>
   async notificarMensajeCliente({ ticket, mensaje, nombreRemitente = null, excludeChatId = null }) {
     try {
       const ticketCode = ticket.ticket_code || ticket.session_id || ticket.id;
+      const cleanCode = String(ticketCode).toUpperCase().replace('#', '').trim();
       const clientName = nombreRemitente || ticket.nombre_cliente || 'Cliente';
-      const msg = `
-💬 <b>NUEVO MENSAJE EN TICKET #${ticketCode}</b>
-━━━━━━━━━━━━━━━━━━
-👤 <b>Cliente:</b> ${clientName}
-🎫 <b>Asunto:</b> ${ticket.asunto || 'Consulta'}
-
-📝 <b>Mensaje:</b>
-<i>"${mensaje}"</i>
-━━━━━━━━━━━━━━━━━━
-⚡ <i>Toca Responder o usa Swipe para contestar desde Telegram:</i>
-`;
+      
+      const msg = `💬 <b>${clientName}</b> (<code>#${cleanCode}</code>):\n${mensaje}`;
+      
       const keyboard = {
         reply_markup: {
           inline_keyboard: [
             [
-              { text: `💬 Responder a #${ticketCode}`, callback_data: `reply_tk:${ticketCode}` },
-              { text: `🔒 Cerrar Ticket`, callback_data: `close_tk:${ticketCode}` }
-            ],
-            [
-              { text: `🌐 Abrir en Panel Web`, url: 'https://delosmontesdemaria.onrender.com/admin/soporte' }
+              { text: `🔒 Cerrar #${cleanCode}`, callback_data: `close_tk:${cleanCode}` }
             ]
           ]
         }
       };
+
+      // Activar automáticamente el modo chat en este ticket para todos los administradores
+      for (const subscriberId of this.subscribers) {
+        if (excludeChatId && String(subscriberId) === String(excludeChatId)) continue;
+        let s = this.sessions.get(subscriberId);
+        if (!s) {
+          s = { state: 'WAITING_TICKET_REPLY', data: {}, activeTicket: ticket, activeSessionId: ticket.session_id, replyTicketCode: cleanCode };
+          this.sessions.set(subscriberId, s);
+        } else if (s.state === 'IDLE' || s.state === 'WAITING_TICKET_REPLY') {
+          s.state = 'WAITING_TICKET_REPLY';
+          s.replyTicketCode = cleanCode;
+        }
+      }
 
       await this.broadcastAdmins(msg, keyboard, excludeChatId);
     } catch (err) {
@@ -587,25 +589,28 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
       if (ticket.session_id && ticket.session_id.startsWith('tg_')) {
         const parts = ticket.session_id.split('_');
         const clientChatId = parts[1];
-        if (clientChatId) {
-          const clientMsg = `
-👨‍🌾 <b>Asesor (${nombreAsesor}):</b>
-━━━━━━━━━━━━━━━━━━
-${replyText}
-━━━━━━━━━━━━━━━━━━
-<i>Puedes responder directamente en este chat para continuar la conversación.</i>
-`;
+        if (clientChatId && String(clientChatId) !== String(chatId)) {
+          const clientMsg = `👨‍🌾 <b>${nombreAsesor}:</b>\n${replyText}`;
           await this.sendMessage(clientChatId, clientMsg);
         }
       }
 
-      // 5. Confirmar con botón de cierre
+      // 5. Mantener la sesión activa en el ticket para conversación fluida y directa
+      let session = this.sessions.get(chatId);
+      if (!session) {
+        session = { state: 'WAITING_TICKET_REPLY', data: {}, activeTicket: ticket, activeSessionId: ticket.session_id, replyTicketCode: cleanCode };
+        this.sessions.set(chatId, session);
+      } else {
+        session.state = 'WAITING_TICKET_REPLY';
+        session.replyTicketCode = cleanCode;
+      }
+
+      // 6. Confirmación limpia y compacta estilo chat
       const confirmKeyboard = {
         reply_markup: {
           inline_keyboard: [
             [
-              { text: `💬 Responder de nuevo`, callback_data: `reply_tk:${cleanCode}` },
-              { text: `🔒 Cerrar Ticket #${cleanCode}`, callback_data: `close_tk:${cleanCode}` }
+              { text: `🔒 Cerrar #${cleanCode}`, callback_data: `close_tk:${cleanCode}` }
             ]
           ]
         }
@@ -613,7 +618,7 @@ ${replyText}
 
       await this.sendMessage(
         chatId,
-        `✅ <b>Respuesta enviada con éxito al cliente</b>\n━━━━━━━━━━━━━━━━━━\n🎫 <b>Ticket:</b> <code>#${cleanCode}</code>\n👤 <b>Cliente:</b> ${ticket.nombre_cliente}\n📝 <b>Mensaje:</b> <i>"${replyText}"</i>`,
+        `✓ <i>Enviado a ${ticket.nombre_cliente}</i>`,
         confirmKeyboard
       );
     } catch (err) {
@@ -741,12 +746,12 @@ ${replyText}
 
         // 1-Click Responder a Ticket
         if (cbData.startsWith('reply_tk:')) {
-          const ticketCode = cbData.replace('reply_tk:', '').trim();
+          const ticketCode = cbData.replace('reply_tk:', '').replace('#', '').trim().toUpperCase();
           session.state = 'WAITING_TICKET_REPLY';
           session.replyTicketCode = ticketCode;
           await this.sendMessage(
             cbChatId,
-            `✍️ <b>Modo Respuesta Activado para Ticket #${ticketCode}</b>\n━━━━━━━━━━━━━━━━━━\nEscribe a continuación el mensaje que deseas enviar al cliente:\n<i>(O escribe /cancelar para salir)</i>`
+            `💬 <i>Escribe a continuación tu mensaje para #${ticketCode}:</i>`
           );
           return { ok: true };
         }
@@ -845,19 +850,19 @@ ${replyText}
       const rolId = authUser ? Number(authUser.id_rol) : null;
       const isAdminOrAdvisor = rolId === 1 || rolId === 4;
 
-      // ── MODO ESPERANDO RESPUESTA A TICKET (TRIGGERED BY INLINE BUTTON) ──
-      if (session.state === 'WAITING_TICKET_REPLY' && session.replyTicketCode) {
-        if (text === '/cancelar' || text === '/salir') {
-          session.state = 'IDLE';
-          session.replyTicketCode = null;
-          await this.sendMessage(chatId, '❌ Respuesta cancelada.');
-          return { ok: true };
-        }
+      // ── MODO CHAT FLUIDO CON TICKET (PARA ADMINS Y ASESORES) ──
+      const isMenuOrCommand = text.startsWith('/') ||
+        ['📊 Resumen', '🎫 Tickets', '🛒 Ventas', '⚠️ Stock', '🌾 Catálogo', '👤 Mi Perfil', '🚪 Cerrar Sesión', '🔐 Iniciar Sesión', '💬 Soporte', '📦 Mis Pedidos', '🌾 Mis Productos', '💰 Mis Ventas'].includes(text);
+
+      if (session.state === 'WAITING_TICKET_REPLY' && session.replyTicketCode && !isMenuOrCommand) {
         const code = session.replyTicketCode;
-        session.state = 'IDLE';
-        session.replyTicketCode = null;
         await this.responderTicket(chatId, code, text, authUser);
         return { ok: true };
+      }
+
+      if (isMenuOrCommand && session.state === 'WAITING_TICKET_REPLY') {
+        session.state = 'IDLE';
+        session.replyTicketCode = null;
       }
 
       // ── RESPUESTA CITADA / SWIPE-TO-REPLY (PARA ADMINS Y ASESORES) ──
