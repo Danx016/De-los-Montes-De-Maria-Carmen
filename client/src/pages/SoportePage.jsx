@@ -81,12 +81,24 @@ export default function SoportePage() {
     }
   }, [activeTicket])
 
-  // Sincronizar datos si el usuario inicia sesión
+  // Sincronizar datos si el usuario inicia sesión o ya está en sesión
   useEffect(() => {
-    if (user) {
-      if (!nombre) setNombre(user.nombre || user.username || '')
-      if (!correo) setCorreo(user.correo || '')
-      if (!telefono) setTelefono(user.telefono || '')
+    let u = user
+    if (!u) {
+      try {
+        const stored = localStorage.getItem('user')
+        if (stored) u = JSON.parse(stored)
+      } catch (_) {}
+    }
+
+    if (u) {
+      const uNombre = u.nombre || u.nombre_completo || u.name || u.username || ''
+      const uCorreo = u.correo || u.email || ''
+      const uTelefono = u.telefono || u.celular || u.phone || ''
+
+      if (uNombre) setNombre(uNombre)
+      if (uCorreo) setCorreo(uCorreo)
+      if (uTelefono) setTelefono(uTelefono)
     }
   }, [user])
 
@@ -491,13 +503,20 @@ export default function SoportePage() {
                   </a>
                 </div>
 
-                <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
-                  <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <i className="fa fa-edit" style={{ color: '#2e7d32' }} /> Iniciar Consulta Web
-                  </h2>
-                  <p className="text-muted" style={{ margin: '0.35rem 0 0 0', fontSize: '0.9rem' }}>
-                    Completa los datos para conectarte de inmediato con nuestro soporte aquí en la plataforma.
-                  </p>
+                <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem' }}>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <i className="fa fa-edit" style={{ color: '#2e7d32' }} /> Iniciar Consulta Web
+                    </h2>
+                    <p className="text-muted" style={{ margin: '0.35rem 0 0 0', fontSize: '0.9rem' }}>
+                      Completa los datos para conectarte de inmediato con nuestro soporte aquí en la plataforma.
+                    </p>
+                  </div>
+                  {user && (
+                    <span style={{ fontSize: '0.8rem', background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', padding: '0.35rem 0.75rem', borderRadius: '999px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <i className="fa fa-user-check" /> Sesión de {user.nombre || user.username}
+                    </span>
+                  )}
                 </div>
 
                 <form onSubmit={handleCreateTicket}>
