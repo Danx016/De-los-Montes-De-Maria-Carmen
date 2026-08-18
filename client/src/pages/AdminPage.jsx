@@ -3011,8 +3011,8 @@ export default function AdminPage() {
                               bannerForm.categoria_nombre === cat.nombre_categoria
                             
                             // Image resolution
-                            let catImg = '/img/verduras.avif'
-                            if (cat.imagen) {
+                            let catImg = null
+                            if (cat.imagen && cat.imagen.trim() !== '') {
                               if (cat.imagen.startsWith('http://') || cat.imagen.startsWith('https://') || cat.imagen.startsWith('/')) {
                                 catImg = cat.imagen
                               } else {
@@ -3028,11 +3028,11 @@ export default function AdminPage() {
                                     ...prev,
                                     categoria_nombre: cat.nombre_categoria || cat.nombre,
                                     categoria_slug: catSlug,
-                                    categoria_thumb: catImg,
+                                    categoria_thumb: catImg || '',
                                     color_acento: cat.color || prev.color_acento,
                                     boton_principal_link: `/categoria/${catSlug}`,
                                   }))
-                                  setBannerThumbPreview(catImg)
+                                  setBannerThumbPreview(catImg || '')
                                   setBannerThumbFile(null)
                                 }}
                                 style={{
@@ -3086,7 +3086,7 @@ export default function AdminPage() {
                                     height: '46px',
                                     borderRadius: '50%',
                                     overflow: 'hidden',
-                                    backgroundColor: '#f1f5f9',
+                                    backgroundColor: `${cat.color || '#22c55e'}18`,
                                     border: `2px solid ${cat.color || '#22c55e'}`,
                                     display: 'flex',
                                     alignItems: 'center',
@@ -3094,14 +3094,18 @@ export default function AdminPage() {
                                     flexShrink: 0,
                                   }}
                                 >
-                                  <img
-                                    src={catImg}
-                                    alt={cat.nombre_categoria}
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                    onError={(e) => {
-                                      e.target.src = '/img/verduras.avif'
-                                    }}
-                                  />
+                                  {catImg ? (
+                                    <img
+                                      src={catImg}
+                                      alt={cat.nombre_categoria}
+                                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    />
+                                  ) : (
+                                    <i
+                                      className={`fa ${cat.icono || 'fa-seedling'}`}
+                                      style={{ color: cat.color || '#22c55e', fontSize: '1.2rem' }}
+                                    />
+                                  )}
                                 </div>
                                 <span
                                   style={{
@@ -3133,22 +3137,30 @@ export default function AdminPage() {
                       >
                         <div
                           style={{
-                            width: '32px',
-                            height: '32px',
+                            width: '34px',
+                            height: '34px',
                             borderRadius: '50%',
                             overflow: 'hidden',
-                            border: '1px solid var(--border-color)',
+                            border: `2px solid ${bannerForm.color_acento || '#22c55e'}`,
+                            backgroundColor: `${bannerForm.color_acento || '#22c55e'}18`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                             flexShrink: 0,
                           }}
                         >
-                          <img
-                            src={bannerThumbPreview || bannerForm.categoria_thumb || '/img/verduras.avif'}
-                            alt={bannerForm.categoria_nombre}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            onError={(e) => {
-                              e.target.src = '/img/verduras.avif'
-                            }}
-                          />
+                          {bannerThumbPreview ? (
+                            <img
+                              src={bannerThumbPreview}
+                              alt={bannerForm.categoria_nombre}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          ) : (
+                            <i
+                              className="fa fa-seedling"
+                              style={{ color: bannerForm.color_acento || '#22c55e', fontSize: '0.95rem' }}
+                            />
+                          )}
                         </div>
                         <div style={{ flex: 1 }}>
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
