@@ -225,15 +225,30 @@ export default function HomePage() {
     return DEFAULT_SLIDES
   }, [dbBanners, DEFAULT_SLIDES])
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length)
-    }, 6000)
-    return () => clearInterval(interval)
-  }, [slides.length])
+  const [isHovered, setIsHovered] = useState(false)
+  const SLIDE_DURATION = 7500 // 7.5 segundos completos por slide
 
-  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length)
-  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
+  useEffect(() => {
+    if (isHovered || slides.length <= 1) return
+
+    const timer = setTimeout(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length)
+    }, SLIDE_DURATION)
+
+    return () => clearTimeout(timer)
+  }, [currentSlide, isHovered, slides.length])
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % slides.length)
+  }
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length)
+  }
+
+  const goToSlide = (idx) => {
+    setCurrentSlide(idx)
+  }
 
   const filteredProducts = selectedCat === 'all'
     ? productos
@@ -249,7 +264,35 @@ export default function HomePage() {
 
       <main className="main-content-wrap">
         {/* Dynamic Multi-Style Hero Carousel */}
-        <section className="ofercampo-hero-wrapper">
+        <section
+          className="ofercampo-hero-wrapper"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          {/* Top Progress Timer Bar */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '3px',
+              backgroundColor: 'rgba(255, 255, 255, 0.15)',
+              zIndex: 20,
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              key={currentSlide}
+              style={{
+                height: '100%',
+                backgroundColor: slides[currentSlide]?.accentColor || '#22c55e',
+                animation: isHovered ? 'none' : `slideTimerProgress ${SLIDE_DURATION}ms linear forwards`,
+                boxShadow: '0 0 10px rgba(34, 197, 94, 0.8)',
+              }}
+            />
+          </div>
+
           {slides.map((slide, idx) => {
             const isActive = idx === currentSlide
 
@@ -289,7 +332,7 @@ export default function HomePage() {
                 key={dotIdx}
                 type="button"
                 className={`ofercampo-dot ${dotIdx === currentSlide ? 'active' : ''}`}
-                onClick={() => setCurrentSlide(dotIdx)}
+                onClick={() => goToSlide(dotIdx)}
                 aria-label={`Ir a diapositiva ${dotIdx + 1}`}
               />
             ))}
