@@ -165,10 +165,10 @@ class TelegramService {
   }
 
   /**
-   * Enviar mensaje a todos los administradores / suscriptores registrados
+   * Enviar mensaje a todos los administradores / suscriptores registrados (con exclusión opcional del emisor)
    */
-  async broadcastAdmins(text, options = {}) {
-    const recipients = Array.from(this.subscribers);
+  async broadcastAdmins(text, options = {}, excludeChatId = null) {
+    const recipients = Array.from(this.subscribers).filter((id) => !excludeChatId || String(id) !== String(excludeChatId));
     if (recipients.length === 0) {
       return;
     }
@@ -301,7 +301,7 @@ ${usuario?.nombre ? `👤 <b>Cliente:</b> ${usuario.nombre}\n` : ''}
   /**
    * Notificar Nuevo Ticket de Soporte a Administradores
    */
-  async notificarNuevoTicket({ ticket, mensajeInicial }) {
+  async notificarNuevoTicket({ ticket, mensajeInicial, excludeChatId = null }) {
     try {
       const ticketCode = ticket.ticket_code || ticket.session_id;
       const msg = `
@@ -327,7 +327,7 @@ Asunto: <b>${ticket.asunto || 'Consulta'}</b>
         }
       };
 
-      await this.broadcastAdmins(msg, keyboard);
+      await this.broadcastAdmins(msg, keyboard, excludeChatId);
     } catch (err) {
       console.error('[Telegram] Error al notificar ticket:', err);
     }
@@ -336,7 +336,7 @@ Asunto: <b>${ticket.asunto || 'Consulta'}</b>
   /**
    * Notificar cuando un cliente solicita hablar con Asesor Humano
    */
-  async notificarSolicitudAsesorHumano({ ticket }) {
+  async notificarSolicitudAsesorHumano({ ticket, excludeChatId = null }) {
     try {
       const ticketCode = ticket.ticket_code || ticket.id;
       const msg = `
@@ -360,7 +360,7 @@ Asunto: <b>${ticket.asunto}</b>
         }
       };
 
-      await this.broadcastAdmins(msg, keyboard);
+      await this.broadcastAdmins(msg, keyboard, excludeChatId);
     } catch (err) {
       console.error('[Telegram] Error al notificar asesor humano:', err);
     }
@@ -738,7 +738,7 @@ ${replyText}
             if (this.soporteRepository) {
               await this.soporteRepository.actualizarTicket(ticket.id, { estado: 'agente' });
             }
-            this.notificarSolicitudAsesorHumano({ ticket }).catch(() => {});
+            this.notificarSolicitudAsesorHumano({ ticket, excludeChatId: cbChatId }).catch(() => {});
             await this.sendMessage(cbChatId, `🔔 <b>¡Solicitud de Asesor Humano Recibida!</b>\n━━━━━━━━━━━━━━━━━━\nHemos notificado a nuestro equipo. Un asesor humano te atenderá por este chat en breve.`);
           }
           return { ok: true };
@@ -1142,9 +1142,9 @@ ${replyText}
           });
         }
 
-        // Notificar admins
+        // Notificar admins (excluyendo el chat del propio usuario para evitar duplicidad visual)
         if (ticket) {
-          this.notificarNuevoTicket({ ticket, mensajeInicial: userMsg }).catch(() => {});
+          this.notificarNuevoTicket({ ticket, mensajeInicial: userMsg, excludeChatId: chatId }).catch(() => {});
         }
 
         session.state = 'CHAT_ACTIVO';
@@ -1209,7 +1209,7 @@ ${aiReply}
             });
           }
 
-          this.notificarSolicitudAsesorHumano({ ticket }).catch(() => {});
+          this.notificarSolicitudAsesorHumano({ ticket, excludeChatId: chatId }).catch(() => {});
 
           await this.sendMessage(chatId, `🔔 <b>¡Solicitud de Asesor Humano Recibida!</b>\n━━━━━━━━━━━━━━━━━━\nHemos notificado a nuestro equipo. Un asesor humano se comunicará contigo directamente por este chat en breves minutos.`);
           return { ok: true };
@@ -1244,7 +1244,8 @@ ${aiReply}
         }
 
         if (currentTicket.estado === 'agente') {
-          await this.sendMessage(chatId, `📨 <i>Tu mensaje fue recibido y enviado a tu asesor asignado. Te responderemos en breve por aquí.</i>`);
+          // El mensaje ya se guardó y se transmitió al asesor en el panel en tiempo real.
+          // No enviamos mensajes repetitivos automáticos para que la conversación fluya limpiamente.
           return { ok: true };
         }
 
