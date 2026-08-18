@@ -59,7 +59,80 @@ class EmailService {
     }
   }
 
+  /**
+   * Envío a través de APIs HTTP REST (Puerto 443 HTTPS - 100% compatible con Render)
+   */
+  async sendViaHttpApi({ to, subject, html }) {
+    // 1. Brevo API (Envío gratuito hasta 300 correos/día sobre HTTPS)
+    const brevoKey = process.env.BREVO_API_KEY;
+    if (brevoKey) {
+      try {
+        const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'api-key': brevoKey,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            sender: { name: 'De los Montes de María', email: appConfig.smtp.user || 'danilorodelo355@gmail.com' },
+            to: [{ email: to }],
+            subject,
+            htmlContent: html
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          console.log(`✉️ [Brevo HTTPS] Correo enviado exitosamente a: ${to} | ID: ${data?.messageId || 'OK'}`);
+          return true;
+        } else {
+          const errData = await res.text();
+          console.warn(`⚠️ [Brevo HTTPS Error]: ${errData}`);
+        }
+      } catch (err) {
+        console.error('⚠️ [Brevo Fetch Error]:', err.message);
+      }
+    }
+
+    // 2. Resend API (Envío sobre HTTPS)
+    const resendKey = process.env.RESEND_API_KEY;
+    if (resendKey) {
+      try {
+        const res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: 'De los Montes de María <onboarding@resend.dev>',
+            to: [to],
+            subject,
+            html
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          console.log(`✉️ [Resend HTTPS] Correo enviado exitosamente a: ${to} | ID: ${data?.id || 'OK'}`);
+          return true;
+        } else {
+          const errData = await res.text();
+          console.warn(`⚠️ [Resend HTTPS Error]: ${errData}`);
+        }
+      } catch (err) {
+        console.error('⚠️ [Resend Fetch Error]:', err.message);
+      }
+    }
+
+    return false;
+  }
+
   async sendMailSafe({ to, subject, html, attachments, fallbackLog }) {
+    // 1. Intentar primero vía HTTP API (sin restricciones de puertos de Render)
+    const httpSuccess = await this.sendViaHttpApi({ to, subject, html });
+    if (httpSuccess) return true;
+
+    // 2. Intentar vía SMTP directo
     if (!this.transporter) {
       this.inicializarTransporter();
     }
