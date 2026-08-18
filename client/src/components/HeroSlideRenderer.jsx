@@ -223,17 +223,13 @@ export default function HeroSlideRenderer({ slide, isPreview = false }) {
 
             <div className="ofercampo-hero-right">
               <div className="ofercampo-visual-card" style={{ maxWidth: isPreview ? '220px' : '360px', padding: isPreview ? '0.75rem' : undefined, borderRadius: isPreview ? '12px' : undefined }}>
-                <div className="ofercampo-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isPreview ? '0.35rem' : '0.6rem' }}>
-                  <span className="ofercampo-pill-tag" style={{ background: '#fef08a', color: '#854d0e', fontSize: isPreview ? '0.68rem' : '0.75rem', fontWeight: 800, padding: isPreview ? '2px 6px' : '0.25rem 0.65rem', borderRadius: '999px' }}>
-                    {badgeTop}
-                  </span>
-                  <span style={{ fontSize: isPreview ? '0.68rem' : '0.75rem', color: '#bbf7d0', fontWeight: 600 }}>
-                    🇨🇴 Montes de María
-                  </span>
-                </div>
-
-                <div className="ofercampo-product-preview-box" style={{ height: isPreview ? '105px' : '200px', marginBottom: isPreview ? '0.4rem' : undefined }}>
+                <div className="ofercampo-product-preview-box" style={{ height: isPreview ? '105px' : '200px', marginBottom: isPreview ? '0.4rem' : undefined, position: 'relative' }}>
                   <img src={prodImg} alt={prodTitle} onError={(e) => { e.target.src = '/img/Logo.jpg' }} />
+                  {badgeTop && (
+                    <span style={{ position: 'absolute', top: '6px', left: '6px', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', color: '#facc15', fontSize: isPreview ? '0.62rem' : '0.72rem', fontWeight: 800, padding: isPreview ? '2px 6px' : '3px 8px', borderRadius: '6px', border: '1px solid rgba(250,204,21,0.3)', zIndex: 2 }}>
+                      {badgeTop}
+                    </span>
+                  )}
                 </div>
 
                 <div className="ofercampo-card-details">
