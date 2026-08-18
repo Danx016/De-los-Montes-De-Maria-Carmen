@@ -5,22 +5,33 @@
 require('dotenv').config();
 const mysql = require('mysql2');
 
+function cleanEnv(val, fallback = '') {
+  if (val === undefined || val === null) return fallback;
+  const s = String(val).trim().replace(/^["']|["']$/g, '');
+  return s || fallback;
+}
+
+const dbHost = cleanEnv(process.env.DB_HOST, 'localhost');
+const dbPort = parseInt(cleanEnv(process.env.DB_PORT, '3306'), 10) || 3306;
+const dbUser = cleanEnv(process.env.DB_USER, 'root');
+const dbPass = cleanEnv(process.env.DB_PASS, '');
+const dbName = cleanEnv(process.env.DB_NAME, 'defaultdb');
 const useSsl =
   process.env.DB_SSL === 'true' ||
-  (process.env.DB_HOST &&
-    (process.env.DB_HOST.includes('aivencloud.com') ||
-      process.env.DB_HOST.includes('railway') ||
-      process.env.DB_HOST.includes('clever-cloud')));
+  dbHost.includes('aivencloud.com') ||
+  dbHost.includes('railway') ||
+  dbHost.includes('clever-cloud');
 
 const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT, 10) || 3306,
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASS !== undefined ? process.env.DB_PASS : '',
-  database: process.env.DB_NAME || 'agro_campo',
+  host: dbHost,
+  port: dbPort,
+  user: dbUser,
+  password: dbPass,
+  database: dbName,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
+  connectTimeout: 15000,
   multipleStatements: true,
   ssl: useSsl ? { rejectUnauthorized: false } : undefined,
 };
@@ -36,15 +47,16 @@ const initConn = mysql.createConnection({
   password: dbConfig.password,
   database: dbConfig.database,
   multipleStatements: true,
+  connectTimeout: 15000,
   ssl: useSsl ? { rejectUnauthorized: false } : undefined,
 });
 
 initConn.connect((err) => {
   if (err) {
-    console.error('⚠️  No se pudo conectar al servidor MySQL:', err.message);
-    console.error('ℹ️  Verifica que el servicio MySQL esté iniciado y las variables DB_* en el archivo .env o en Render sean correctas.');
+    console.error(`⚠️  No se pudo conectar al servidor MySQL (${dbHost}:${dbPort}):`, err.code || err.message || err);
+    console.error('ℹ️  Verifica que las variables DB_* en el panel Environment de Render sean correctas.');
   } else {
-    console.log(`Base de datos MySQL '${dbConfig.database}' conectada con éxito en ${dbConfig.host}:${dbConfig.port}`);
+    console.log(`✅ Base de datos MySQL '${dbConfig.database}' conectada con éxito en ${dbConfig.host}:${dbConfig.port}`);
     initConn.end();
     initializeDatabaseTables();
   }
