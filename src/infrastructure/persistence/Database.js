@@ -5,6 +5,13 @@
 require('dotenv').config();
 const mysql = require('mysql2');
 
+const useSsl =
+  process.env.DB_SSL === 'true' ||
+  (process.env.DB_HOST &&
+    (process.env.DB_HOST.includes('aivencloud.com') ||
+      process.env.DB_HOST.includes('railway') ||
+      process.env.DB_HOST.includes('clever-cloud')));
+
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT, 10) || 3306,
@@ -14,35 +21,32 @@ const dbConfig = {
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  multipleStatements: true
+  multipleStatements: true,
+  ssl: useSsl ? { rejectUnauthorized: false } : undefined,
 };
 
 // Pool principal de MySQL
 const pool = mysql.createPool(dbConfig);
 
-// Verificar la base de datos y crear las tablas si no existen
+// Verificar la conexión y preparar las tablas
 const initConn = mysql.createConnection({
   host: dbConfig.host,
   port: dbConfig.port,
   user: dbConfig.user,
   password: dbConfig.password,
-  multipleStatements: true
+  database: dbConfig.database,
+  multipleStatements: true,
+  ssl: useSsl ? { rejectUnauthorized: false } : undefined,
 });
 
 initConn.connect((err) => {
   if (err) {
     console.error('⚠️  No se pudo conectar al servidor MySQL:', err.message);
-    console.error('ℹ️  Verifica que el servicio MySQL esté iniciado y las variables DB_* en el archivo .env sean correctas.');
+    console.error('ℹ️  Verifica que el servicio MySQL esté iniciado y las variables DB_* en el archivo .env o en Render sean correctas.');
   } else {
-    initConn.query(`CREATE DATABASE IF NOT EXISTS \`${dbConfig.database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`, (err2) => {
-      if (err2) {
-        console.error('Error al verificar/crear la base de datos MySQL:', err2.message);
-      } else {
-        console.log(`Base de datos MySQL '${dbConfig.database}' verificada/lista en ${dbConfig.host}:${dbConfig.port}`);
-      }
-      initConn.end();
-      initializeDatabaseTables();
-    });
+    console.log(`Base de datos MySQL '${dbConfig.database}' conectada con éxito en ${dbConfig.host}:${dbConfig.port}`);
+    initConn.end();
+    initializeDatabaseTables();
   }
 });
 
