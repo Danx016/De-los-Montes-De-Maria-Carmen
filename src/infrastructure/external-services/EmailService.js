@@ -24,7 +24,7 @@ class EmailService {
     const pass = appConfig.smtp.pass || 'gszsvbqujjebrlgk';
 
     if (user && pass) {
-      // Configuración directa y exclusiva de Google Gmail (Puerto 465 SSL)
+      // Configuración directa y exclusiva de Google Gmail (Puerto 465 SSL) forzando IPv4 estricto
       this.transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
         port: 465,
@@ -33,7 +33,10 @@ class EmailService {
           user,
           pass,
         },
-        family: 4, // Forzar IPv4
+        family: 4,
+        lookup: (hostname, options, callback) => {
+          dns.lookup(hostname, { family: 4, all: false }, callback);
+        },
         pool: true,
         maxConnections: 5,
         maxMessages: 100,
