@@ -21,7 +21,7 @@ class EmailService {
 
   inicializarTransporter() {
     const user = appConfig.smtp.user || 'danilorodelo355@gmail.com';
-    const rawPass = appConfig.smtp.pass || 'zfcnratccvmbmdxp';
+    const rawPass = appConfig.smtp.pass || 'gszsvbqujjebrlgk';
     const pass = rawPass.replace(/\s+/g, '');
 
     if (user && pass) {
