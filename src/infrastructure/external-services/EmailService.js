@@ -48,8 +48,8 @@ class EmailService {
    * Envío a través de APIs HTTP REST (Puerto 443 HTTPS - 100% compatible con Render)
    */
   async sendViaHttpApi({ to, subject, html }) {
-    const brevoKey = process.env.BREVO_API_KEY;
-    const resendKey = process.env.RESEND_API_KEY;
+    const brevoKey = appConfig.brevoApiKey || process.env.BREVO_API_KEY;
+    const resendKey = appConfig.resendApiKey || process.env.RESEND_API_KEY;
 
     if (brevoKey) {
       try {
