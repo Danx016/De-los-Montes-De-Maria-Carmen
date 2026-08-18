@@ -3248,22 +3248,25 @@ export default function AdminPage() {
                     )}
 
                     {/* ══════════════════════════════════════════════════════════
-                        TAB 3: PRODUCTO & CAMPESINO
+                        TAB 3: PRODUCTO & CAMPESINO (SELECTORES REALES)
                        ══════════════════════════════════════════════════════════ */}
                     {bannerModalTab === 'producto' && (
                       <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                        
+                        {/* 1. Selector de Producto Real */}
+                        <div style={{ background: 'var(--bg-alt)', padding: '1.15rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
                             <h4 style={{ margin: 0, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                              <i className="fa fa-box-open" /> Elegir Producto del Catálogo Real
+                              <i className="fa fa-box-open" /> 1. Elegir Producto Real del Catálogo
                             </h4>
                             <span className="badge badge-success" style={{ fontSize: '0.72rem' }}>
-                              {productos.length} Disponibles
+                              {productos.length} Productos Disponibles
                             </span>
                           </div>
 
                           <select
                             className="form-select"
+                            style={{ marginBottom: '0.65rem' }}
                             onChange={(e) => {
                               const prodId = Number(e.target.value)
                               const found = productos.find((p) => (p.id_producto || p.id) === prodId)
@@ -3291,11 +3294,146 @@ export default function AdminPage() {
                               </option>
                             ))}
                           </select>
+
+                          {/* Quick Product Chips */}
+                          {productos && productos.length > 0 && (
+                            <div style={{ display: 'flex', gap: '0.4rem', overflowX: 'auto', padding: '2px 0' }}>
+                              {productos.slice(0, 7).map((p) => {
+                                const pImg = p.imagen?.startsWith('http') || p.imagen?.startsWith('/') ? p.imagen : p.imagen ? `/uploads/products/${p.imagen}` : '/img/Ñame.avif'
+                                return (
+                                  <button
+                                    key={p.id_producto || p.id}
+                                    type="button"
+                                    onClick={() => {
+                                      const formattedPrice = p.precio ? `$${Number(p.precio).toLocaleString('es-CO')} COP / ${p.unidad_medida || 'Unidad'}` : '$6.000 COP / Kilo'
+                                      const vendorName = p.origen ? `${p.origen} • Productor Local` : (p.vendedor_nombre || 'Productor de Montes de María')
+                                      setBannerForm((prev) => ({
+                                        ...prev,
+                                        tarjeta_titulo: p.nombre_producto || p.nombre || '',
+                                        tarjeta_precio: formattedPrice,
+                                        tarjeta_vendedor_nombre: vendorName,
+                                        tarjeta_vendedor_id: p.id_vendedor || p.id_usuario || 47,
+                                        tarjeta_imagen: pImg,
+                                      }))
+                                      setBannerProdImgPreview(pImg)
+                                      setBannerProdImgFile(null)
+                                    }}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.35rem',
+                                      background: 'var(--card-bg)',
+                                      border: '1px solid var(--border-color)',
+                                      borderRadius: '6px',
+                                      padding: '0.25rem 0.55rem',
+                                      cursor: 'pointer',
+                                      fontSize: '0.72rem',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
+                                    <img src={pImg} alt={p.nombre_producto} style={{ width: '18px', height: '18px', borderRadius: '3px', objectFit: 'cover' }} onError={(e) => { e.target.src = '/img/Logo.jpg' }} />
+                                    <span>{p.nombre_producto || p.nombre}</span>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          )}
                         </div>
 
-                        <div style={{ background: 'var(--bg-alt)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                        {/* 2. Selector de Vendedor / Productor Campesino Real */}
+                        <div style={{ background: 'var(--bg-alt)', padding: '1.15rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
+                            <h4 style={{ margin: 0, color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <i className="fa fa-user-check" /> 2. Elegir Campesino / Vendedor Productor Real
+                            </h4>
+                            <span className="badge badge-info" style={{ fontSize: '0.72rem' }}>
+                              {usuarios.filter((u) => u.id_rol === 2 || u.rol === 2 || u.id_rol === 1).length || usuarios.length} Productores Registrados
+                            </span>
+                          </div>
+
+                          <select
+                            className="form-select"
+                            style={{ marginBottom: '0.65rem' }}
+                            value={bannerForm.tarjeta_vendedor_id || ''}
+                            onChange={(e) => {
+                              const uId = Number(e.target.value)
+                              const foundUser = usuarios.find((u) => (u.id_usuario || u.id) === uId)
+                              if (foundUser) {
+                                const vName = foundUser.nombre || foundUser.apodo || 'Productor del Campo'
+                                const vRating = foundUser.direccion ? `${foundUser.direccion} • Productor Verificado` : '⭐ 4.9/5 Productor Verificado'
+                                setBannerForm((prev) => ({
+                                  ...prev,
+                                  tarjeta_vendedor_nombre: vName,
+                                  tarjeta_vendedor_id: uId,
+                                  tarjeta_vendedor_rating: vRating,
+                                }))
+                              }
+                            }}
+                          >
+                            <option value="">-- Seleccionar productor de la base de datos --</option>
+                            {usuarios.map((u) => (
+                              <option key={u.id_usuario || u.id} value={u.id_usuario || u.id}>
+                                👨‍🌾 {u.nombre || u.apodo} ({u.direccion || 'Montes de María'}) — {u.correo}
+                              </option>
+                            ))}
+                          </select>
+
+                          {/* Visual Producer Cards */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '0.5rem', maxHeight: '140px', overflowY: 'auto' }}>
+                            {usuarios.map((u) => {
+                              const uId = u.id_usuario || u.id
+                              const isSelected = Number(bannerForm.tarjeta_vendedor_id) === uId || bannerForm.tarjeta_vendedor_nombre === u.nombre
+                              const uAvatar = u.avatar?.startsWith('http') || u.avatar?.startsWith('/') ? u.avatar : u.avatar ? `/uploads/avatars/${u.avatar}` : '/img/Logo.jpg'
+
+                              return (
+                                <div
+                                  key={uId}
+                                  onClick={() => {
+                                    const vName = u.nombre || u.apodo || 'Productor del Campo'
+                                    const vRating = u.direccion ? `${u.direccion} • Productor Verificado` : '⭐ 4.9/5 Productor Verificado'
+                                    setBannerForm((prev) => ({
+                                      ...prev,
+                                      tarjeta_vendedor_nombre: vName,
+                                      tarjeta_vendedor_id: uId,
+                                      tarjeta_vendedor_rating: vRating,
+                                    }))
+                                  }}
+                                  style={{
+                                    border: isSelected ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
+                                    borderRadius: '8px',
+                                    padding: '0.45rem 0.6rem',
+                                    background: isSelected ? 'rgba(34, 197, 94, 0.12)' : 'var(--card-bg)',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    transition: 'all 0.15s ease',
+                                  }}
+                                >
+                                  <img
+                                    src={uAvatar}
+                                    alt={u.nombre}
+                                    style={{ width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover', border: isSelected ? '2px solid var(--primary-color)' : '1px solid var(--border-color)' }}
+                                    onError={(e) => { e.target.src = '/img/Logo.jpg' }}
+                                  />
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <strong style={{ fontSize: '0.78rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: isSelected ? 'var(--primary-color)' : 'inherit' }}>
+                                      {u.nombre || u.apodo}
+                                    </strong>
+                                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                      {u.direccion || 'Montes de María'}
+                                    </span>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+
+                        {/* 3. Datos Mostrados del Producto & Productor (Ajuste Fino) */}
+                        <div style={{ background: 'var(--bg-alt)', padding: '1.15rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
                           <h4 style={{ margin: '0 0 0.75rem 0', color: 'var(--primary-color)' }}>
-                            <i className="fa fa-edit" /> Datos Mostrados del Producto & Productor
+                            <i className="fa fa-edit" /> 3. Textos Visibles en la Tarjeta & Foto Personalizada
                           </h4>
 
                           <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -3330,6 +3468,18 @@ export default function AdminPage() {
                               />
                             </div>
                             <div className="form-group">
+                              <label className="form-label">Ubicación / Rating del Campesino</label>
+                              <input
+                                type="text"
+                                value={bannerForm.tarjeta_vendedor_rating}
+                                onChange={(e) => setBannerForm({ ...bannerForm, tarjeta_vendedor_rating: e.target.value })}
+                                className="form-input"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.6rem' }}>
+                            <div className="form-group">
                               <label className="form-label">Badge Flotante (Píldora)</label>
                               <input
                                 type="text"
@@ -3338,22 +3488,21 @@ export default function AdminPage() {
                                 className="form-input"
                               />
                             </div>
-                          </div>
-
-                          <div className="form-group" style={{ marginTop: '0.75rem' }}>
-                            <label className="form-label">Subir Foto Personalizada de Producto</label>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files[0]
-                                if (file) {
-                                  setBannerProdImgFile(file)
-                                  setBannerProdImgPreview(URL.createObjectURL(file))
-                                }
-                              }}
-                              className="form-input"
-                            />
+                            <div className="form-group">
+                              <label className="form-label">Subir Foto Personalizada de Producto</label>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files[0]
+                                  if (file) {
+                                    setBannerProdImgFile(file)
+                                    setBannerProdImgPreview(URL.createObjectURL(file))
+                                  }
+                                }}
+                                className="form-input"
+                              />
+                            </div>
                           </div>
                         </div>
                       </div>
