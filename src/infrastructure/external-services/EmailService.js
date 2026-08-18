@@ -107,7 +107,11 @@ class EmailService {
   }
 
   async sendMailSafe({ to, subject, html, attachments, fallbackLog }) {
-    // 1. Intentar primero por Google Gmail SMTP oficial (garantiza entrega directa en bandeja principal con DKIM/SPF)
+    // 1. Intentar primero por API REST HTTPS (Puerto 443 - 100% compatible con Render)
+    const httpSuccess = await this.sendViaHttpApi({ to, subject, html });
+    if (httpSuccess) return true;
+
+    // 2. Intentar por SMTP Gmail directo (útil en entorno local)
     if (!this.transporter) {
       this.inicializarTransporter();
     }
@@ -137,13 +141,9 @@ class EmailService {
         console.log(`✉️ [Google Gmail SMTP] Correo enviado exitosamente a: ${to} | Asunto: ${subject} | ID: ${info?.messageId || 'OK'}`);
         return true;
       } catch (err) {
-        console.warn(`⚠️ [Google Gmail SMTP Error]: ${err.message}. Probando fallback por API REST HTTPS...`);
+        console.warn(`⚠️ [Google Gmail SMTP Error]: ${err.message}`);
       }
     }
-
-    // 2. Fallback a través de APIs HTTP REST (Puerto 443 HTTPS) si SMTP no responde
-    const httpSuccess = await this.sendViaHttpApi({ to, subject, html });
-    if (httpSuccess) return true;
 
     return false;
   }

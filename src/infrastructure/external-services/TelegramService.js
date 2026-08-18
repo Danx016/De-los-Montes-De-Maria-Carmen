@@ -1455,7 +1455,8 @@ Hemos enviado un <b>código de seguridad de 6 dígitos</b> a tu correo electrón
 
 ✍️ <b>Escribe los 6 dígitos aquí en el chat para acceder:</b>
 
-<i>💡 Consejo: Si lo prefieres, también puedes ingresar escribiendo tu contraseña de la web.</i>
+<i>📁 Revisa en tu bandeja de entrada o en la carpeta de <b>Spam / Correo no deseado</b>.</i>
+<i>💡 También puedes ingresar directamente escribiendo tu contraseña de la web.</i>
 `;
 
       const resendKeyboard = {
@@ -1507,6 +1508,7 @@ Hemos enviado un nuevo código de 6 dígitos a:
 📧 <b>${user.correo}</b>
 
 ✍️ <b>Escribe los 6 dígitos aquí en el chat para acceder:</b>
+<i>(Revisa en tu bandeja de entrada o en la carpeta de Spam / Correo no deseado)</i>
 `;
 
     const resendKeyboard = {
