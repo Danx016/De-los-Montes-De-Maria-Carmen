@@ -122,8 +122,8 @@ class TelegramService {
       return {
         keyboard: [
           [{ text: '📊 Resumen' }, { text: '🎫 Tickets' }],
-          [{ text: '🛒 Ventas' }, { text: '⚠️ Stock' }],
-          [{ text: '🌾 Catálogo' }, { text: '👤 Mi Perfil' }]
+          [{ text: '🛒 Ventas' }, { text: '📦 Productos & Stock' }],
+          [{ text: '👥 Usuarios' }, { text: '👤 Mi Perfil' }]
         ],
         resize_keyboard: true,
         persistent: true
@@ -171,6 +171,39 @@ class TelegramService {
       return await this.request('sendMessage', fallbackPayload);
     }
     return res;
+  }
+
+  /**
+   * Editar mensaje existente en un chat
+   */
+  async editMessageText(chatId, messageId, text, options = {}) {
+    if (!chatId || !messageId || !text) return;
+    const payload = {
+      chat_id: chatId,
+      message_id: messageId,
+      text: text,
+      parse_mode: options.parse_mode !== undefined ? options.parse_mode : 'HTML',
+      disable_web_page_preview: options.disable_web_page_preview ?? true,
+      ...options,
+    };
+    const res = await this.request('editMessageText', payload);
+    if (res && !res.ok && res.description && res.description.toLowerCase().includes('parse')) {
+      const fallbackPayload = { ...payload, parse_mode: undefined };
+      return await this.request('editMessageText', fallbackPayload);
+    }
+    return res;
+  }
+
+  /**
+   * Responder a un callback query para cerrar el spinner táctil en Telegram
+   */
+  async answerCallbackQuery(callbackQueryId, text = '', showAlert = false) {
+    if (!callbackQueryId) return;
+    return await this.request('answerCallbackQuery', {
+      callback_query_id: callbackQueryId,
+      text: text,
+      show_alert: showAlert,
+    });
   }
 
   /**
@@ -615,6 +648,10 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
               { text: '🎫 Ver Tickets', callback_data: 'cmd_tickets' }
             ],
             [
+              { text: '📦 Gestionar Productos', callback_data: 'cmd_productos' },
+              { text: '👥 Gestionar Usuarios', callback_data: 'cmd_usuarios' }
+            ],
+            [
               { text: '🛒 Últimas Ventas', callback_data: 'cmd_ventas' },
               { text: '⚠️ Stock Crítico', callback_data: 'cmd_stock' }
             ],
@@ -1037,6 +1074,118 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
           if (isAdminOrAdvisor || cbChatId === String(this.adminChatId)) {
             await this.mostrarStockCritico(cbChatId);
           }
+          return { ok: true };
+        }
+
+        // ── GESTIÓN DE PRODUCTOS Y PRECIOS EN 1-CLIC (ADMIN) ──
+        if (cbData.startsWith('prod_toggle:')) {
+          const prodId = cbData.replace('prod_toggle:', '').trim();
+          await this.alternarEstadoProducto(cbChatId, prodId, authUser, callbackQuery.message?.message_id);
+          await this.answerCallbackQuery(callbackQuery.id, 'Estado de producto actualizado');
+          return { ok: true };
+        }
+
+        if (cbData.startsWith('prod_stock_add:')) {
+          const parts = cbData.split(':');
+          const prodId = parts[1];
+          const delta = parseInt(parts[2], 10) || 0;
+          await this.ajustarStockProducto(cbChatId, prodId, delta, false, authUser, callbackQuery.message?.message_id);
+          await this.answerCallbackQuery(callbackQuery.id, `Stock ${delta >= 0 ? '+' : ''}${delta} aplicado`);
+          return { ok: true };
+        }
+
+        if (cbData.startsWith('prod_stock_set:')) {
+          const parts = cbData.split(':');
+          const prodId = parts[1];
+          const val = parseInt(parts[2], 10) || 0;
+          await this.ajustarStockProducto(cbChatId, prodId, val, true, authUser, callbackQuery.message?.message_id);
+          await this.answerCallbackQuery(callbackQuery.id, `Stock fijado en ${val}`);
+          return { ok: true };
+        }
+
+        if (cbData.startsWith('prod_price_set:')) {
+          const parts = cbData.split(':');
+          const prodId = parts[1];
+          const price = parseFloat(parts[2]) || 0;
+          await this.ajustarPrecioProducto(cbChatId, prodId, price, authUser, callbackQuery.message?.message_id);
+          await this.answerCallbackQuery(callbackQuery.id, `Precio actualizado a $${price.toLocaleString('es-CO')}`);
+          return { ok: true };
+        }
+
+        if (cbData.startsWith('prod_view:')) {
+          const prodId = cbData.replace('prod_view:', '').trim();
+          await this.mostrarTarjetaProducto(cbChatId, prodId, callbackQuery.message?.message_id);
+          await this.answerCallbackQuery(callbackQuery.id);
+          return { ok: true };
+        }
+
+        if (cbData === 'cmd_productos') {
+          if (isAdminOrAdvisor || cbChatId === String(this.adminChatId)) {
+            await this.mostrarMenuGestionProductos(cbChatId, '', 1, callbackQuery.message?.message_id);
+          }
+          await this.answerCallbackQuery(callbackQuery.id);
+          return { ok: true };
+        }
+
+        // ── GESTIÓN DE USUARIOS EN 1-CLIC (ADMIN) ──
+        if (cbData.startsWith('usr_toggle:')) {
+          const userId = cbData.replace('usr_toggle:', '').trim();
+          await this.alternarBloqueoUsuario(cbChatId, userId, authUser, callbackQuery.message?.message_id);
+          await this.answerCallbackQuery(callbackQuery.id, 'Estado de cuenta actualizado');
+          return { ok: true };
+        }
+
+        if (cbData.startsWith('usr_del_ask:')) {
+          const userId = cbData.replace('usr_del_ask:', '').trim();
+          await this.preguntarEliminarUsuario(cbChatId, userId, callbackQuery.message?.message_id);
+          await this.answerCallbackQuery(callbackQuery.id);
+          return { ok: true };
+        }
+
+        if (cbData.startsWith('usr_del_confirm:')) {
+          const userId = cbData.replace('usr_del_confirm:', '').trim();
+          await this.eliminarUsuarioDesdeTelegram(cbChatId, userId, authUser, callbackQuery.message?.message_id);
+          await this.answerCallbackQuery(callbackQuery.id, 'Usuario eliminado');
+          return { ok: true };
+        }
+
+        if (cbData.startsWith('usr_role_menu:')) {
+          const userId = cbData.replace('usr_role_menu:', '').trim();
+          await this.mostrarMenuCambiarRolUsuario(cbChatId, userId, callbackQuery.message?.message_id);
+          await this.answerCallbackQuery(callbackQuery.id);
+          return { ok: true };
+        }
+
+        if (cbData.startsWith('usr_role_set:')) {
+          const parts = cbData.split(':');
+          const userId = parts[1];
+          const newRoleId = parseInt(parts[2], 10);
+          await this.cambiarRolUsuario(cbChatId, userId, newRoleId, authUser, callbackQuery.message?.message_id);
+          await this.answerCallbackQuery(callbackQuery.id, 'Rol actualizado con éxito');
+          return { ok: true };
+        }
+
+        if (cbData.startsWith('usr_credit_add:')) {
+          const parts = cbData.split(':');
+          const userId = parts[1];
+          const amount = parseFloat(parts[2]) || 0;
+          await this.ajustarSaldoUsuario(cbChatId, userId, amount, true, authUser, callbackQuery.message?.message_id);
+          await this.answerCallbackQuery(callbackQuery.id, `Saldo acreditado: +$${amount.toLocaleString('es-CO')}`);
+          return { ok: true };
+        }
+
+        if (cbData.startsWith('usr_view:')) {
+          const userId = cbData.replace('usr_view:', '').trim();
+          await this.mostrarTarjetaUsuario(cbChatId, userId, callbackQuery.message?.message_id);
+          await this.answerCallbackQuery(callbackQuery.id);
+          return { ok: true };
+        }
+
+        if (cbData === 'cmd_usuarios') {
+          if (isAdminOrAdvisor || cbChatId === String(this.adminChatId)) {
+            await this.mostrarMenuGestionUsuarios(cbChatId, '', 1, callbackQuery.message?.message_id);
+          }
+          await this.answerCallbackQuery(callbackQuery.id);
           return { ok: true };
         }
 
@@ -1499,6 +1648,35 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
           return { ok: true };
         }
         await this.crearCuponDesdeTelegram(chatId, text, authUser);
+        return { ok: true };
+      }
+
+      if (text === '/productos' || text === '📦 Productos & Stock' || text.startsWith('/producto') || text.startsWith('/productos')) {
+        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
+          await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
+          return { ok: true };
+        }
+        const term = text.replace(/^\/(productos|producto)\s*/i, '').trim();
+        await this.mostrarMenuGestionProductos(chatId, term, 1);
+        return { ok: true };
+      }
+
+      if (text === '/usuarios' || text === '👥 Usuarios' || text.startsWith('/usuario') || text.startsWith('/usuarios')) {
+        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
+          await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
+          return { ok: true };
+        }
+        const term = text.replace(/^\/(usuarios|usuario)\s*/i, '').trim();
+        await this.mostrarMenuGestionUsuarios(chatId, term, 1);
+        return { ok: true };
+      }
+
+      if (text.startsWith('/bloquear_usuario') || text.startsWith('/desbloquear_usuario') || text.startsWith('/eliminar_usuario') || text.startsWith('/rol_usuario') || text.startsWith('/saldo') || text.startsWith('/recargar_saldo') || text.startsWith('/editar_usuario')) {
+        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
+          await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
+          return { ok: true };
+        }
+        await this.procesarComandosUsuarioAdmin(chatId, text, authUser);
         return { ok: true };
       }
 
@@ -2466,47 +2644,237 @@ ${topList}
     }
   }
 
+  // ── GESTIÓN INTEGRAL DE PRODUCTOS Y PRECIOS DESDE TELEGRAM ──
+  async mostrarMenuGestionProductos(chatId, searchTerm = '', page = 1, messageIdToEdit = null) {
+    try {
+      const db = require('../persistence/Database');
+      let sql = 'SELECT * FROM productos';
+      let params = [];
+      if (searchTerm && searchTerm.trim()) {
+        sql += ' WHERE nombre_producto LIKE ? OR descripcion LIKE ?';
+        params = [`%${searchTerm.trim()}%`, `%${searchTerm.trim()}%`];
+      }
+      sql += ' ORDER BY id_producto DESC LIMIT 6';
+
+      const prods = await new Promise((res) => db.query(sql, params, (err, r) => res(r || [])));
+
+      if (prods.length === 0) {
+        const noMsg = `📦 <b>Gestión de Catálogo</b>\n━━━━━━━━━━━━━━━━━━\nNo se encontraron productos que coincidan con <code>${searchTerm}</code>.\n\n💡 <i>Escribe <code>/productos</code> para ver todos o <code>/precio [id] [valor]</code> para editar directamente.</i>`;
+        if (messageIdToEdit) {
+          await this.editMessageText(chatId, messageIdToEdit, noMsg);
+        } else {
+          await this.sendMessage(chatId, noMsg);
+        }
+        return;
+      }
+
+      let msg = `📦 <b>GESTIÓN DE PRODUCTOS & PRECIOS</b> 🌾\n━━━━━━━━━━━━━━━━━━\n`;
+      if (searchTerm) msg += `🔍 <i>Filtro: "${searchTerm}"</i>\n\n`;
+
+      const keyboard = [];
+
+      prods.forEach((p) => {
+        const id = p.id_producto || p.id;
+        const nombre = p.nombre_producto || p.nombre || 'Producto';
+        const precio = Number(p.precio || 0).toLocaleString('es-CO');
+        const stock = Number(p.stock || 0);
+        const isActivo = p.activo === 1 || p.activo === true || p.activo === undefined;
+        const estadoEmoji = isActivo ? (stock > 5 ? '🟢' : stock > 0 ? '🟡' : '🔴') : '⏸️';
+        const estadoTexto = isActivo ? (stock > 0 ? `${stock} unid.` : 'AGOTADO') : 'PAUSADO';
+
+        msg += `${estadoEmoji} <b>#${id} ${nombre}</b>\n   💵 <b>$${precio} COP</b> | 📦 <b>${estadoTexto}</b>\n\n`;
+
+        keyboard.push([
+          { text: `🔍 #${id} ${nombre.slice(0, 14)}`, callback_data: `prod_view:${id}` },
+          { text: isActivo ? '⏸️ Pausar' : '▶️ Activar', callback_data: `prod_toggle:${id}` },
+          { text: '📦 +10', callback_data: `prod_stock_add:${id}:10` }
+        ]);
+      });
+
+      msg += `━━━━━━━━━━━━━━━━━━\n💡 <i>Toca un producto para ajustar su precio o stock en 1 toque.</i>`;
+
+      keyboard.push([
+        { text: '⚠️ Ver Solo Stock Bajo', callback_data: 'cmd_stock' },
+        { text: '🔄 Refrescar', callback_data: 'cmd_productos' }
+      ]);
+
+      if (messageIdToEdit) {
+        await this.editMessageText(chatId, messageIdToEdit, msg, { reply_markup: { inline_keyboard: keyboard } });
+      } else {
+        await this.sendMessage(chatId, msg, { reply_markup: { inline_keyboard: keyboard } });
+      }
+    } catch (err) {
+      console.error('[Telegram mostrarMenuGestionProductos Error]:', err);
+      await this.sendMessage(chatId, `⚠️ Error al consultar catálogo: ${err.message}`);
+    }
+  }
+
+  async mostrarTarjetaProducto(chatId, productId, messageIdToEdit = null) {
+    try {
+      const db = require('../persistence/Database');
+      const pId = parseInt(productId, 10);
+      const rows = await new Promise((res) => db.query('SELECT * FROM productos WHERE id_producto = ?', [pId], (err, r) => res(r || [])));
+      const p = rows[0];
+
+      if (!p) {
+        await this.sendMessage(chatId, `❌ No se encontró el producto <code>#${productId}</code>.`);
+        return;
+      }
+
+      const id = p.id_producto || p.id;
+      const nombre = p.nombre_producto || p.nombre;
+      const precio = Number(p.precio || 0);
+      const stock = Number(p.stock || 0);
+      const isActivo = p.activo === 1 || p.activo === true || p.activo === undefined;
+
+      const cardMsg = `
+🌱 <b>FICHA DE GESTIÓN DE PRODUCTO</b>
+━━━━━━━━━━━━━━━━━━
+🆔 <b>ID:</b> <code>#${id}</code>
+🌾 <b>Nombre:</b> <b>${nombre}</b>
+💵 <b>Precio Actual:</b> <b>$${precio.toLocaleString('es-CO')} COP</b>
+📦 <b>Inventario / Stock:</b> <b>${stock} unidades</b>
+🚦 <b>Estado en Tienda Web:</b> ${isActivo ? '🟢 <b>ACTIVO & VISIBLE</b>' : '⏸️ <b>PAUSADO / OCULTO</b>'}
+━━━━━━━━━━━━━━━━━━
+⚡ <b>Acciones Rápidas en 1-Toque:</b>
+`;
+
+      const keyboard = [
+        [
+          { text: isActivo ? '⏸️ Pausar en Tienda Web' : '▶️ Activar en Tienda Web', callback_data: `prod_toggle:${id}` }
+        ],
+        [
+          { text: '📦 +10 Stock', callback_data: `prod_stock_add:${id}:10` },
+          { text: '📦 +50 Stock', callback_data: `prod_stock_add:${id}:50` },
+          { text: '🔴 Agotar (0)', callback_data: `prod_stock_set:${id}:0` }
+        ],
+        [
+          { text: `💲 $${(precio - 1000 > 0 ? precio - 1000 : precio).toLocaleString('es-CO')}`, callback_data: `prod_price_set:${id}:${precio - 1000 > 0 ? precio - 1000 : precio}` },
+          { text: `💲 $${(precio + 1000).toLocaleString('es-CO')}`, callback_data: `prod_price_set:${id}:${precio + 1000}` },
+          { text: `💲 $${(precio + 5000).toLocaleString('es-CO')}`, callback_data: `prod_price_set:${id}:${precio + 5000}` }
+        ],
+        [
+          { text: '🔙 Volver al Catálogo', callback_data: 'cmd_productos' }
+        ]
+      ];
+
+      if (messageIdToEdit) {
+        await this.editMessageText(chatId, messageIdToEdit, cardMsg, { reply_markup: { inline_keyboard: keyboard } });
+      } else {
+        await this.sendMessage(chatId, cardMsg, { reply_markup: { inline_keyboard: keyboard } });
+      }
+    } catch (err) {
+      console.error('[Telegram mostrarTarjetaProducto Error]:', err);
+      await this.sendMessage(chatId, `⚠️ Error: ${err.message}`);
+    }
+  }
+
+  async alternarEstadoProducto(chatId, productId, authUser, messageIdToEdit = null) {
+    try {
+      const db = require('../persistence/Database');
+      const pId = parseInt(productId, 10);
+      const rows = await new Promise((res) => db.query('SELECT activo, nombre_producto FROM productos WHERE id_producto = ?', [pId], (err, r) => res(r || [])));
+      if (rows.length === 0) return;
+
+      const currentActivo = rows[0].activo === 1 || rows[0].activo === true || rows[0].activo === undefined;
+      const newActivo = currentActivo ? 0 : 1;
+
+      await new Promise((res, rej) => {
+        db.query('UPDATE productos SET activo = ? WHERE id_producto = ?', [newActivo, pId], (err, r) => err ? rej(err) : res(r));
+      });
+
+      await this.mostrarTarjetaProducto(chatId, pId, messageIdToEdit);
+    } catch (err) {
+      console.error('[Telegram alternarEstadoProducto Error]:', err);
+      await this.sendMessage(chatId, `⚠️ Error al cambiar estado: ${err.message}`);
+    }
+  }
+
+  async ajustarStockProducto(chatId, productId, deltaOrVal, isAbsolute = false, authUser = null, messageIdToEdit = null) {
+    try {
+      const db = require('../persistence/Database');
+      const pId = parseInt(productId, 10);
+      
+      let sql = '';
+      let params = [];
+
+      if (isAbsolute) {
+        const val = Math.max(0, parseInt(deltaOrVal, 10) || 0);
+        sql = 'UPDATE productos SET stock = ? WHERE id_producto = ?';
+        params = [val, pId];
+      } else {
+        const delta = parseInt(deltaOrVal, 10) || 0;
+        sql = 'UPDATE productos SET stock = GREATEST(0, stock + ?) WHERE id_producto = ?';
+        params = [delta, pId];
+      }
+
+      await new Promise((res, rej) => {
+        db.query(sql, params, (err, r) => err ? rej(err) : res(r));
+      });
+
+      await this.mostrarTarjetaProducto(chatId, pId, messageIdToEdit);
+    } catch (err) {
+      console.error('[Telegram ajustarStockProducto Error]:', err);
+      await this.sendMessage(chatId, `⚠️ Error al ajustar stock: ${err.message}`);
+    }
+  }
+
+  async ajustarPrecioProducto(chatId, productId, newPrice, authUser = null, messageIdToEdit = null) {
+    try {
+      const db = require('../persistence/Database');
+      const pId = parseInt(productId, 10);
+      const price = parseFloat(newPrice);
+      if (isNaN(price) || price <= 0) return;
+
+      await new Promise((res, rej) => {
+        db.query('UPDATE productos SET precio = ? WHERE id_producto = ?', [price, pId], (err, r) => err ? rej(err) : res(r));
+      });
+
+      await this.mostrarTarjetaProducto(chatId, pId, messageIdToEdit);
+    } catch (err) {
+      console.error('[Telegram ajustarPrecioProducto Error]:', err);
+      await this.sendMessage(chatId, `⚠️ Error al actualizar precio: ${err.message}`);
+    }
+  }
+
   async actualizarStockDesdeTelegram(chatId, text, authUser) {
     try {
       const cleanArgs = text.replace(/^\/stock\s*/i, '').trim();
       const parts = cleanArgs.split(/\s+/);
       if (parts.length < 2) {
-        await this.mostrarStockCritico(chatId);
+        if (cleanArgs) {
+          await this.mostrarMenuGestionProductos(chatId, cleanArgs, 1);
+        } else {
+          await this.mostrarStockCritico(chatId);
+        }
         return;
       }
 
       const idOrName = parts[0].trim();
-      const cantidad = parseInt(parts[1], 10);
+      const rawCantidad = parts[1].trim();
 
-      if (isNaN(cantidad) || cantidad < 0) {
-        await this.sendMessage(chatId, '❌ La cantidad de stock debe ser un número entero mayor o igual a 0.');
+      const db = require('../persistence/Database');
+      let findSql = !isNaN(idOrName)
+        ? 'SELECT id_producto, nombre_producto, stock FROM productos WHERE id_producto = ?'
+        : 'SELECT id_producto, nombre_producto, stock FROM productos WHERE nombre_producto LIKE ? LIMIT 1';
+      let findParams = !isNaN(idOrName) ? [parseInt(idOrName, 10)] : [`%${idOrName}%`];
+
+      const prods = await new Promise((res) => db.query(findSql, findParams, (err, r) => res(r || [])));
+      if (prods.length === 0) {
+        await this.sendMessage(chatId, `❌ No se encontró ningún producto que coincida con <b>${idOrName}</b>.`);
         return;
       }
 
-      const db = require('../persistence/Database');
-      let sql = '';
-      let params = [];
+      const p = prods[0];
+      const isDelta = rawCantidad.startsWith('+') || rawCantidad.startsWith('-');
+      const cantidadVal = parseInt(rawCantidad, 10);
 
-      if (!isNaN(idOrName)) {
-        sql = 'UPDATE productos SET stock = ? WHERE id_producto = ?';
-        params = [cantidad, parseInt(idOrName, 10)];
-      } else {
-        sql = 'UPDATE productos SET stock = ? WHERE nombre_producto LIKE ?';
-        params = [cantidad, `%${idOrName}%`];
+      if (isNaN(cantidadVal)) {
+        await this.sendMessage(chatId, '❌ La cantidad de stock debe ser un número válido (ej. <code>50</code>, <code>+20</code>, <code>-5</code>).');
+        return;
       }
 
-      const result = await new Promise((resolve, reject) => {
-        db.query(sql, params, (err, res) => {
-          if (err) return reject(err);
-          resolve(res);
-        });
-      });
-
-      if (result.affectedRows > 0) {
-        await this.sendMessage(chatId, `✅ <b>¡Stock Actualizado!</b>\n📦 Producto: <b>${idOrName}</b>\n🌾 Nuevo Stock: <b>${cantidad} unidades</b>.`);
-      } else {
-        await this.sendMessage(chatId, `❌ No se encontró ningún producto que coincida con <b>${idOrName}</b>.`);
-      }
+      await this.ajustarStockProducto(chatId, p.id_producto, cantidadVal, !isDelta, authUser);
     } catch (err) {
       await this.sendMessage(chatId, `⚠️ Error al actualizar stock: ${err.message}`);
     }
@@ -2517,7 +2885,11 @@ ${topList}
       const cleanArgs = text.replace(/^\/precio\s*/i, '').trim();
       const parts = cleanArgs.split(/\s+/);
       if (parts.length < 2) {
-        await this.sendMessage(chatId, '🏷️ <b>Uso:</b> <code>/precio [ID o Nombre] [NuevoPrecioCOP]</code>\n<i>Ejemplo: /precio 4 22000</i>');
+        if (cleanArgs) {
+          await this.mostrarMenuGestionProductos(chatId, cleanArgs, 1);
+        } else {
+          await this.sendMessage(chatId, '🏷️ <b>Uso:</b> <code>/precio [ID o Nombre] [NuevoPrecioCOP]</code>\n<i>Ejemplo: /precio aguacate 4500 o /precio 12 5000</i>');
+        }
         return;
       }
 
@@ -2530,31 +2902,421 @@ ${topList}
       }
 
       const db = require('../persistence/Database');
-      let sql = '';
-      let params = [];
+      let findSql = !isNaN(idOrName)
+        ? 'SELECT id_producto, nombre_producto, precio FROM productos WHERE id_producto = ?'
+        : 'SELECT id_producto, nombre_producto, precio FROM productos WHERE nombre_producto LIKE ? LIMIT 1';
+      let findParams = !isNaN(idOrName) ? [parseInt(idOrName, 10)] : [`%${idOrName}%`];
 
-      if (!isNaN(idOrName)) {
-        sql = 'UPDATE productos SET precio = ? WHERE id_producto = ?';
-        params = [precio, parseInt(idOrName, 10)];
-      } else {
-        sql = 'UPDATE productos SET precio = ? WHERE nombre_producto LIKE ?';
-        params = [precio, `%${idOrName}%`];
-      }
-
-      const result = await new Promise((resolve, reject) => {
-        db.query(sql, params, (err, res) => {
-          if (err) return reject(err);
-          resolve(res);
-        });
-      });
-
-      if (result.affectedRows > 0) {
-        await this.sendMessage(chatId, `✅ <b>¡Precio Actualizado!</b>\n🏷️ Producto: <b>${idOrName}</b>\n💵 Nuevo Precio: <b>$${precio.toLocaleString('es-CO')} COP</b>.`);
-      } else {
+      const prods = await new Promise((res) => db.query(findSql, findParams, (err, r) => res(r || [])));
+      if (prods.length === 0) {
         await this.sendMessage(chatId, `❌ No se encontró ningún producto que coincida con <b>${idOrName}</b>.`);
+        return;
       }
+
+      const p = prods[0];
+      await this.ajustarPrecioProducto(chatId, p.id_producto, precio, authUser);
     } catch (err) {
       await this.sendMessage(chatId, `⚠️ Error al actualizar precio: ${err.message}`);
+    }
+  }
+
+  // ── GESTIÓN INTEGRAL DE USUARIOS DESDE TELEGRAM (BLOQUEAR, ELIMINAR, ROL, SALDO) ──
+  async mostrarMenuGestionUsuarios(chatId, searchTerm = '', page = 1, messageIdToEdit = null) {
+    try {
+      const db = require('../persistence/Database');
+      let sql = 'SELECT * FROM usuarios';
+      let params = [];
+      if (searchTerm && searchTerm.trim()) {
+        sql += ' WHERE nombre LIKE ? OR apodo LIKE ? OR correo LIKE ? OR telefono LIKE ?';
+        const like = `%${searchTerm.trim()}%`;
+        params = [like, like, like, like];
+      }
+      sql += ' ORDER BY id_usuario DESC LIMIT 6';
+
+      const users = await new Promise((res) => db.query(sql, params, (err, r) => res(r || [])));
+
+      if (users.length === 0) {
+        const noMsg = `👥 <b>Gestión de Usuarios</b>\n━━━━━━━━━━━━━━━━━━\nNo se encontraron usuarios con el término <code>${searchTerm}</code>.\n\n💡 <i>Escribe <code>/usuarios</code> para ver todos o <code>/usuario [correo]</code> para buscar directamente.</i>`;
+        if (messageIdToEdit) {
+          await this.editMessageText(chatId, messageIdToEdit, noMsg);
+        } else {
+          await this.sendMessage(chatId, noMsg);
+        }
+        return;
+      }
+
+      let msg = `👥 <b>GESTIÓN Y CONTROL DE USUARIOS</b> 🛡️\n━━━━━━━━━━━━━━━━━━\n`;
+      if (searchTerm) msg += `🔍 <i>Filtro: "${searchTerm}"</i>\n\n`;
+
+      const keyboard = [];
+
+      users.forEach((u) => {
+        const id = u.id_usuario;
+        const nombre = u.nombre || u.apodo;
+        const correo = u.correo;
+        const rolTexto = u.id_rol === 1 ? '👑 Admin' : u.id_rol === 2 ? '🌾 Campesino' : '🛒 Comprador';
+        const isActivo = u.activo === 1 || u.activo === true || u.activo === undefined;
+        const estadoEmoji = isActivo ? '🟢' : '🔴';
+
+        msg += `${estadoEmoji} <b>#${id} ${nombre}</b> (${rolTexto})\n   📧 <code>${correo}</code> | 💵 <b>$${Number(u.creditos || 0).toLocaleString('es-CO')}</b>\n\n`;
+
+        keyboard.push([
+          { text: `👤 #${id} ${nombre.slice(0, 14)}`, callback_data: `usr_view:${id}` },
+          { text: isActivo ? '🚫 Bloquear' : '✅ Desbloquear', callback_data: `usr_toggle:${id}` },
+          { text: '👑 Rol', callback_data: `usr_role_menu:${id}` }
+        ]);
+      });
+
+      msg += `━━━━━━━━━━━━━━━━━━\n💡 <i>Toca un usuario para ver su ficha completa, recargar saldo o eliminarlo.</i>`;
+
+      keyboard.push([
+        { text: '🔄 Refrescar Lista', callback_data: 'cmd_usuarios' }
+      ]);
+
+      if (messageIdToEdit) {
+        await this.editMessageText(chatId, messageIdToEdit, msg, { reply_markup: { inline_keyboard: keyboard } });
+      } else {
+        await this.sendMessage(chatId, msg, { reply_markup: { inline_keyboard: keyboard } });
+      }
+    } catch (err) {
+      console.error('[Telegram mostrarMenuGestionUsuarios Error]:', err);
+      await this.sendMessage(chatId, `⚠️ Error al consultar usuarios: ${err.message}`);
+    }
+  }
+
+  async mostrarTarjetaUsuario(chatId, userId, messageIdToEdit = null) {
+    try {
+      const db = require('../persistence/Database');
+      const uId = parseInt(userId, 10);
+      const users = await new Promise((res) => db.query('SELECT * FROM usuarios WHERE id_usuario = ?', [uId], (err, r) => res(r || [])));
+      const u = users[0];
+
+      if (!u) {
+        await this.sendMessage(chatId, `❌ No se encontró el usuario <code>#${userId}</code>.`);
+        return;
+      }
+
+      const id = u.id_usuario;
+      const nombre = u.nombre || u.apodo;
+      const correo = u.correo;
+      const tel = u.telefono || 'Sin registrar';
+      const dir = u.direccion || 'Sin registrar';
+      const rolTexto = u.id_rol === 1 ? '👑 Administrador' : u.id_rol === 2 ? '🌾 Vendedor Campesino' : '🛒 Comprador / Cliente';
+      const isActivo = u.activo === 1 || u.activo === true || u.activo === undefined;
+      const creditos = Number(u.creditos || 0).toLocaleString('es-CO');
+
+      // Consultar compras
+      const purchases = await new Promise((res) => db.query('SELECT COUNT(*) as total_orders, COALESCE(SUM(total), 0) as total_spent FROM compras WHERE id_usuario = ?', [id], (err, r) => res(r && r[0] ? r[0] : { total_orders: 0, total_spent: 0 })));
+
+      const cleanPhone = String(tel).replace(/\D/g, '');
+      const hasPhone = cleanPhone.length >= 7;
+
+      const cardMsg = `
+👤 <b>FICHA DE ADMINISTRACIÓN DE USUARIO</b>
+━━━━━━━━━━━━━━━━━━
+🆔 <b>ID:</b> <code>#${id}</code>
+📛 <b>Nombre:</b> <b>${nombre}</b>
+📧 <b>Correo:</b> <code>${correo}</code>
+📞 <b>Teléfono:</b> <code>${tel}</code>
+📍 <b>Dirección:</b> ${dir}
+🏷️ <b>Rol en Plataforma:</b> <b>${rolTexto}</b>
+🚦 <b>Estado de Cuenta:</b> ${isActivo ? '🟢 <b>ACTIVO & HABILITADO</b>' : '🔴 <b>BLOQUEADO / SUSPENDIDO</b>'}
+💰 <b>Billetera / Saldo:</b> <b>$${creditos} COP</b>
+🛍️ <b>Historial de Compras:</b> ${purchases.total_orders} órdenes ($${Number(purchases.total_spent).toLocaleString('es-CO')} COP)
+━━━━━━━━━━━━━━━━━━
+⚡ <b>Acciones de Administrador:</b>
+`;
+
+      const keyboard = [
+        [
+          { text: isActivo ? '🚫 Bloquear Acceso' : '✅ Desbloquear y Activar', callback_data: `usr_toggle:${id}` },
+          { text: '👑 Cambiar Rol', callback_data: `usr_role_menu:${id}` }
+        ],
+        [
+          { text: '💰 +$20K Saldo', callback_data: `usr_credit_add:${id}:20000` },
+          { text: '💰 +$50K Saldo', callback_data: `usr_credit_add:${id}:50000` }
+        ],
+        [
+          { text: '🗑️ Eliminar Usuario', callback_data: `usr_del_ask:${id}` }
+        ]
+      ];
+
+      if (hasPhone) {
+        keyboard.push([
+          { text: '💬 Escribir por WhatsApp', url: `https://wa.me/57${cleanPhone}` }
+        ]);
+      }
+
+      keyboard.push([
+        { text: '🔙 Volver a Lista de Usuarios', callback_data: 'cmd_usuarios' }
+      ]);
+
+      if (messageIdToEdit) {
+        await this.editMessageText(chatId, messageIdToEdit, cardMsg, { reply_markup: { inline_keyboard: keyboard } });
+      } else {
+        await this.sendMessage(chatId, cardMsg, { reply_markup: { inline_keyboard: keyboard } });
+      }
+    } catch (err) {
+      console.error('[Telegram mostrarTarjetaUsuario Error]:', err);
+      await this.sendMessage(chatId, `⚠️ Error: ${err.message}`);
+    }
+  }
+
+  async alternarBloqueoUsuario(chatId, userId, authUser = null, messageIdToEdit = null) {
+    try {
+      const db = require('../persistence/Database');
+      const uId = parseInt(userId, 10);
+      const rows = await new Promise((res) => db.query('SELECT activo FROM usuarios WHERE id_usuario = ?', [uId], (err, r) => res(r || [])));
+      if (rows.length === 0) return;
+
+      const current = rows[0].activo === 1 || rows[0].activo === true || rows[0].activo === undefined;
+      const next = current ? 0 : 1;
+
+      await new Promise((res, rej) => {
+        db.query('UPDATE usuarios SET activo = ? WHERE id_usuario = ?', [next, uId], (err, r) => err ? rej(err) : res(r));
+      });
+
+      await this.mostrarTarjetaUsuario(chatId, uId, messageIdToEdit);
+    } catch (err) {
+      console.error('[Telegram alternarBloqueoUsuario Error]:', err);
+      await this.sendMessage(chatId, `⚠️ Error al bloquear/desbloquear: ${err.message}`);
+    }
+  }
+
+  async preguntarEliminarUsuario(chatId, userId, messageIdToEdit = null) {
+    try {
+      const db = require('../persistence/Database');
+      const uId = parseInt(userId, 10);
+      const rows = await new Promise((res) => db.query('SELECT nombre, correo FROM usuarios WHERE id_usuario = ?', [uId], (err, r) => res(r || [])));
+      const u = rows[0];
+
+      const warnMsg = `
+⚠️ <b>¿CONFIRMAS ELIMINAR ESTE USUARIO?</b>
+━━━━━━━━━━━━━━━━━━
+👤 <b>Usuario:</b> ${u?.nombre || '#' + uId}
+📧 <b>Correo:</b> <code>${u?.correo || ''}</code>
+━━━━━━━━━━━━━━━━━━
+🚨 <b>ADVERTENCIA:</b> Esta acción borrará permanentemente la cuenta de usuario de la base de datos.
+`;
+
+      const keyboard = [
+        [
+          { text: '⚠️ Sí, Eliminar Definitivamente', callback_data: `usr_del_confirm:${uId}` }
+        ],
+        [
+          { text: '❌ Cancelar y Volver', callback_data: `usr_view:${uId}` }
+        ]
+      ];
+
+      if (messageIdToEdit) {
+        await this.editMessageText(chatId, messageIdToEdit, warnMsg, { reply_markup: { inline_keyboard: keyboard } });
+      } else {
+        await this.sendMessage(chatId, warnMsg, { reply_markup: { inline_keyboard: keyboard } });
+      }
+    } catch (err) {
+      console.error('[Telegram preguntarEliminarUsuario Error]:', err);
+    }
+  }
+
+  async eliminarUsuarioDesdeTelegram(chatId, userId, authUser = null, messageIdToEdit = null) {
+    try {
+      const db = require('../persistence/Database');
+      const uId = parseInt(userId, 10);
+
+      // Limpieza en cascada segura
+      await new Promise((res) => db.query('DELETE FROM carrito WHERE id_usuario = ?', [uId], () => res()));
+      await new Promise((res) => db.query('DELETE FROM soporte_mensajes WHERE id_usuario = ?', [uId], () => res()));
+      await new Promise((res) => db.query('DELETE FROM soporte_tickets WHERE id_usuario = ?', [uId], () => res()));
+      await new Promise((res, rej) => {
+        db.query('DELETE FROM usuarios WHERE id_usuario = ?', [uId], (err, r) => err ? rej(err) : res(r));
+      });
+
+      const confirmMsg = `
+🗑️ <b>¡USUARIO ELIMINADO CON ÉXITO!</b>
+━━━━━━━━━━━━━━━━━━
+El usuario <code>#${uId}</code> ha sido eliminado definitivamente de la base de datos.
+`;
+      const keyboard = [
+        [{ text: '👥 Volver a la Lista de Usuarios', callback_data: 'cmd_usuarios' }]
+      ];
+
+      if (messageIdToEdit) {
+        await this.editMessageText(chatId, messageIdToEdit, confirmMsg, { reply_markup: { inline_keyboard: keyboard } });
+      } else {
+        await this.sendMessage(chatId, confirmMsg, { reply_markup: { inline_keyboard: keyboard } });
+      }
+    } catch (err) {
+      console.error('[Telegram eliminarUsuario Error]:', err);
+      await this.sendMessage(chatId, `⚠️ Error al eliminar usuario: ${err.message}`);
+    }
+  }
+
+  async mostrarMenuCambiarRolUsuario(chatId, userId, messageIdToEdit = null) {
+    try {
+      const uId = parseInt(userId, 10);
+      const msg = `
+👑 <b>SELECCIONA EL NUEVO ROL</b>
+━━━━━━━━━━━━━━━━━━
+Elige el nivel de acceso que deseas asignar al usuario <code>#${uId}</code>:
+`;
+      const keyboard = [
+        [{ text: '👑 1. Administrador Total', callback_data: `usr_role_set:${uId}:1` }],
+        [{ text: '🌾 2. Vendedor Campesino', callback_data: `usr_role_set:${uId}:2` }],
+        [{ text: '🛒 3. Comprador / Cliente', callback_data: `usr_role_set:${uId}:3` }],
+        [{ text: '🔙 Cancelar', callback_data: `usr_view:${uId}` }]
+      ];
+
+      if (messageIdToEdit) {
+        await this.editMessageText(chatId, messageIdToEdit, msg, { reply_markup: { inline_keyboard: keyboard } });
+      } else {
+        await this.sendMessage(chatId, msg, { reply_markup: { inline_keyboard: keyboard } });
+      }
+    } catch (err) {
+      console.error('[Telegram mostrarMenuCambiarRolUsuario Error]:', err);
+    }
+  }
+
+  async cambiarRolUsuario(chatId, userId, newRoleId, authUser = null, messageIdToEdit = null) {
+    try {
+      const db = require('../persistence/Database');
+      const uId = parseInt(userId, 10);
+      const rId = parseInt(newRoleId, 10);
+
+      await new Promise((res, rej) => {
+        db.query('UPDATE usuarios SET id_rol = ? WHERE id_usuario = ?', [rId, uId], (err, r) => err ? rej(err) : res(r));
+      });
+
+      await this.mostrarTarjetaUsuario(chatId, uId, messageIdToEdit);
+    } catch (err) {
+      console.error('[Telegram cambiarRolUsuario Error]:', err);
+      await this.sendMessage(chatId, `⚠️ Error al cambiar rol: ${err.message}`);
+    }
+  }
+
+  async ajustarSaldoUsuario(chatId, userId, amount, isDelta = false, authUser = null, messageIdToEdit = null) {
+    try {
+      const db = require('../persistence/Database');
+      const uId = parseInt(userId, 10);
+      const val = parseFloat(amount) || 0;
+
+      let sql = isDelta
+        ? 'UPDATE usuarios SET creditos = GREATEST(0, COALESCE(creditos, 0) + ?) WHERE id_usuario = ?'
+        : 'UPDATE usuarios SET creditos = ? WHERE id_usuario = ?';
+
+      await new Promise((res, rej) => {
+        db.query(sql, [val, uId], (err, r) => err ? rej(err) : res(r));
+      });
+
+      await this.mostrarTarjetaUsuario(chatId, uId, messageIdToEdit);
+    } catch (err) {
+      console.error('[Telegram ajustarSaldoUsuario Error]:', err);
+      await this.sendMessage(chatId, `⚠️ Error al ajustar saldo: ${err.message}`);
+    }
+  }
+
+  async procesarComandosUsuarioAdmin(chatId, text, authUser) {
+    try {
+      const db = require('../persistence/Database');
+      const parts = text.trim().split(/\s+/);
+      const cmd = parts[0].toLowerCase();
+      const idOrEmail = parts[1]?.trim();
+
+      if (!idOrEmail) {
+        const helpMsg = `
+👥 <b>COMANDOS DE GESTIÓN DE USUARIOS</b>
+━━━━━━━━━━━━━━━━━━
+▫️ <code>/usuario [id o correo]</code>: Ver ficha del usuario
+▫️ <code>/bloquear_usuario [id o correo]</code>: Suspender cuenta
+▫️ <code>/desbloquear_usuario [id o correo]</code>: Reactivar cuenta
+▫️ <code>/eliminar_usuario [id o correo]</code>: Borrar cuenta permanentemente
+▫️ <code>/rol_usuario [id o correo] [admin|campesino|comprador]</code>: Cambiar rol
+▫️ <code>/saldo [id o correo] [monto]</code>: Recargar o asignar saldo
+▫️ <code>/editar_usuario [id o correo] [nombre|telefono|correo] [nuevo_valor]</code>: Modificar dato
+`;
+        await this.sendMessage(chatId, helpMsg);
+        return;
+      }
+
+      // Buscar usuario
+      let findSql = !isNaN(idOrEmail)
+        ? 'SELECT * FROM usuarios WHERE id_usuario = ?'
+        : 'SELECT * FROM usuarios WHERE correo = ? OR apodo = ? OR nombre LIKE ? LIMIT 1';
+      let findParams = !isNaN(idOrEmail) ? [parseInt(idOrEmail, 10)] : [idOrEmail, idOrEmail, `%${idOrEmail}%`];
+
+      const users = await new Promise((res) => db.query(findSql, findParams, (err, r) => res(r || [])));
+      if (users.length === 0) {
+        await this.sendMessage(chatId, `❌ No se encontró ningún usuario que coincida con <b>${idOrEmail}</b>.`);
+        return;
+      }
+
+      const u = users[0];
+
+      if (cmd === '/bloquear_usuario') {
+        await this.alternarBloqueoUsuario(chatId, u.id_usuario, authUser);
+        return;
+      }
+
+      if (cmd === '/desbloquear_usuario') {
+        await new Promise((res, rej) => {
+          db.query('UPDATE usuarios SET activo = 1 WHERE id_usuario = ?', [u.id_usuario], (err, r) => err ? rej(err) : res(r));
+        });
+        await this.mostrarTarjetaUsuario(chatId, u.id_usuario);
+        return;
+      }
+
+      if (cmd === '/eliminar_usuario') {
+        await this.preguntarEliminarUsuario(chatId, u.id_usuario);
+        return;
+      }
+
+      if (cmd === '/rol_usuario') {
+        const targetRol = parts[2]?.toLowerCase();
+        const roleMap = { 'admin': 1, 'administrador': 1, 'campesino': 2, 'vendedor': 2, 'comprador': 3, 'cliente': 3 };
+        const newRoleId = roleMap[targetRol];
+        if (!newRoleId) {
+          await this.mostrarMenuCambiarRolUsuario(chatId, u.id_usuario);
+          return;
+        }
+        await this.cambiarRolUsuario(chatId, u.id_usuario, newRoleId, authUser);
+        return;
+      }
+
+      if (cmd === '/saldo' || cmd === '/recargar_saldo') {
+        const rawAmount = parts[2]?.trim();
+        if (!rawAmount) {
+          await this.sendMessage(chatId, `💰 <b>Uso:</b> <code>/saldo ${u.id_usuario} [monto o +monto]</code>\n<i>Ejemplo: /saldo ${u.id_usuario} +25000</i>`);
+          return;
+        }
+        const isDelta = rawAmount.startsWith('+') || rawAmount.startsWith('-');
+        const amountVal = parseFloat(rawAmount);
+        if (isNaN(amountVal)) {
+          await this.sendMessage(chatId, '❌ El monto debe ser un número válido.');
+          return;
+        }
+        await this.ajustarSaldoUsuario(chatId, u.id_usuario, amountVal, isDelta, authUser);
+        return;
+      }
+
+      if (cmd === '/editar_usuario') {
+        const field = parts[2]?.toLowerCase();
+        const newVal = parts.slice(3).join(' ').trim();
+        const allowedFields = { 'nombre': 'nombre', 'telefono': 'telefono', 'correo': 'correo', 'direccion': 'direccion' };
+        const col = allowedFields[field];
+        if (!col || !newVal) {
+          await this.sendMessage(chatId, `✍️ <b>Uso:</b> <code>/editar_usuario ${u.id_usuario} [nombre|telefono|correo|direccion] [Nuevo Valor]</code>`);
+          return;
+        }
+        await new Promise((res, rej) => {
+          db.query(`UPDATE usuarios SET ${col} = ? WHERE id_usuario = ?`, [newVal, u.id_usuario], (err, r) => err ? rej(err) : res(r));
+        });
+        await this.mostrarTarjetaUsuario(chatId, u.id_usuario);
+        return;
+      }
+
+      await this.mostrarTarjetaUsuario(chatId, u.id_usuario);
+    } catch (err) {
+      console.error('[Telegram procesarComandosUsuarioAdmin Error]:', err);
+      await this.sendMessage(chatId, `⚠️ Error al procesar comando: ${err.message}`);
     }
   }
 
