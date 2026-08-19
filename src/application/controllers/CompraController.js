@@ -83,55 +83,55 @@ class CompraController {
         }
       }
 
-      // Auto-send invoice email
-      try {
-        const recibo = await this.compraRepository.obtenerReciboCompleto(compraCreada.id_compra);
-        if (recibo && recibo.correo_cliente) {
-          await this.emailService.sendInvoiceEmail(recibo, recibo.correo_cliente);
-        }
+      // Enviar factura por correo y notificar a Telegram en segundo plano (sin bloquear la respuesta al usuario)
+      setImmediate(async () => {
+        try {
+          const recibo = await this.compraRepository.obtenerReciboCompleto(compraCreada.id_compra);
+          if (recibo && recibo.correo_cliente) {
+            await this.emailService.sendInvoiceEmail(recibo, recibo.correo_cliente);
+          }
 
-        // Notificar por Telegram de forma asíncrona
-        if (this.telegramService) {
-          const userBuyer = await this.usuarioRepository.buscarPorId(userId);
-          this.telegramService.notificarNuevaCompra({
-            compra: compraCreada,
-            usuario: userBuyer || { nombre: 'Cliente Web', correo: recibo?.correo_cliente },
-            productos,
-            total,
-            metodoPago: paymentMethod,
-            direccion: shippingAddress,
-          }).catch((tErr) => console.warn('[Telegram Compra Alert Warning]:', tErr.message));
+          if (this.telegramService) {
+            const userBuyer = await this.usuarioRepository.buscarPorId(userId);
+            await this.telegramService.notificarNuevaCompra({
+              compra: compraCreada,
+              usuario: userBuyer || { nombre: 'Cliente Web', correo: recibo?.correo_cliente },
+              productos,
+              total,
+              metodoPago: paymentMethod,
+              direccion: shippingAddress,
+            });
 
-          // Verificar stock bajo de los productos comprados (stock <= 5)
-          if (Array.isArray(productos)) {
-            for (const item of productos) {
-              const pId = item.id_producto || item.id;
-              if (pId) {
-                this.productoRepository.buscarPorId(pId).then((prodDb) => {
+            // Verificar stock bajo de los productos comprados (stock <= 5)
+            if (Array.isArray(productos)) {
+              for (const item of productos) {
+                const pId = item.id_producto || item.id;
+                if (pId) {
+                  const prodDb = await this.productoRepository.buscarPorId(pId);
                   if (prodDb && Number(prodDb.stock) <= 5) {
-                    this.telegramService.notificarStockBajo({
+                    await this.telegramService.notificarStockBajo({
                       producto: prodDb,
                       stockRestante: prodDb.stock,
-                    }).catch(() => {});
+                    });
                   }
-                }).catch(() => {});
+                }
               }
             }
           }
+        } catch (bgErr) {
+          console.warn('[Post-Compra Background Task Error]:', bgErr.message);
         }
-      } catch (emailErr) {
-        console.warn('No se pudo procesar alertas de orden:', emailErr.message);
-      }
+      });
 
       res.status(201).json({
-        success: true,
+        id: compraCreada.id_compra,
         id_compra: compraCreada.id_compra,
-        idCompra: compraCreada.id_compra,
-        message: 'Compra registrada con éxito'
+        total: parseFloat(total),
+        mensaje: 'Compra registrada con éxito'
       });
     } catch (error) {
-      console.error('Error al registrar compra:', error);
-      res.status(500).json({ error: 'Error en el servidor al procesar la compra' });
+      console.error('Error al procesar compra:', error);
+      res.status(500).json({ error: error.message || 'Error al procesar la compra' });
     }
   }
 
