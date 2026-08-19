@@ -2806,8 +2806,7 @@ ${topList}
         params = [filter, filter];
       }
 
-      sql += ' ORDER BY id_producto DESC LIMIT ? OFFSET ?';
-      params.push(limit, offset);
+      sql += ` ORDER BY id_producto DESC LIMIT ${limit} OFFSET ${offset}`;
 
       const countResult = await new Promise((res) => db.query(countSql, countParams, (err, r) => res(r && r[0] ? r[0].total : 0)));
       const totalCount = parseInt(countResult, 10) || 0;
@@ -3115,8 +3114,7 @@ ${topList}
         params = [filter, filter, filter, filter];
       }
 
-      sql += ' ORDER BY id_usuario DESC LIMIT ? OFFSET ?';
-      params.push(limit, offset);
+      sql += ` ORDER BY id_usuario DESC LIMIT ${limit} OFFSET ${offset}`;
 
       const countResult = await new Promise((res) => db.query(countSql, countParams, (err, r) => res(r && r[0] ? r[0].total : 0)));
       const totalCount = parseInt(countResult, 10) || 0;
