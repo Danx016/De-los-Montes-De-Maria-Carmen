@@ -219,6 +219,14 @@ export default function AdminPage() {
 
   const COLORS = ['#4CAF50', '#2196F3', '#FFC107', '#FF5722', '#9C27B0']
 
+  const isCampesinoUser = (u) => {
+    if (!u) return false
+    const rId = Number(u.id_rol ?? (typeof u.rol === 'number' ? u.rol : null))
+    if (rId === 2) return true
+    const rName = String(u.rolNombre || u.nombre_rol || (typeof u.rol === 'string' ? u.rol : '')).toLowerCase()
+    return rName.includes('vendedor') || rName.includes('campesino')
+  }
+
   const loadData = () => {
     setLoading(true)
     Promise.allSettled([
@@ -1949,10 +1957,10 @@ export default function AdminPage() {
                       style={{ borderRadius: '8px' }}
                     >
                       <option value="">👤 Administrador / Tienda Oficial (Sin Vendedor Asignado)</option>
-                      {usuarios.filter((u) => Number(u.id_rol) === 2 || u.rol?.toLowerCase().includes('vendedor') || u.rol?.toLowerCase().includes('campesino')).length > 0 && (
+                      {usuarios.filter((u) => isCampesinoUser(u)).length > 0 && (
                         <optgroup label="👨‍🌾 Campesinos y Vendedores Registrados">
                           {usuarios
-                            .filter((u) => Number(u.id_rol) === 2 || u.rol?.toLowerCase().includes('vendedor') || u.rol?.toLowerCase().includes('campesino'))
+                            .filter((u) => isCampesinoUser(u))
                             .map((u) => (
                               <option key={u.id_usuario} value={u.id_usuario}>
                                 {u.nombre || u.apodo} - {u.correo} ({u.municipio || u.direccion || 'Campesino'})
@@ -1962,7 +1970,7 @@ export default function AdminPage() {
                       )}
                       <optgroup label="👥 Otros Usuarios de la Plataforma">
                         {usuarios
-                          .filter((u) => Number(u.id_rol) !== 2 && !u.rol?.toLowerCase().includes('vendedor') && !u.rol?.toLowerCase().includes('campesino'))
+                          .filter((u) => !isCampesinoUser(u))
                           .map((u) => (
                             <option key={u.id_usuario} value={u.id_usuario}>
                               {u.nombre || u.apodo} ({u.rolNombre || (Number(u.id_rol) === 1 ? 'Admin' : 'Usuario')}) - {u.correo}
@@ -2128,10 +2136,10 @@ export default function AdminPage() {
                       style={{ borderRadius: '8px' }}
                     >
                       <option value="">👤 Administrador / Tienda Oficial (Sin Vendedor Asignado)</option>
-                      {usuarios.filter((u) => Number(u.id_rol) === 2 || u.rol?.toLowerCase().includes('vendedor') || u.rol?.toLowerCase().includes('campesino')).length > 0 && (
+                      {usuarios.filter((u) => isCampesinoUser(u)).length > 0 && (
                         <optgroup label="👨‍🌾 Campesinos y Vendedores Registrados">
                           {usuarios
-                            .filter((u) => Number(u.id_rol) === 2 || u.rol?.toLowerCase().includes('vendedor') || u.rol?.toLowerCase().includes('campesino'))
+                            .filter((u) => isCampesinoUser(u))
                             .map((u) => (
                               <option key={u.id_usuario} value={u.id_usuario}>
                                 {u.nombre || u.apodo} - {u.correo} ({u.municipio || u.direccion || 'Campesino'})
@@ -2141,7 +2149,7 @@ export default function AdminPage() {
                       )}
                       <optgroup label="👥 Otros Usuarios de la Plataforma">
                         {usuarios
-                          .filter((u) => Number(u.id_rol) !== 2 && !u.rol?.toLowerCase().includes('vendedor') && !u.rol?.toLowerCase().includes('campesino'))
+                          .filter((u) => !isCampesinoUser(u))
                           .map((u) => (
                             <option key={u.id_usuario} value={u.id_usuario}>
                               {u.nombre || u.apodo} ({u.rolNombre || (Number(u.id_rol) === 1 ? 'Admin' : 'Usuario')}) - {u.correo}
