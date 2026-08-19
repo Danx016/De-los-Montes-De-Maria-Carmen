@@ -327,8 +327,8 @@ export default function PaymentPage() {
                   {appliedCoupon ? (
                     <div
                       style={{
-                        background: 'rgba(16, 185, 129, 0.08)',
-                        border: '1.5px dashed var(--primary-color, #16a34a)',
+                        background: `${appliedCoupon.color_tema || '#16a34a'}15`,
+                        border: `1.5px dashed ${appliedCoupon.color_tema || '#16a34a'}`,
                         borderRadius: '12px',
                         padding: '0.9rem 1.1rem',
                         display: 'flex',
@@ -344,7 +344,7 @@ export default function PaymentPage() {
                               fontFamily: 'monospace',
                               fontWeight: 800,
                               fontSize: '0.88rem',
-                              backgroundColor: 'var(--primary-color, #16a34a)',
+                              backgroundColor: appliedCoupon.color_tema || '#16a34a',
                               color: '#ffffff',
                               padding: '0.2rem 0.6rem',
                               borderRadius: '6px',
@@ -353,12 +353,12 @@ export default function PaymentPage() {
                           >
                             {appliedCoupon.codigo}
                           </span>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--primary-color, #16a34a)' }}>
-                            {appliedCoupon.descuento_porcentaje ? `-${appliedCoupon.descuento_porcentaje}%` : 'Monto Fijo'}
+                          <span style={{ fontSize: '0.85rem', fontWeight: 800, color: appliedCoupon.color_tema || '#16a34a' }}>
+                            {Number(appliedCoupon.descuento_porcentaje) > 0 ? `-${appliedCoupon.descuento_porcentaje}%` : `-${formatCOP(appliedCoupon.descuento_fijo)}`}
                           </span>
                         </div>
                         <div style={{ fontSize: '0.82rem', color: 'var(--text-main, #333)', marginTop: '4px' }}>
-                          Ahorraste <strong style={{ color: 'var(--primary-color, #16a34a)' }}>-{formatCOP(discountAmount)}</strong>
+                          Ahorraste <strong style={{ color: appliedCoupon.color_tema || '#16a34a' }}>-{formatCOP(discountAmount)}</strong>
                         </div>
                       </div>
 

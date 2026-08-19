@@ -65,14 +65,27 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
 
   // Modales y Gestión de Cupones
+  const COUPON_COLOR_PRESETS = [
+    { id: 'emerald', label: 'Verde Esmeralda', hex: '#059669', bgLight: '#ecfdf5', textDark: '#065f46', border: '#059669' },
+    { id: 'purple', label: 'Morado Real', hex: '#7c3aed', bgLight: '#f5f3ff', textDark: '#5b21b6', border: '#7c3aed' },
+    { id: 'amber', label: 'Amarillo Mostaza', hex: '#d97706', bgLight: '#fffbeb', textDark: '#78350f', border: '#d97706' },
+    { id: 'blue', label: 'Azul Océano', hex: '#2563eb', bgLight: '#eff6ff', textDark: '#1e40af', border: '#2563eb' },
+    { id: 'red', label: 'Rojo Coral', hex: '#dc2626', bgLight: '#fef2f2', textDark: '#991b1b', border: '#dc2626' },
+    { id: 'orange', label: 'Naranja Tropical', hex: '#ea580c', bgLight: '#fff7ed', textDark: '#9a3412', border: '#ea580c' },
+    { id: 'pink', label: 'Rosa Magenta', hex: '#db2777', bgLight: '#fdf2f8', textDark: '#9d174d', border: '#db2777' },
+    { id: 'dark', label: 'Carbón Elegante', hex: '#0f172a', bgLight: '#f8fafc', textDark: '#0f172a', border: '#334155' },
+  ]
+
   const [showCreateCouponModal, setShowCreateCouponModal] = useState(false)
   const [editingCoupon, setEditingCoupon] = useState(null)
   const [couponSearch, setCouponSearch] = useState('')
   const [couponForm, setCouponForm] = useState({
     codigo: '',
     descripcion: '',
+    tipo_descuento: 'porcentaje', // 'porcentaje' | 'monto_fijo'
     descuento_porcentaje: 10,
     descuento_fijo: 0,
+    color_tema: '#059669',
     monto_minimo: 0,
     uso_limite: 100,
     fecha_expiracion: '',
@@ -519,21 +532,37 @@ export default function AdminPage() {
   }, [])
 
   // ── Gestor de Cupones Handlers ──
-  const handleGenerateRandomCoupon = (customPct) => {
+  const handleGenerateRandomCoupon = (customPct, customFijo) => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
     let rand = ''
     for (let i = 0; i < 4; i++) {
       rand += chars.charAt(Math.floor(Math.random() * chars.length))
     }
-    const pct = customPct !== undefined ? customPct : (couponForm.descuento_porcentaje || 10)
     const prefixes = ['MONTES', 'CAMPO', 'FINCA', 'COSECHA', 'AGRO']
     const randomPrefix = prefixes[Math.floor(Math.random() * prefixes.length)]
-    const code = `${randomPrefix}${pct}-${rand}`
-    setCouponForm((prev) => ({
-      ...prev,
-      codigo: code,
-      descuento_porcentaje: pct,
-    }))
+
+    const isFijo = customFijo !== undefined || (customPct === undefined && couponForm.tipo_descuento === 'monto_fijo')
+
+    if (isFijo) {
+      const fijo = customFijo !== undefined ? customFijo : (couponForm.descuento_fijo || 10000)
+      const kSuffix = fijo >= 1000 ? `${Math.round(fijo / 1000)}K` : fijo
+      const code = `${randomPrefix}${kSuffix}-${rand}`
+      setCouponForm((prev) => ({
+        ...prev,
+        codigo: code,
+        descuento_fijo: fijo,
+        descuento_porcentaje: 0,
+      }))
+    } else {
+      const pct = customPct !== undefined ? customPct : (couponForm.descuento_porcentaje || 10)
+      const code = `${randomPrefix}${pct}-${rand}`
+      setCouponForm((prev) => ({
+        ...prev,
+        codigo: code,
+        descuento_porcentaje: pct,
+        descuento_fijo: 0,
+      }))
+    }
   }
 
   const handleOpenCreateCoupon = () => {
@@ -544,8 +573,10 @@ export default function AdminPage() {
     setCouponForm({
       codigo: `MONTES10-${rand}`,
       descripcion: 'Cupón de descuento especial',
+      tipo_descuento: 'porcentaje',
       descuento_porcentaje: 10,
       descuento_fijo: 0,
+      color_tema: '#059669',
       monto_minimo: 0,
       uso_limite: 100,
       fecha_expiracion: '',
@@ -559,11 +590,14 @@ export default function AdminPage() {
 
   const handleOpenEditCoupon = (c) => {
     setEditingCoupon(c)
+    const isFijo = Number(c.descuento_fijo || 0) > 0 && Number(c.descuento_porcentaje || 0) === 0
     setCouponForm({
       codigo: c.codigo || '',
       descripcion: c.descripcion || '',
+      tipo_descuento: isFijo ? 'monto_fijo' : 'porcentaje',
       descuento_porcentaje: Number(c.descuento_porcentaje || 0),
       descuento_fijo: Number(c.descuento_fijo || 0),
+      color_tema: c.color_tema || '#059669',
       monto_minimo: Number(c.monto_minimo || 0),
       uso_limite: c.uso_limite === null ? '' : c.uso_limite,
       fecha_expiracion: c.fecha_expiracion ? c.fecha_expiracion.slice(0, 10) : '',
@@ -581,14 +615,29 @@ export default function AdminPage() {
       setCouponError('El código del cupón es obligatorio.')
       return
     }
+
+    const isPorcentaje = couponForm.tipo_descuento === 'porcentaje'
+    const pctVal = isPorcentaje ? Number(couponForm.descuento_porcentaje || 0) : 0
+    const fijoVal = !isPorcentaje ? Number(couponForm.descuento_fijo || 0) : 0
+
+    if (isPorcentaje && pctVal <= 0) {
+      setCouponError('El porcentaje de descuento debe ser superior a 0%.')
+      return
+    }
+    if (!isPorcentaje && fijoVal <= 0) {
+      setCouponError('El monto fijo de descuento en COP debe ser superior a $0.')
+      return
+    }
+
     setCouponSaving(true)
     setCouponError('')
     try {
       const payload = {
         codigo: couponForm.codigo.trim().toUpperCase(),
         descripcion: couponForm.descripcion.trim(),
-        descuento_porcentaje: Number(couponForm.descuento_porcentaje || 0),
-        descuento_fijo: Number(couponForm.descuento_fijo || 0),
+        descuento_porcentaje: pctVal,
+        descuento_fijo: fijoVal,
+        color_tema: couponForm.color_tema || '#059669',
         monto_minimo: Number(couponForm.monto_minimo || 0),
         uso_limite: couponForm.uso_limite === '' ? null : Number(couponForm.uso_limite),
         fecha_expiracion: couponForm.fecha_expiracion || null,
@@ -2964,8 +3013,8 @@ export default function AdminPage() {
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <div
                                       style={{
-                                        background: '#ecfdf5',
-                                        border: '1.5px dashed #059669',
+                                        background: `${c.color_tema || '#059669'}15`,
+                                        border: `1.5px dashed ${c.color_tema || '#059669'}`,
                                         borderRadius: '8px',
                                         padding: '0.35rem 0.65rem',
                                         display: 'inline-flex',
@@ -2973,8 +3022,8 @@ export default function AdminPage() {
                                         gap: '0.4rem',
                                       }}
                                     >
-                                      <i className="fa fa-ticket-alt" style={{ color: '#059669', fontSize: '0.85rem' }} />
-                                      <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#065f46', fontSize: '0.95rem' }}>
+                                      <i className="fa fa-ticket-alt" style={{ color: c.color_tema || '#059669', fontSize: '0.85rem' }} />
+                                      <span style={{ fontFamily: 'monospace', fontWeight: 800, color: c.color_tema || '#065f46', fontSize: '0.95rem' }}>
                                         {c.codigo}
                                       </span>
                                     </div>
@@ -2991,31 +3040,21 @@ export default function AdminPage() {
                                 </td>
 
                                 <td>
-                                  {Number(c.descuento_porcentaje) > 0 ? (
-                                    <span
-                                      className="badge badge-success"
-                                      style={{
-                                        fontSize: '0.85rem',
-                                        fontWeight: 800,
-                                        padding: '0.35rem 0.6rem',
-                                        background: '#16a34a',
-                                        color: '#fff',
-                                      }}
-                                    >
-                                      ⚡ {Number(c.descuento_porcentaje)}% OFF
-                                    </span>
-                                  ) : (
-                                    <span
-                                      className="badge badge-info"
-                                      style={{
-                                        fontSize: '0.85rem',
-                                        fontWeight: 800,
-                                        padding: '0.35rem 0.6rem',
-                                      }}
-                                    >
-                                      💰 {formatCOP(c.descuento_fijo)} OFF
-                                    </span>
-                                  )}
+                                  <span
+                                    className="badge"
+                                    style={{
+                                      fontSize: '0.85rem',
+                                      fontWeight: 800,
+                                      padding: '0.35rem 0.65rem',
+                                      background: c.color_tema || '#16a34a',
+                                      color: '#ffffff',
+                                      boxShadow: '0 2px 4px rgba(0,0,0,0.12)',
+                                    }}
+                                  >
+                                    {Number(c.descuento_porcentaje) > 0
+                                      ? `⚡ ${Number(c.descuento_porcentaje)}% OFF`
+                                      : `💰 ${formatCOP(c.descuento_fijo)} OFF`}
+                                  </span>
                                 </td>
 
                                 <td style={{ maxWidth: '240px' }}>
@@ -4205,11 +4244,13 @@ export default function AdminPage() {
           {/* Modal Crear / Editar Cupón de Descuento */}
           {showCreateCouponModal && (
             <div className="modal-overlay fade-in" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-              <div className="modal-content card" style={{ maxWidth: '680px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '2rem', borderRadius: '16px' }}>
+              <div className="modal-content card" style={{ maxWidth: '720px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '2rem', borderRadius: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
-                  <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <i className="fa fa-ticket-alt text-primary" />
-                    {editingCoupon ? `Editar Cupón: ${editingCoupon.codigo}` : 'Crear Nuevo Cupón de Descuento'}
+                  <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: `${couponForm.color_tema || '#059669'}20`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <i className="fa fa-ticket-alt" style={{ color: couponForm.color_tema || '#059669', fontSize: '1.2rem' }} />
+                    </div>
+                    <span>{editingCoupon ? `Editar Cupón: ${editingCoupon.codigo}` : 'Crear Nuevo Cupón de Descuento'}</span>
                   </h3>
                   <button onClick={() => setShowCreateCouponModal(false)} className="btn-icon">
                     <i className="fa fa-times" />
@@ -4223,72 +4264,238 @@ export default function AdminPage() {
                 )}
 
                 <form onSubmit={handleSaveCoupon} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                  {/* Selector de Porcentaje de Descuento Rápido */}
+                  {/* Selector de Tipo de Descuento (Pills / Switch) */}
                   <div style={{ background: 'var(--bg-alt)', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                    <label className="form-label" style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.6rem' }}>
-                      <i className="fa fa-percentage text-success" /> Porcentaje de Descuento *
+                    <label className="form-label" style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.75rem' }}>
+                      <i className="fa fa-sliders-h text-primary" /> Tipo y Modalidad de Descuento *
                     </label>
-                    <p className="text-muted" style={{ fontSize: '0.82rem', margin: '0 0 0.75rem 0' }}>
-                      Elige un porcentaje predefinido o escribe cualquier valor personalizado:
-                    </p>
 
-                    {/* Presets Grid */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.85rem' }}>
-                      {[2, 3, 4, 5, 10, 15, 20, 25, 30, 40, 50].map((pct) => (
-                        <button
-                          key={pct}
-                          type="button"
-                          onClick={() => {
-                            setCouponForm((prev) => ({ ...prev, descuento_porcentaje: pct, descuento_fijo: 0 }))
-                            handleGenerateRandomCoupon(pct)
-                          }}
-                          className={`btn btn-sm ${Number(couponForm.descuento_porcentaje) === pct ? 'btn-primary' : 'btn-outline-primary'}`}
-                          style={{
-                            fontWeight: 700,
-                            borderRadius: '8px',
-                            minWidth: '52px',
-                            padding: '0.35rem 0.6rem',
-                          }}
-                        >
-                          {pct}%
-                        </button>
-                      ))}
+                    {/* Selector de Modalidad */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCouponForm((prev) => ({
+                            ...prev,
+                            tipo_descuento: 'porcentaje',
+                            descuento_porcentaje: prev.descuento_porcentaje > 0 ? prev.descuento_porcentaje : 10,
+                            descuento_fijo: 0,
+                          }))
+                        }}
+                        style={{
+                          padding: '0.75rem 1rem',
+                          borderRadius: '10px',
+                          border: couponForm.tipo_descuento === 'porcentaje' ? '2px solid var(--primary-color, #16a34a)' : '1px solid var(--border-color)',
+                          backgroundColor: couponForm.tipo_descuento === 'porcentaje' ? 'rgba(22, 163, 74, 0.08)' : 'var(--card-bg, #ffffff)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.6rem',
+                          fontWeight: 700,
+                          color: couponForm.tipo_descuento === 'porcentaje' ? 'var(--primary-color, #16a34a)' : 'inherit',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <i className="fa fa-percentage" style={{ fontSize: '1.1rem' }} />
+                        <div style={{ textAlign: 'left' }}>
+                          <div>Descuento Porcentual</div>
+                          <small style={{ fontWeight: 400, opacity: 0.8, fontSize: '0.74rem' }}>Ej: 10%, 15%, 20% OFF</small>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCouponForm((prev) => ({
+                            ...prev,
+                            tipo_descuento: 'monto_fijo',
+                            descuento_fijo: prev.descuento_fijo > 0 ? prev.descuento_fijo : 10000,
+                            descuento_porcentaje: 0,
+                          }))
+                        }}
+                        style={{
+                          padding: '0.75rem 1rem',
+                          borderRadius: '10px',
+                          border: couponForm.tipo_descuento === 'monto_fijo' ? '2px solid var(--primary-color, #16a34a)' : '1px solid var(--border-color)',
+                          backgroundColor: couponForm.tipo_descuento === 'monto_fijo' ? 'rgba(22, 163, 74, 0.08)' : 'var(--card-bg, #ffffff)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.6rem',
+                          fontWeight: 700,
+                          color: couponForm.tipo_descuento === 'monto_fijo' ? 'var(--primary-color, #16a34a)' : 'inherit',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        <i className="fa fa-money-bill-wave" style={{ fontSize: '1.1rem' }} />
+                        <div style={{ textAlign: 'left' }}>
+                          <div>Monto Fijo en Pesos</div>
+                          <small style={{ fontWeight: 400, opacity: 0.8, fontSize: '0.74rem' }}>Ej: $5.000, $10.000 COP</small>
+                        </div>
+                      </button>
                     </div>
 
-                    <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                      <div className="form-group" style={{ margin: 0 }}>
-                        <label className="form-label" style={{ fontSize: '0.85rem' }}>% Descuento Personalizado</label>
-                        <div style={{ position: 'relative' }}>
-                          <input
-                            type="number"
-                            min="1"
-                            max="100"
-                            step="0.5"
-                            value={couponForm.descuento_porcentaje}
-                            onChange={(e) => setCouponForm({ ...couponForm, descuento_porcentaje: e.target.value, descuento_fijo: 0 })}
-                            className="form-input"
-                            placeholder="Ej: 12"
-                            required={!couponForm.descuento_fijo}
-                          />
-                          <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: '#64748b' }}>%</span>
+                    {/* Controles para Porcentaje */}
+                    {couponForm.tipo_descuento === 'porcentaje' && (
+                      <div className="fade-in">
+                        <p className="text-muted" style={{ fontSize: '0.82rem', margin: '0 0 0.6rem 0' }}>
+                          Elige un porcentaje predefinido o ingresa el valor deseado:
+                        </p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', marginBottom: '0.85rem' }}>
+                          {[2, 3, 5, 10, 15, 20, 25, 30, 40, 50].map((pct) => (
+                            <button
+                              key={pct}
+                              type="button"
+                              onClick={() => {
+                                setCouponForm((prev) => ({ ...prev, descuento_porcentaje: pct, descuento_fijo: 0 }))
+                                handleGenerateRandomCoupon(pct, undefined)
+                              }}
+                              className={`btn btn-sm ${Number(couponForm.descuento_porcentaje) === pct ? 'btn-primary' : 'btn-outline-primary'}`}
+                              style={{
+                                fontWeight: 700,
+                                borderRadius: '8px',
+                                minWidth: '48px',
+                                padding: '0.3rem 0.55rem',
+                              }}
+                            >
+                              {pct}%
+                            </button>
+                          ))}
                         </div>
-                      </div>
 
-                      <div className="form-group" style={{ margin: 0 }}>
-                        <label className="form-label" style={{ fontSize: '0.85rem' }}>O Monto Fijo en COP</label>
-                        <div style={{ position: 'relative' }}>
-                          <input
-                            type="number"
-                            min="0"
-                            step="1000"
-                            value={couponForm.descuento_fijo}
-                            onChange={(e) => setCouponForm({ ...couponForm, descuento_fijo: e.target.value, descuento_porcentaje: 0 })}
-                            className="form-input"
-                            placeholder="Ej: 15000"
-                          />
-                          <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: '#64748b', fontSize: '0.8rem' }}>COP</span>
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.85rem' }}>% Descuento Personalizado *</label>
+                          <div style={{ position: 'relative' }}>
+                            <input
+                              type="number"
+                              min="0.5"
+                              max="100"
+                              step="0.5"
+                              value={couponForm.descuento_porcentaje || ''}
+                              onChange={(e) => setCouponForm({ ...couponForm, descuento_porcentaje: e.target.value, descuento_fijo: 0 })}
+                              className="form-input"
+                              placeholder="Ej: 12"
+                              required
+                            />
+                            <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: '#64748b' }}>%</span>
+                          </div>
                         </div>
                       </div>
+                    )}
+
+                    {/* Controles para Monto Fijo en COP */}
+                    {couponForm.tipo_descuento === 'monto_fijo' && (
+                      <div className="fade-in">
+                        <p className="text-muted" style={{ fontSize: '0.82rem', margin: '0 0 0.6rem 0' }}>
+                          Elige un monto predefinido en pesos o ingresa el valor deseado:
+                        </p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.45rem', marginBottom: '0.85rem' }}>
+                          {[2000, 5000, 10000, 15000, 20000, 30000, 50000, 100000].map((monto) => (
+                            <button
+                              key={monto}
+                              type="button"
+                              onClick={() => {
+                                setCouponForm((prev) => ({ ...prev, descuento_fijo: monto, descuento_porcentaje: 0 }))
+                                handleGenerateRandomCoupon(undefined, monto)
+                              }}
+                              className={`btn btn-sm ${Number(couponForm.descuento_fijo) === monto ? 'btn-primary' : 'btn-outline-primary'}`}
+                              style={{
+                                fontWeight: 700,
+                                borderRadius: '8px',
+                                padding: '0.3rem 0.55rem',
+                                fontSize: '0.8rem',
+                              }}
+                            >
+                              ${(monto / 1000)}K
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="form-group" style={{ margin: 0 }}>
+                          <label className="form-label" style={{ fontSize: '0.85rem' }}>Monto de Descuento en Pesos (COP) *</label>
+                          <div style={{ position: 'relative' }}>
+                            <input
+                              type="number"
+                              min="500"
+                              step="500"
+                              value={couponForm.descuento_fijo || ''}
+                              onChange={(e) => setCouponForm({ ...couponForm, descuento_fijo: e.target.value, descuento_porcentaje: 0 })}
+                              className="form-input"
+                              placeholder="Ej: 15000"
+                              required
+                            />
+                            <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: '#64748b', fontSize: '0.82rem' }}>COP</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 🎨 Selector y Personalización de Color del Cupón */}
+                  <div style={{ background: 'var(--bg-alt)', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                      <label className="form-label" style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
+                        <i className="fa fa-palette text-primary" /> Color y Estilo Visual del Descuento
+                      </label>
+                      <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                        Color activo: <strong style={{ color: couponForm.color_tema || '#059669' }}>{couponForm.color_tema || '#059669'}</strong>
+                      </span>
+                    </div>
+                    <p className="text-muted" style={{ fontSize: '0.82rem', margin: '0 0 0.85rem 0' }}>
+                      Personaliza el color con el que se mostrará este cupón en las tarjetas, badges y barra promocional:
+                    </p>
+
+                    {/* Paleta de colores predefinidos */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(135px, 1fr))', gap: '0.6rem', marginBottom: '0.85rem' }}>
+                      {COUPON_COLOR_PRESETS.map((col) => {
+                        const isSelected = (couponForm.color_tema || '#059669').toLowerCase() === col.hex.toLowerCase()
+                        return (
+                          <button
+                            key={col.id}
+                            type="button"
+                            onClick={() => setCouponForm((prev) => ({ ...prev, color_tema: col.hex }))}
+                            style={{
+                              padding: '0.5rem 0.65rem',
+                              borderRadius: '8px',
+                              border: isSelected ? `2.5px solid ${col.hex}` : '1px solid var(--border-color)',
+                              backgroundColor: isSelected ? col.bgLight : 'var(--card-bg, #ffffff)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              fontSize: '0.78rem',
+                              fontWeight: isSelected ? 800 : 600,
+                              color: isSelected ? col.textDark : 'inherit',
+                              boxShadow: isSelected ? `0 2px 8px ${col.hex}33` : 'none',
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            <span style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: col.hex, flexShrink: 0, boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{col.label}</span>
+                            {isSelected && <i className="fa fa-check" style={{ marginLeft: 'auto', fontSize: '0.75rem', color: col.hex }} />}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {/* Selector de Color Libre / Personalizado */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem', padding: '0.5rem 0.75rem', background: 'var(--card-bg)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                      <label style={{ fontSize: '0.82rem', fontWeight: 600, margin: 0 }}>O elige un color libre:</label>
+                      <input
+                        type="color"
+                        value={couponForm.color_tema || '#059669'}
+                        onChange={(e) => setCouponForm({ ...couponForm, color_tema: e.target.value })}
+                        style={{ width: '38px', height: '32px', padding: '2px', border: '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer' }}
+                        title="Seleccionar color personalizado"
+                      />
+                      <input
+                        type="text"
+                        value={couponForm.color_tema || '#059669'}
+                        onChange={(e) => setCouponForm({ ...couponForm, color_tema: e.target.value })}
+                        className="form-input form-input-sm"
+                        style={{ width: '120px', fontFamily: 'monospace', fontWeight: 700 }}
+                        placeholder="#059669"
+                      />
                     </div>
                   </div>
 
@@ -4373,28 +4580,53 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  {/* Vista Previa del Cupón */}
-                  <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '10px', border: '1px dashed #cbd5e1' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-                      Vista previa del cupón generado:
+                  {/* 🎫 Vista Previa en Vivo del Cupón con Color Personalizado */}
+                  <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.6rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <i className="fa fa-eye" /> Vista previa en vivo del cupón y color:
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', background: '#ecfdf5', padding: '0.85rem 1.25rem', borderRadius: '8px', border: '1.5px dashed #059669' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: '0.75rem',
+                        background: `${couponForm.color_tema || '#059669'}15`,
+                        padding: '1rem 1.25rem',
+                        borderRadius: '10px',
+                        border: `1.5px dashed ${couponForm.color_tema || '#059669'}`,
+                      }}
+                    >
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <i className="fa fa-ticket-alt" style={{ color: '#059669', fontSize: '1.2rem' }} />
-                          <span style={{ fontFamily: 'monospace', fontWeight: 900, color: '#065f46', fontSize: '1.15rem' }}>
+                          <i className="fa fa-ticket-alt" style={{ color: couponForm.color_tema || '#059669', fontSize: '1.25rem' }} />
+                          <span style={{ fontFamily: 'monospace', fontWeight: 900, color: couponForm.color_tema || '#065f46', fontSize: '1.2rem', letterSpacing: '0.5px' }}>
                             {couponForm.codigo || 'CODIGO-EJEMPLO'}
                           </span>
                         </div>
-                        <div style={{ fontSize: '0.8rem', color: '#047857', marginTop: '2px' }}>
-                          {couponForm.descripcion || 'Descuento especial'}
+                        <div style={{ fontSize: '0.84rem', color: '#475569', marginTop: '3px' }}>
+                          {couponForm.descripcion || 'Descuento especial del campo'}
                         </div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <span className="badge badge-success" style={{ fontSize: '0.95rem', fontWeight: 800, padding: '0.4rem 0.8rem' }}>
-                          {Number(couponForm.descuento_porcentaje) > 0
-                            ? `⚡ ${couponForm.descuento_porcentaje}% OFF`
-                            : `💰 ${formatCOP(couponForm.descuento_fijo)} OFF`}
+                        <span
+                          style={{
+                            fontSize: '1rem',
+                            fontWeight: 800,
+                            padding: '0.45rem 0.9rem',
+                            backgroundColor: couponForm.color_tema || '#059669',
+                            color: '#ffffff',
+                            borderRadius: '8px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.4rem',
+                            boxShadow: `0 3px 8px ${couponForm.color_tema || '#059669'}44`,
+                          }}
+                        >
+                          {couponForm.tipo_descuento === 'porcentaje'
+                            ? `⚡ ${couponForm.descuento_porcentaje || 0}% OFF`
+                            : `💰 ${formatCOP(couponForm.descuento_fijo || 0)} OFF`}
                         </span>
                       </div>
                     </div>

@@ -229,6 +229,7 @@ function initializeDatabaseTables() {
       descripcion VARCHAR(255),
       descuento_porcentaje DECIMAL(5, 2) DEFAULT 0,
       descuento_fijo DECIMAL(10, 2) DEFAULT 0,
+      color_tema VARCHAR(50) DEFAULT '#059669',
       monto_minimo DECIMAL(10, 2) DEFAULT 0,
       uso_limite INT DEFAULT NULL,
       uso_actual INT DEFAULT 0,
@@ -452,18 +453,28 @@ function seedDataIfEmpty() {
   pool.query("SELECT COUNT(*) as count FROM cupones", (err, rows) => {
     if (!err && rows && rows[0] && rows[0].count === 0) {
       console.log("Sembrando cupones de descuento iniciales (AGRO10, BIENVENIDO, CAMPO20, COSECHA5)...");
-      pool.query(`INSERT IGNORE INTO cupones (codigo, descripcion, descuento_porcentaje, descuento_fijo, monto_minimo, uso_limite, uso_actual, activo, promocionar_en_barra, mensaje_promocional) VALUES
-        ('AGRO10', '10% de descuento en toda la tienda del campo', 10, 0, 0, 1000, 0, 1, 1, '¡Usa el cupón AGRO10 para 10% OFF en toda tu compra!'),
-        ('BIENVENIDO', '15% de descuento especial de bienvenida', 15, 0, 0, 500, 0, 1, 1, '¡Bienvenido! Usa BIENVENIDO para 15% OFF en tu primer pedido.'),
-        ('CAMPO20', '$20.000 COP de descuento directo', 0, 20000, 50000, 200, 0, 1, 0, '$20.000 OFF en compras mayores a $50.000 COP'),
-        ('COSECHA5', '5% de descuento en cosechas frescas', 5, 0, 0, 1000, 0, 1, 0, '5% OFF adicional')
+      pool.query(`INSERT IGNORE INTO cupones (codigo, descripcion, descuento_porcentaje, descuento_fijo, color_tema, monto_minimo, uso_limite, uso_actual, activo, promocionar_en_barra, mensaje_promocional) VALUES
+        ('AGRO10', '10% de descuento en toda la tienda del campo', 10, 0, '#059669', 0, 1000, 0, 1, 1, '¡Usa el cupón AGRO10 para 10% OFF en toda tu compra!'),
+        ('BIENVENIDO', '15% de descuento especial de bienvenida', 15, 0, '#7c3aed', 0, 500, 0, 1, 1, '¡Bienvenido! Usa BIENVENIDO para 15% OFF en tu primer pedido.'),
+        ('CAMPO20', '$20.000 COP de descuento directo', 0, 20000, '#d97706', 50000, 200, 0, 1, 0, '$20.000 OFF en compras mayores a $50.000 COP'),
+        ('COSECHA5', '5% de descuento en cosechas frescas', 5, 0, '#2563eb', 0, 1000, 0, 1, 0, '5% OFF adicional')
       `);
     } else if (!err) {
       // Asegurar que AGRO10 siempre esté disponible y activo
-      pool.query(`INSERT IGNORE INTO cupones (codigo, descripcion, descuento_porcentaje, descuento_fijo, monto_minimo, uso_limite, uso_actual, activo, promocionar_en_barra, mensaje_promocional)
-        VALUES ('AGRO10', '10% de descuento en toda la tienda del campo', 10, 0, 0, 1000, 0, 1, 1, '¡Usa el cupón AGRO10 para 10% OFF en toda tu compra!')
+      pool.query(`INSERT IGNORE INTO cupones (codigo, descripcion, descuento_porcentaje, descuento_fijo, color_tema, monto_minimo, uso_limite, uso_actual, activo, promocionar_en_barra, mensaje_promocional)
+        VALUES ('AGRO10', '10% de descuento en toda la tienda del campo', 10, 0, '#059669', 0, 1000, 0, 1, 1, '¡Usa el cupón AGRO10 para 10% OFF en toda tu compra!')
       `);
     }
+
+    // Migración segura: agregar columna color_tema si la tabla ya existía
+    pool.query(`
+      SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_NAME = 'cupones' AND COLUMN_NAME = 'color_tema'
+    `, (cErr, cRows) => {
+      if (!cErr && cRows && cRows.length === 0) {
+        pool.query("ALTER TABLE cupones ADD COLUMN color_tema VARCHAR(50) DEFAULT '#059669'");
+      }
+    });
   });
 
   // Sembrar banners reales en MySQL si la tabla está vacía

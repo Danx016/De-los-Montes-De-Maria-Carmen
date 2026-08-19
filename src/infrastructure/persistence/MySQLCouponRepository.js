@@ -46,15 +46,16 @@ class MySQLCouponRepository extends CouponRepository {
     return new Promise((resolve, reject) => {
       const sql = `
         INSERT INTO cupones (
-          codigo, descripcion, descuento_porcentaje, descuento_fijo, monto_minimo,
+          codigo, descripcion, descuento_porcentaje, descuento_fijo, color_tema, monto_minimo,
           uso_limite, uso_actual, fecha_expiracion, activo, promocionar_en_barra, mensaje_promocional
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       const params = [
         data.codigo.toUpperCase().trim(),
         data.descripcion || null,
         data.descuento_porcentaje !== undefined ? Number(data.descuento_porcentaje) : 0,
         data.descuento_fijo !== undefined ? Number(data.descuento_fijo) : 0,
+        data.color_tema || '#059669',
         data.monto_minimo !== undefined ? Number(data.monto_minimo) : 0,
         data.uso_limite !== undefined ? (data.uso_limite === null ? null : Number(data.uso_limite)) : null,
         data.uso_actual !== undefined ? Number(data.uso_actual) : 0,
@@ -79,6 +80,7 @@ class MySQLCouponRepository extends CouponRepository {
           descripcion = ?,
           descuento_porcentaje = ?,
           descuento_fijo = ?,
+          color_tema = ?,
           monto_minimo = ?,
           uso_limite = ?,
           fecha_expiracion = ?,
@@ -92,6 +94,7 @@ class MySQLCouponRepository extends CouponRepository {
         data.descripcion || null,
         Number(data.descuento_porcentaje || 0),
         Number(data.descuento_fijo || 0),
+        data.color_tema || '#059669',
         Number(data.monto_minimo || 0),
         data.uso_limite === null || data.uso_limite === '' ? null : Number(data.uso_limite),
         data.fecha_expiracion || null,

@@ -54,13 +54,15 @@ export default function PromoCouponBanner() {
     currentPromo.mensaje_promocional ||
     `¡Aprovecha nuestro descuento exclusivo! Usa el código ${currentPromo.codigo} en tu pedido.`
 
+  const themeColor = currentPromo.color_tema || '#059669'
+
   return (
     <aside
       className="promo-coupon-bar"
       role="region"
       aria-label="Barra Promocional de Cupones"
       style={{
-        background: 'linear-gradient(90deg, #064e3b 0%, #047857 50%, #065f46 100%)',
+        background: `linear-gradient(90deg, ${themeColor} 0%, #0f172a 100%)`,
         color: '#ffffff',
         padding: '0.5rem 1rem',
         fontSize: '0.85rem',
@@ -68,6 +70,7 @@ export default function PromoCouponBanner() {
         position: 'relative',
         zIndex: 999,
         borderBottom: '1px solid rgba(255,255,255,0.12)',
+        transition: 'background 0.4s ease',
       }}
     >
       <div
@@ -115,17 +118,18 @@ export default function PromoCouponBanner() {
         >
           <span
             style={{
-              background: '#f59e0b',
-              color: '#78350f',
-              padding: '0.15rem 0.5rem',
+              background: '#ffffff',
+              color: themeColor,
+              padding: '0.15rem 0.55rem',
               borderRadius: '4px',
-              fontWeight: 800,
-              fontSize: '0.72rem',
+              fontWeight: 900,
+              fontSize: '0.74rem',
               letterSpacing: '0.4px',
               textTransform: 'uppercase',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.3rem',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
             }}
           >
             <i className="fa fa-bolt" /> {discountBadge}
@@ -138,7 +142,7 @@ export default function PromoCouponBanner() {
             onClick={(e) => handleCopy(e, currentPromo.codigo)}
             style={{
               background: '#ffffff',
-              color: '#065f46',
+              color: themeColor,
               border: 'none',
               padding: '0.25rem 0.75rem',
               borderRadius: '20px',
@@ -152,11 +156,11 @@ export default function PromoCouponBanner() {
               boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
               transition: 'transform 0.15s ease, background 0.15s ease',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#ecfdf5')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = '#ffffff')}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.92')}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
             title="Copiar cupón"
           >
-            <i className="fa fa-tag text-success" />
+            <i className="fa fa-tag" style={{ color: themeColor }} />
             <span>{currentPromo.codigo}</span>
             <i className="fa fa-copy" style={{ opacity: 0.65, fontSize: '0.75rem' }} />
           </button>

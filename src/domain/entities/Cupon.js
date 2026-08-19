@@ -9,6 +9,7 @@ class Cupon {
     descripcion = '',
     descuento_porcentaje = 0,
     descuento_fijo = 0,
+    color_tema = '#059669',
     monto_minimo = 0,
     uso_limite = null,
     uso_actual = 0,
@@ -27,6 +28,7 @@ class Cupon {
     this.descripcion = descripcion;
     this.descuento_porcentaje = Number(descuento_porcentaje || 0);
     this.descuento_fijo = Number(descuento_fijo || 0);
+    this.color_tema = color_tema || '#059669';
     this.monto_minimo = Number(monto_minimo || 0);
     this.uso_limite = uso_limite !== null && uso_limite !== undefined ? Number(uso_limite) : null;
     this.uso_actual = Number(uso_actual || 0);
