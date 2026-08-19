@@ -138,10 +138,13 @@ class CouponController {
         descripcion,
         descuento_porcentaje,
         descuento_fijo,
+        color_tema,
         monto_minimo,
         uso_limite,
         fecha_expiracion,
         activo,
+        promocionar_en_barra,
+        mensaje_promocional,
         generar_random,
         prefijo_random
       } = req.body;
@@ -166,11 +169,14 @@ class CouponController {
         descripcion: descripcion || null,
         descuento_porcentaje: pct,
         descuento_fijo: Number(descuento_fijo || 0),
+        color_tema: color_tema || '#059669',
         monto_minimo: Number(monto_minimo || 0),
         uso_limite: uso_limite ? Number(uso_limite) : null,
         uso_actual: 0,
         fecha_expiracion: fecha_expiracion || null,
-        activo: activo !== undefined ? (activo ? 1 : 0) : 1
+        activo: activo !== undefined ? (activo ? 1 : 0) : 1,
+        promocionar_en_barra: promocionar_en_barra ? 1 : 0,
+        mensaje_promocional: mensaje_promocional ? mensaje_promocional.trim() : null
       });
 
       res.status(201).json({
@@ -193,6 +199,7 @@ class CouponController {
         descripcion,
         descuento_porcentaje,
         descuento_fijo,
+        color_tema,
         monto_minimo,
         uso_limite,
         fecha_expiracion,
@@ -216,6 +223,7 @@ class CouponController {
         descripcion: descripcion || null,
         descuento_porcentaje: Number(descuento_porcentaje || 0),
         descuento_fijo: Number(descuento_fijo || 0),
+        color_tema: color_tema || '#059669',
         monto_minimo: Number(monto_minimo || 0),
         uso_limite: uso_limite ? Number(uso_limite) : null,
         fecha_expiracion: fecha_expiracion || null,

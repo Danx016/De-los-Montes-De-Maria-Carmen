@@ -2913,36 +2913,44 @@ export default function AdminPage() {
                 </div>
 
                 {/* Live Preview Strip */}
-                {cupones.filter((c) => c.promocionar_en_barra === 1).length > 0 && (
-                  <div
-                    style={{
-                      marginTop: '1rem',
-                      background: 'linear-gradient(90deg, #064e3b 0%, #047857 50%, #065f46 100%)',
-                      color: '#ffffff',
-                      padding: '0.55rem 1rem',
-                      borderRadius: '8px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '0.75rem',
-                      fontSize: '0.82rem',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      <span style={{ background: '#f59e0b', color: '#78350f', padding: '0.1rem 0.45rem', borderRadius: '4px', fontWeight: 800, fontSize: '0.7rem' }}>
-                        VISTA PREVIA EN VIVO
-                      </span>
-                      <span>
-                        {cupones.find((c) => c.promocionar_en_barra === 1)?.mensaje_promocional ||
-                          '🔥 ¡Temporada de Cosecha! Usa el cupón CAMPO20 y obtén 20% de descuento'}
-                      </span>
-                      <span style={{ background: '#ffffff', color: '#065f46', padding: '0.15rem 0.5rem', borderRadius: '12px', fontWeight: 800, fontFamily: 'monospace', fontSize: '0.75rem' }}>
-                        {cupones.find((c) => c.promocionar_en_barra === 1)?.codigo}
-                      </span>
+                {cupones.filter((c) => c.promocionar_en_barra === 1).length > 0 && (() => {
+                  const activePromo = cupones.find((c) => c.promocionar_en_barra === 1)
+                  const promoColor = activePromo?.color_tema || '#059669'
+                  const pPct = Number(activePromo?.descuento_porcentaje || 0)
+                  const pFijo = Number(activePromo?.descuento_fijo || 0)
+                  const pBadge = pPct > 0 ? `⚡ ${pPct}% OFF` : pFijo > 0 ? `💰 $${pFijo.toLocaleString('es-CO')} COP OFF` : 'PROMO'
+
+                  return (
+                    <div
+                      style={{
+                        marginTop: '1rem',
+                        background: `linear-gradient(90deg, ${promoColor} 0%, #0f172a 100%)`,
+                        color: '#ffffff',
+                        padding: '0.55rem 1rem',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '0.75rem',
+                        fontSize: '0.82rem',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <span style={{ background: '#ffffff', color: promoColor, padding: '0.12rem 0.5rem', borderRadius: '4px', fontWeight: 800, fontSize: '0.72rem' }}>
+                          {pBadge}
+                        </span>
+                        <span>
+                          {activePromo?.mensaje_promocional ||
+                            `¡Aprovecha nuestro descuento exclusivo! Usa el código ${activePromo?.codigo} en tu pedido.`}
+                        </span>
+                        <span style={{ background: '#ffffff', color: promoColor, padding: '0.15rem 0.5rem', borderRadius: '12px', fontWeight: 800, fontFamily: 'monospace', fontSize: '0.75rem' }}>
+                          {activePromo?.codigo}
+                        </span>
+                      </div>
+                      <span style={{ opacity: 0.7, fontSize: '0.75rem' }}>Visible en el encabezado</span>
                     </div>
-                    <span style={{ opacity: 0.7, fontSize: '0.75rem' }}>Visible en el encabezado</span>
-                  </div>
-                )}
+                  )
+                })()}
               </div>
 
               {/* Main Card */}

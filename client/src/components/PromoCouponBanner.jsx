@@ -44,10 +44,12 @@ export default function PromoCouponBanner() {
     }
   }
 
-  const discountBadge = currentPromo.descuento_porcentaje
-    ? `${Number(currentPromo.descuento_porcentaje)}% OFF`
-    : currentPromo.descuento_fijo
-    ? `$${Number(currentPromo.descuento_fijo).toLocaleString('es-CO')} OFF`
+  const pct = Number(currentPromo.descuento_porcentaje || 0)
+  const fijo = Number(currentPromo.descuento_fijo || 0)
+  const discountBadge = pct > 0
+    ? `${pct}% OFF`
+    : fijo > 0
+    ? `$${fijo.toLocaleString('es-CO')} COP OFF`
     : 'Descuento Especial'
 
   const message =
