@@ -17,6 +17,14 @@ function generateTicketCode() {
   return code;
 }
 
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 class TelegramService {
   constructor({ soporteRepository, iaService, productoRepository, usuarioRepository, compraRepository, emailService } = {}) {
     this.token = process.env.TELEGRAM_BOT_TOKEN || '8827545163:AAHKvReHgrEm5LXBjZ2YYJChBqZQ1f0-AJo';
@@ -1052,28 +1060,40 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
         if (cbData === 'cmd_resumen' || cbData === 'cmd_metricas') {
           if (isAdminOrAdvisor || cbChatId === String(this.adminChatId)) {
             await this.mostrarMetricasNegocio(cbChatId);
+          } else {
+            await this.sendMessage(cbChatId, '🔒 Esta opción requiere permisos de Administrador.');
           }
+          await this.answerCallbackQuery(callbackQuery.id);
           return { ok: true };
         }
 
         if (cbData === 'cmd_tickets') {
           if (isAdminOrAdvisor || cbChatId === String(this.adminChatId)) {
             await this.mostrarTicketsPendientes(cbChatId);
+          } else {
+            await this.sendMessage(cbChatId, '🔒 Esta opción requiere permisos de Administrador.');
           }
+          await this.answerCallbackQuery(callbackQuery.id);
           return { ok: true };
         }
 
         if (cbData === 'cmd_ventas' || cbData === 'cmd_pedidos') {
           if (isAdminOrAdvisor || cbChatId === String(this.adminChatId)) {
             await this.mostrarUltimasVentas(cbChatId);
+          } else {
+            await this.sendMessage(cbChatId, '🔒 Esta opción requiere permisos de Administrador.');
           }
+          await this.answerCallbackQuery(callbackQuery.id);
           return { ok: true };
         }
 
         if (cbData === 'cmd_stock') {
           if (isAdminOrAdvisor || cbChatId === String(this.adminChatId)) {
             await this.mostrarStockCritico(cbChatId);
+          } else {
+            await this.sendMessage(cbChatId, '🔒 Esta opción requiere permisos de Administrador.');
           }
+          await this.answerCallbackQuery(callbackQuery.id);
           return { ok: true };
         }
 
@@ -1121,7 +1141,9 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
 
         if (cbData === 'cmd_productos') {
           if (isAdminOrAdvisor || cbChatId === String(this.adminChatId)) {
-            await this.mostrarMenuGestionProductos(cbChatId, '', 1, callbackQuery.message?.message_id);
+            await this.mostrarMenuGestionProductos(cbChatId, '', 1);
+          } else {
+            await this.sendMessage(cbChatId, '🔒 Esta opción requiere permisos de Administrador.');
           }
           await this.answerCallbackQuery(callbackQuery.id);
           return { ok: true };
@@ -1183,9 +1205,58 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
 
         if (cbData === 'cmd_usuarios') {
           if (isAdminOrAdvisor || cbChatId === String(this.adminChatId)) {
-            await this.mostrarMenuGestionUsuarios(cbChatId, '', 1, callbackQuery.message?.message_id);
+            await this.mostrarMenuGestionUsuarios(cbChatId, '', 1);
+          } else {
+            await this.sendMessage(cbChatId, '🔒 Esta opción requiere permisos de Administrador.');
           }
           await this.answerCallbackQuery(callbackQuery.id);
+          return { ok: true };
+        }
+
+        // ── RESPUESTA Y CIERRE DE TICKETS VÍA BOTONES INLINE ──
+        if (cbData.startsWith('reply_tk:')) {
+          const ticketCode = cbData.replace('reply_tk:', '').trim().toUpperCase();
+          session.state = 'WAITING_TICKET_REPLY';
+          session.replyTicketCode = ticketCode;
+          await this.sendMessage(cbChatId, `✍️ Escribe tu <b>respuesta</b> para el ticket <code>#${ticketCode}</code>:\n<i>(O escribe /cancelar para salir)</i>`);
+          await this.answerCallbackQuery(callbackQuery.id);
+          return { ok: true };
+        }
+
+        if (cbData.startsWith('close_tk:')) {
+          const ticketCode = cbData.replace('close_tk:', '').trim().toUpperCase();
+          if (this.soporteRepository) {
+            const t = await this.soporteRepository.buscarTicketPorCodigo(ticketCode);
+            if (t) {
+              await this.soporteRepository.actualizarTicket(t.id, {
+                estado: 'cerrado',
+                id_agente: authUser?.id_usuario || t.id_agente,
+                nombre_agente: authUser?.nombre || 'Administrador'
+              });
+              const msgCierre = await this.soporteRepository.agregarMensaje({
+                ticket_id: t.id,
+                session_id: t.session_id,
+                id_usuario: authUser?.id_usuario || null,
+                nombre_remitente: 'Sistema',
+                rol: 'sistema',
+                mensaje: '🔒 El ticket ha sido marcado como resuelto y cerrado por el equipo de soporte.'
+              });
+              if (this.socketHandler) {
+                this.socketHandler.emitirNuevoMensaje(t.session_id, {
+                  id: msgCierre.id,
+                  ticket_id: t.id,
+                  session_id: t.session_id,
+                  remitente: 'sistema',
+                  nombre_remitente: 'Sistema',
+                  mensaje: '🔒 El ticket ha sido marcado como resuelto y cerrado por el equipo de soporte.',
+                  fecha: new Date().toISOString()
+                });
+                this.socketHandler.emitirTicketCerrado(t.session_id, t.id, '✅ Tu ticket ha sido marcado como resuelto y cerrado.');
+              }
+              await this.sendMessage(cbChatId, `✅ <b>Ticket #${ticketCode} cerrado exitosamente.</b>`);
+            }
+          }
+          await this.answerCallbackQuery(callbackQuery.id, 'Ticket cerrado');
           return { ok: true };
         }
 
@@ -2365,6 +2436,49 @@ Hemos enviado un nuevo código de 6 dígitos a:
     }
   }
 
+  async mostrarTicketsPendientes(chatId) {
+    if (!this.soporteRepository) return;
+    try {
+      const tickets = await this.soporteRepository.listarTickets();
+      const pendientes = (tickets || []).filter((t) => t.estado !== 'cerrado').slice(0, 6);
+
+      if (pendientes.length === 0) {
+        await this.sendMessage(chatId, '✅ <b>No hay tickets pendientes.</b>\nTodos los casos de soporte han sido atendidos o resueltos.');
+        return;
+      }
+
+      let msg = `🎫 <b>TICKETS DE SOPORTE EN ESPERA (${pendientes.length})</b> 🌾\n━━━━━━━━━━━━━━━━━━\n`;
+      const keyboard = [];
+
+      pendientes.forEach((t) => {
+        const codigo = t.ticket_code || `TK-${t.id}`;
+        const asunto = escapeHtml(t.asunto || t.categoria || 'Consulta');
+        const cliente = escapeHtml(t.nombre_cliente || t.correo_cliente || 'Cliente');
+        const estadoEmoji = t.estado === 'abierto' ? '🔴' : t.estado === 'en_atencion' ? '🟡' : '🟢';
+        const snippet = escapeHtml((t.ultimo_mensaje || t.descripcion || 'Sin mensaje adicional').slice(0, 45));
+
+        msg += `${estadoEmoji} <b>#${codigo}</b> - <i>${cliente}</i>\n   📝 <b>${asunto}</b>\n   💬 "${snippet}..."\n\n`;
+
+        keyboard.push([
+          { text: `💬 Responder #${codigo}`, callback_data: `reply_tk:${codigo}` },
+          { text: `🔒 Cerrar`, callback_data: `close_tk:${codigo}` }
+        ]);
+      });
+
+      msg += `━━━━━━━━━━━━━━━━━━\n💡 <i>Toca 'Responder' o responde citando el mensaje.</i>`;
+
+      keyboard.push([
+        { text: '🔄 Refrescar Tickets', callback_data: 'cmd_tickets' },
+        { text: '📊 Resumen General', callback_data: 'cmd_resumen' }
+      ]);
+
+      await this.sendMessage(chatId, msg, { reply_markup: { inline_keyboard: keyboard } });
+    } catch (err) {
+      console.error('[Telegram mostrarTicketsPendientes Error]:', err);
+      await this.sendMessage(chatId, `⚠️ Error al consultar tickets: ${err.message}`);
+    }
+  }
+
   async cambiarEstadoPedidoDesdeTelegram(chatId, idCompra, nuevoEstado, authUser) {
     if (!this.compraRepository) return;
     try {
@@ -2659,9 +2773,10 @@ ${topList}
       const prods = await new Promise((res) => db.query(sql, params, (err, r) => res(r || [])));
 
       if (prods.length === 0) {
-        const noMsg = `📦 <b>Gestión de Catálogo</b>\n━━━━━━━━━━━━━━━━━━\nNo se encontraron productos que coincidan con <code>${searchTerm}</code>.\n\n💡 <i>Escribe <code>/productos</code> para ver todos o <code>/precio [id] [valor]</code> para editar directamente.</i>`;
+        const noMsg = `📦 <b>Gestión de Catálogo</b>\n━━━━━━━━━━━━━━━━━━\nNo se encontraron productos que coincidan con <code>${escapeHtml(searchTerm)}</code>.\n\n💡 <i>Escribe <code>/productos</code> para ver todos o <code>/precio [id] [valor]</code> para editar directamente.</i>`;
         if (messageIdToEdit) {
-          await this.editMessageText(chatId, messageIdToEdit, noMsg);
+          const editRes = await this.editMessageText(chatId, messageIdToEdit, noMsg);
+          if (editRes && !editRes.ok) await this.sendMessage(chatId, noMsg);
         } else {
           await this.sendMessage(chatId, noMsg);
         }
@@ -2669,13 +2784,13 @@ ${topList}
       }
 
       let msg = `📦 <b>GESTIÓN DE PRODUCTOS & PRECIOS</b> 🌾\n━━━━━━━━━━━━━━━━━━\n`;
-      if (searchTerm) msg += `🔍 <i>Filtro: "${searchTerm}"</i>\n\n`;
+      if (searchTerm) msg += `🔍 <i>Filtro: "${escapeHtml(searchTerm)}"</i>\n\n`;
 
       const keyboard = [];
 
       prods.forEach((p) => {
         const id = p.id_producto || p.id;
-        const nombre = p.nombre_producto || p.nombre || 'Producto';
+        const nombre = escapeHtml(p.nombre_producto || p.nombre || 'Producto');
         const precio = Number(p.precio || 0).toLocaleString('es-CO');
         const stock = Number(p.stock || 0);
         const isActivo = p.activo === 1 || p.activo === true || p.activo === undefined;
@@ -2685,7 +2800,7 @@ ${topList}
         msg += `${estadoEmoji} <b>#${id} ${nombre}</b>\n   💵 <b>$${precio} COP</b> | 📦 <b>${estadoTexto}</b>\n\n`;
 
         keyboard.push([
-          { text: `🔍 #${id} ${nombre.slice(0, 14)}`, callback_data: `prod_view:${id}` },
+          { text: `🔍 #${id} ${(p.nombre_producto || p.nombre || 'Producto').slice(0, 14)}`, callback_data: `prod_view:${id}` },
           { text: isActivo ? '⏸️ Pausar' : '▶️ Activar', callback_data: `prod_toggle:${id}` },
           { text: '📦 +10', callback_data: `prod_stock_add:${id}:10` }
         ]);
@@ -2699,7 +2814,10 @@ ${topList}
       ]);
 
       if (messageIdToEdit) {
-        await this.editMessageText(chatId, messageIdToEdit, msg, { reply_markup: { inline_keyboard: keyboard } });
+        const editRes = await this.editMessageText(chatId, messageIdToEdit, msg, { reply_markup: { inline_keyboard: keyboard } });
+        if (editRes && !editRes.ok) {
+          await this.sendMessage(chatId, msg, { reply_markup: { inline_keyboard: keyboard } });
+        }
       } else {
         await this.sendMessage(chatId, msg, { reply_markup: { inline_keyboard: keyboard } });
       }
@@ -2936,9 +3054,10 @@ ${topList}
       const users = await new Promise((res) => db.query(sql, params, (err, r) => res(r || [])));
 
       if (users.length === 0) {
-        const noMsg = `👥 <b>Gestión de Usuarios</b>\n━━━━━━━━━━━━━━━━━━\nNo se encontraron usuarios con el término <code>${searchTerm}</code>.\n\n💡 <i>Escribe <code>/usuarios</code> para ver todos o <code>/usuario [correo]</code> para buscar directamente.</i>`;
+        const noMsg = `👥 <b>Gestión de Usuarios</b>\n━━━━━━━━━━━━━━━━━━\nNo se encontraron usuarios con el término <code>${escapeHtml(searchTerm)}</code>.\n\n💡 <i>Escribe <code>/usuarios</code> para ver todos o <code>/usuario [correo]</code> para buscar directamente.</i>`;
         if (messageIdToEdit) {
-          await this.editMessageText(chatId, messageIdToEdit, noMsg);
+          const editRes = await this.editMessageText(chatId, messageIdToEdit, noMsg);
+          if (editRes && !editRes.ok) await this.sendMessage(chatId, noMsg);
         } else {
           await this.sendMessage(chatId, noMsg);
         }
@@ -2946,14 +3065,14 @@ ${topList}
       }
 
       let msg = `👥 <b>GESTIÓN Y CONTROL DE USUARIOS</b> 🛡️\n━━━━━━━━━━━━━━━━━━\n`;
-      if (searchTerm) msg += `🔍 <i>Filtro: "${searchTerm}"</i>\n\n`;
+      if (searchTerm) msg += `🔍 <i>Filtro: "${escapeHtml(searchTerm)}"</i>\n\n`;
 
       const keyboard = [];
 
       users.forEach((u) => {
         const id = u.id_usuario;
-        const nombre = u.nombre || u.apodo;
-        const correo = u.correo;
+        const nombre = escapeHtml(u.nombre || u.apodo || 'Usuario');
+        const correo = escapeHtml(u.correo || 'Sin correo');
         const rolTexto = u.id_rol === 1 ? '👑 Admin' : u.id_rol === 2 ? '🌾 Campesino' : '🛒 Comprador';
         const isActivo = u.activo === 1 || u.activo === true || u.activo === undefined;
         const estadoEmoji = isActivo ? '🟢' : '🔴';
@@ -2961,7 +3080,7 @@ ${topList}
         msg += `${estadoEmoji} <b>#${id} ${nombre}</b> (${rolTexto})\n   📧 <code>${correo}</code> | 💵 <b>$${Number(u.creditos || 0).toLocaleString('es-CO')}</b>\n\n`;
 
         keyboard.push([
-          { text: `👤 #${id} ${nombre.slice(0, 14)}`, callback_data: `usr_view:${id}` },
+          { text: `👤 #${id} ${(u.nombre || u.apodo || 'Usuario').slice(0, 14)}`, callback_data: `usr_view:${id}` },
           { text: isActivo ? '🚫 Bloquear' : '✅ Desbloquear', callback_data: `usr_toggle:${id}` },
           { text: '👑 Rol', callback_data: `usr_role_menu:${id}` }
         ]);
@@ -2974,7 +3093,10 @@ ${topList}
       ]);
 
       if (messageIdToEdit) {
-        await this.editMessageText(chatId, messageIdToEdit, msg, { reply_markup: { inline_keyboard: keyboard } });
+        const editRes = await this.editMessageText(chatId, messageIdToEdit, msg, { reply_markup: { inline_keyboard: keyboard } });
+        if (editRes && !editRes.ok) {
+          await this.sendMessage(chatId, msg, { reply_markup: { inline_keyboard: keyboard } });
+        }
       } else {
         await this.sendMessage(chatId, msg, { reply_markup: { inline_keyboard: keyboard } });
       }
