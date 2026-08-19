@@ -44,6 +44,10 @@ export default function VendedorPage() {
     precio: '',
     stock: '',
     categoria: 'cosechas',
+    unidad_medida: 'Kg',
+    origen: '',
+    presentacion: '',
+    cuidado: '',
   })
   const [imageFile, setImageFile] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -107,7 +111,17 @@ export default function VendedorPage() {
 
   const handleOpenCreate = () => {
     setEditingId(null)
-    setProdForm({ nombre: '', descripcion: '', precio: '', stock: '', categoria: 'cosechas' })
+    setProdForm({
+      nombre: '',
+      descripcion: '',
+      precio: '',
+      stock: '',
+      categoria: 'cosechas',
+      unidad_medida: 'Kg',
+      origen: user?.municipio ? `${user.municipio}, Montes de María` : 'Montes de María, Colombia',
+      presentacion: 'Empaque fresco de finca',
+      cuidado: 'Conservar en lugar fresco y seco',
+    })
     setImageFile(null)
     setError('')
     setShowModal(true)
@@ -116,11 +130,15 @@ export default function VendedorPage() {
   const handleOpenEdit = (prod) => {
     setEditingId(prod.id_producto)
     setProdForm({
-      nombre: prod.nombre || '',
+      nombre: prod.nombre || prod.nombre_producto || '',
       descripcion: prod.descripcion || '',
       precio: prod.precio || '',
       stock: prod.stock || '',
       categoria: prod.categoria || 'cosechas',
+      unidad_medida: prod.unidad_medida || 'Kg',
+      origen: prod.origen || '',
+      presentacion: prod.presentacion || '',
+      cuidado: prod.cuidado || '',
     })
     setImageFile(null)
     setError('')
@@ -138,6 +156,10 @@ export default function VendedorPage() {
     formData.append('precio', prodForm.precio)
     formData.append('stock', prodForm.stock)
     formData.append('categoria', prodForm.categoria)
+    formData.append('unidad_medida', prodForm.unidad_medida)
+    formData.append('origen', prodForm.origen)
+    formData.append('presentacion', prodForm.presentacion)
+    formData.append('cuidado', prodForm.cuidado)
     if (imageFile) {
       formData.append('imageFile', imageFile)
     }
@@ -726,13 +748,72 @@ export default function VendedorPage() {
                   </div>
 
                   <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                    <label className="form-label" style={{ fontWeight: 600 }}>Descripción del Producto</label>
+                    <label className="form-label" style={{ fontWeight: 600 }}>Descripción Detallada del Producto</label>
                     <textarea
                       rows={3}
                       placeholder="Describe la calidad, procedencia, método de cultivo o características..."
                       value={prodForm.descripcion}
                       onChange={(e) => setProdForm({ ...prodForm, descripcion: e.target.value })}
                       className="form-textarea"
+                    />
+                  </div>
+
+                  <div className="form-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontWeight: 600 }}>
+                        <i className="fa fa-map-marker-alt text-danger" /> Municipio / Vereda de Origen
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ej: El Carmen de Bolívar"
+                        value={prodForm.origen}
+                        onChange={(e) => setProdForm({ ...prodForm, origen: e.target.value })}
+                        className="form-input"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontWeight: 600 }}>
+                        <i className="fa fa-box text-primary" /> Presentación / Empaque
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ej: Bolsa 1Kg / Por Atado"
+                        value={prodForm.presentacion}
+                        onChange={(e) => setProdForm({ ...prodForm, presentacion: e.target.value })}
+                        className="form-input"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontWeight: 600 }}>
+                        <i className="fa fa-weight-hanging text-info" /> Unidad de Medida
+                      </label>
+                      <select
+                        value={prodForm.unidad_medida}
+                        onChange={(e) => setProdForm({ ...prodForm, unidad_medida: e.target.value })}
+                        className="form-select"
+                      >
+                        <option value="Kg">Kg (Kilogramo)</option>
+                        <option value="Libra">Libra (500g)</option>
+                        <option value="Unidad">Unidad / Pieza</option>
+                        <option value="Litro">Litro / Botella</option>
+                        <option value="Bulto">Bulto / Saco</option>
+                        <option value="Atado">Atado / Racimo</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                    <label className="form-label" style={{ fontWeight: 600 }}>
+                      <i className="fa fa-leaf text-success" /> Recomendaciones de Cuidado & Conservación
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ej: Mantener en lugar fresco y ventilado o refrigerar"
+                      value={prodForm.cuidado}
+                      onChange={(e) => setProdForm({ ...prodForm, cuidado: e.target.value })}
+                      className="form-input"
                     />
                   </div>
 

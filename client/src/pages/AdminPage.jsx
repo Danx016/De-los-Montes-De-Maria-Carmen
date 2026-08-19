@@ -143,6 +143,9 @@ export default function AdminPage() {
     categoria: '',
     unidad_medida: 'Unidad',
     id_vendedor: '',
+    origen: '',
+    presentacion: '',
+    cuidado: '',
   })
   const [newProdImageFile, setNewProdImageFile] = useState(null)
   const [newProdImagePreview, setNewProdImagePreview] = useState('')
@@ -160,6 +163,9 @@ export default function AdminPage() {
     categoria: '',
     unidad_medida: 'Unidad',
     id_vendedor: '',
+    origen: '',
+    presentacion: '',
+    cuidado: '',
     imagen: '',
   })
   const [editProdImageFile, setEditProdImageFile] = useState(null)
@@ -948,6 +954,9 @@ export default function AdminPage() {
       categoria: categorias.length > 0 ? (categorias[0].slug || categorias[0].nombre_categoria) : 'cosechas',
       unidad_medida: 'Kg',
       id_vendedor: '',
+      origen: 'Montes de María, Colombia',
+      presentacion: 'Empaque fresco de finca',
+      cuidado: 'Conservar en lugar fresco y seco',
       imagen: '',
     })
     setNewProdImageFile(null)
@@ -970,6 +979,9 @@ export default function AdminPage() {
       categoria: prod.categoria || (categorias.length > 0 ? (categorias[0].slug || categorias[0].nombre_categoria) : ''),
       unidad_medida: prod.unidad_medida || 'Unidad',
       id_vendedor: vendorVal,
+      origen: prod.origen || '',
+      presentacion: prod.presentacion || '',
+      cuidado: prod.cuidado || '',
       imagen: isCodeOrUrl ? prod.imagen : '',
     })
     setEditProdImageFile(null)
@@ -1006,6 +1018,9 @@ export default function AdminPage() {
       formData.append('categoria', newProdForm.categoria)
       formData.append('unidad_medida', newProdForm.unidad_medida)
       formData.append('id_vendedor', newProdForm.id_vendedor || '')
+      formData.append('origen', newProdForm.origen || '')
+      formData.append('presentacion', newProdForm.presentacion || '')
+      formData.append('cuidado', newProdForm.cuidado || '')
       if (newProdImageFile) {
         formData.append('imagen', newProdImageFile)
       } else if (newProdForm.imagen) {
@@ -1041,6 +1056,9 @@ export default function AdminPage() {
       formData.append('categoria', editProdForm.categoria)
       formData.append('unidad_medida', editProdForm.unidad_medida)
       formData.append('id_vendedor', editProdForm.id_vendedor !== undefined ? editProdForm.id_vendedor : '')
+      formData.append('origen', editProdForm.origen !== undefined ? editProdForm.origen : '')
+      formData.append('presentacion', editProdForm.presentacion !== undefined ? editProdForm.presentacion : '')
+      formData.append('cuidado', editProdForm.cuidado !== undefined ? editProdForm.cuidado : '')
       if (editProdImageFile) {
         formData.append('imagen', editProdImageFile)
       } else if (editProdForm.imagen !== undefined) {
@@ -1936,12 +1954,46 @@ export default function AdminPage() {
                   </div>
 
                   <div className="form-group" style={{ marginTop: '0.75rem' }}>
-                    <label className="form-label">Descripción</label>
+                    <label className="form-label">Descripción Detallada *</label>
                     <textarea
                       rows="2"
                       placeholder="Descripción detallada del producto, calidad y origen..."
                       value={newProdForm.descripcion}
                       onChange={(e) => setNewProdForm({ ...newProdForm, descripcion: e.target.value })}
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.75rem' }}>
+                    <div className="form-group">
+                      <label className="form-label"><i className="fa fa-map-marker-alt text-danger" /> Municipio / Origen</label>
+                      <input
+                        type="text"
+                        placeholder="Ej: El Carmen de Bolívar, Montes de María"
+                        value={newProdForm.origen}
+                        onChange={(e) => setNewProdForm({ ...newProdForm, origen: e.target.value })}
+                        className="form-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label"><i className="fa fa-box text-primary" /> Presentación / Empaque</label>
+                      <input
+                        type="text"
+                        placeholder="Ej: Por Kilo / Atado fresco"
+                        value={newProdForm.presentacion}
+                        onChange={(e) => setNewProdForm({ ...newProdForm, presentacion: e.target.value })}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                    <label className="form-label"><i className="fa fa-leaf text-success" /> Cuidados & Conservación</label>
+                    <input
+                      type="text"
+                      placeholder="Ej: Conservar en lugar fresco, seco y aireado"
+                      value={newProdForm.cuidado}
+                      onChange={(e) => setNewProdForm({ ...newProdForm, cuidado: e.target.value })}
                       className="form-input"
                     />
                   </div>
@@ -2116,11 +2168,45 @@ export default function AdminPage() {
                   </div>
 
                   <div className="form-group" style={{ marginTop: '0.75rem' }}>
-                    <label className="form-label">Descripción</label>
+                    <label className="form-label">Descripción Detallada *</label>
                     <textarea
                       rows="2"
                       value={editProdForm.descripcion}
                       onChange={(e) => setEditProdForm({ ...editProdForm, descripcion: e.target.value })}
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.75rem' }}>
+                    <div className="form-group">
+                      <label className="form-label"><i className="fa fa-map-marker-alt text-danger" /> Municipio / Origen</label>
+                      <input
+                        type="text"
+                        placeholder="Ej: San Jacinto, Montes de María"
+                        value={editProdForm.origen}
+                        onChange={(e) => setEditProdForm({ ...editProdForm, origen: e.target.value })}
+                        className="form-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label"><i className="fa fa-box text-primary" /> Presentación / Empaque</label>
+                      <input
+                        type="text"
+                        placeholder="Ej: Por Kilo / Atado fresco"
+                        value={editProdForm.presentacion}
+                        onChange={(e) => setEditProdForm({ ...editProdForm, presentacion: e.target.value })}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                    <label className="form-label"><i className="fa fa-leaf text-success" /> Cuidados & Conservación</label>
+                    <input
+                      type="text"
+                      placeholder="Ej: Conservar en lugar fresco, seco y aireado"
+                      value={editProdForm.cuidado}
+                      onChange={(e) => setEditProdForm({ ...editProdForm, cuidado: e.target.value })}
                       className="form-input"
                     />
                   </div>
