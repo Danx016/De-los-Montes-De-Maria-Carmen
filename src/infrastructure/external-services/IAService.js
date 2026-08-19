@@ -436,6 +436,44 @@ Responde con amabilidad, precisión y concisión. Usa las herramientas cuando se
       return 'Ocurrió un error. Haz clic en **"Hablar con un asesor"** para ser atendido por un agente.';
     }
   }
+
+  // ==========================================
+  // 4. GENERADOR RÁPIDO DE RESPUESTAS DE SOPORTE PARA ADMIN
+  // ==========================================
+  async generarRespuestaSoporte(mensaje, contexto = '') {
+    const apiKey = appConfig.openRouterApiKey;
+    if (!apiKey || apiKey.startsWith('tu_clave')) {
+      return null;
+    }
+
+    const messages = [
+      {
+        role: 'system',
+        content: `Eres el asistente de soporte de "De los Montes de María", tienda de productos agrícolas directos de familias campesinas de Montes de María, Colombia.
+Genera una respuesta cordial, clara, concisa y empática para el cliente en máximo 2 o 3 párrafos cortos.
+Contexto: ${contexto}`
+      },
+      { role: 'user', content: mensaje }
+    ];
+
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+          'HTTP-Referer': appConfig.baseUrl
+        },
+        body: JSON.stringify({ model: 'openai/gpt-4o-mini', messages, temperature: 0.7, max_tokens: 300 })
+      });
+
+      const data = await response.json();
+      return data?.choices?.[0]?.message?.content || null;
+    } catch (err) {
+      console.error('[IAService generarRespuestaSoporte Error]:', err);
+      return null;
+    }
+  }
 }
 
 module.exports = IAService;

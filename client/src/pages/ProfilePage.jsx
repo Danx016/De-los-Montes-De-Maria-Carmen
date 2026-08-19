@@ -212,6 +212,18 @@ export default function ProfilePage() {
     }
   }
 
+  const getStatusBadge = (estado) => {
+    const raw = String(estado || '').toLowerCase().trim()
+    if (raw.includes('entreg')) return { label: 'Entregado con Éxito', className: 'badge-success', icon: 'fa fa-check-circle' }
+    if (raw.includes('repart') || raw.includes('local')) return { label: 'En Reparto Local', className: 'badge-primary', icon: 'fa fa-motorcycle' }
+    if (raw.includes('camino') || raw.includes('despach')) return { label: 'En Camino', className: 'badge-info', icon: 'fa fa-truck' }
+    if (raw.includes('empa') || raw.includes('listo')) return { label: 'Empacado', className: 'badge-info', icon: 'fa fa-box' }
+    if (raw.includes('confirm') || raw.includes('prepar')) return { label: 'En Preparación (Finca)', className: 'badge-primary', icon: 'fa fa-seedling' }
+    if (raw.includes('cancel')) return { label: 'Cancelado', className: 'badge-danger', icon: 'fa fa-times-circle' }
+    if (raw.includes('reembols')) return { label: 'Reembolsado', className: 'badge-secondary', icon: 'fa fa-undo' }
+    return { label: 'Pendiente', className: 'badge-warning', icon: 'fa fa-clock' }
+  }
+
   const handleDeleteDir = async (idDir) => {
     const ok = await confirm({
       title: '¿Eliminar dirección?',
@@ -653,9 +665,14 @@ export default function ProfilePage() {
                           <td><span className="badge badge-info">{compra.metodo_pago || 'Contra Entrega'}</span></td>
                           <td><strong>{formatCOP(compra.total)}</strong></td>
                           <td>
-                            <span className={`badge ${compra.estado === 'entregado' ? 'badge-success' : compra.estado === 'cancelado' ? 'badge-danger' : 'badge-warning'}`}>
-                              {compra.estado || 'En Proceso'}
-                            </span>
+                            {(() => {
+                              const badge = getStatusBadge(compra.estado)
+                              return (
+                                <span className={`badge ${badge.className}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                                  <i className={badge.icon} /> {badge.label}
+                                </span>
+                              )
+                            })()}
                           </td>
                           <td>
                             <button

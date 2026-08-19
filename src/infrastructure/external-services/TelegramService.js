@@ -42,6 +42,9 @@ class TelegramService {
     // Memoria de códigos OTP pendientes: chatId -> { code, userObj, expiresAt }
     this.pendingAuth = new Map();
 
+    // Memoria de respuestas sugeridas por IA para tickets: ticketCode -> suggestedText
+    this.cachedAiReplies = new Map();
+
     if (this.adminChatId) {
       this.subscribers.add(String(this.adminChatId));
     }
@@ -157,11 +160,17 @@ class TelegramService {
     const payload = {
       chat_id: chatId,
       text: text,
-      parse_mode: options.parse_mode || 'HTML',
+      parse_mode: options.parse_mode !== undefined ? options.parse_mode : 'HTML',
       disable_web_page_preview: options.disable_web_page_preview ?? true,
       ...options,
     };
-    return await this.request('sendMessage', payload);
+    const res = await this.request('sendMessage', payload);
+    // Si falla por error de parsing HTML/Markdown, reintentar automáticamente en texto plano
+    if (res && !res.ok && res.description && res.description.toLowerCase().includes('parse')) {
+      const fallbackPayload = { ...payload, parse_mode: undefined };
+      return await this.request('sendMessage', fallbackPayload);
+    }
+    return res;
   }
 
   /**
@@ -189,7 +198,7 @@ class TelegramService {
   }
 
   /**
-   * Alerta de Nueva Compra / Pedido a Administradores
+   * Alerta de Nueva Compra / Pedido a Administradores con Botones de 1-Clic
    */
   async notificarNuevaCompra({ compra, usuario, productos, total, metodoPago, direccion }) {
     try {
@@ -208,30 +217,53 @@ class TelegramService {
         productsList = '  ▫️ Productos del campo';
       }
 
+      const cleanPhone = String(clientPhone).replace(/\D/g, '');
+      const hasPhone = cleanPhone.length >= 7;
+
       const msg = `
-🛒 <b>¡NUEVO PEDIDO RECIBIDO!</b>
+🔔 <b>¡NUEVA COMPRA REGISTRADA!</b>
 ━━━━━━━━━━━━━━━━━━
-🧾 <b>Pedido:</b> <code>#ORD-${orderCode}</code>
+🧾 <b>Orden:</b> <code>#ORD-${orderCode}</code>
 👤 <b>Cliente:</b> ${clientName}
 📞 <b>Teléfono:</b> <code>${clientPhone}</code>
-📧 <b>Correo:</b> ${clientEmail}
-📍 <b>Entrega:</b> ${direccion || 'Montes de María, Colombia'}
-💳 <b>Pago:</b> ${metodoPago || 'Contra Entrega'}
-💰 <b>Total:</b> <b>$${formattedTotal} COP</b>
+📧 <b>Correo:</b> <code>${clientEmail}</code>
+📍 <b>Dirección:</b> ${direccion || 'Montes de María, Colombia'}
+💳 <b>Método de Pago:</b> ${metodoPago || 'Contra Entrega'}
+💰 <b>Total Pagado:</b> <b>$${formattedTotal} COP</b>
 
-🌾 <b>Detalle de Cosechas:</b>
+🛒 <b>Productos Solicitados:</b>
 ${productsList}
 ━━━━━━━━━━━━━━━━━━
-🌿 <i>De los Montes de María - Cosechando Futuro</i>
+⚡ <b>Gestionar estado de despacho en 1-clic:</b>
 `;
+      const buttons = [
+        [
+          { text: '👨‍🌾 En Finca', callback_data: `set_status:${orderCode}:confirmado` },
+          { text: '📦 Empacado', callback_data: `set_status:${orderCode}:empaquetado` }
+        ],
+        [
+          { text: '🚚 En Camino', callback_data: `set_status:${orderCode}:en_camino` },
+          { text: '🛵 En Reparto', callback_data: `set_status:${orderCode}:en_reparto` }
+        ],
+        [
+          { text: '✅ Marcar Entregado', callback_data: `set_status:${orderCode}:entregado` }
+        ]
+      ];
+
+      if (hasPhone) {
+        const waUrl = `https://wa.me/57${cleanPhone}?text=${encodeURIComponent(`Hola ${clientName}, te escribimos de De los Montes de María sobre tu pedido #ORD-${orderCode}.`)}`;
+        buttons.push([
+          { text: '💬 Abrir WhatsApp con Cliente', url: waUrl }
+        ]);
+      }
+
+      buttons.push([
+        { text: '🛒 Ver Todos los Pedidos', callback_data: 'cmd_ventas' }
+      ]);
+
       const keyboard = {
         reply_markup: {
-          inline_keyboard: [
-            [
-              { text: '🛒 Ver Pedidos', callback_data: 'cmd_ventas' },
-              { text: '🌐 Panel Web', url: 'https://delosmontesdemaria.onrender.com/admin' }
-            ]
-          ]
+          inline_keyboard: buttons
         }
       };
 
@@ -242,18 +274,72 @@ ${productsList}
   }
 
   /**
+   * Alerta de Solicitud de Nuevo Vendedor Campesino
+   */
+  async notificarSolicitudVendedor({ usuario, descripcion, categoria, telefono, direccion }) {
+    try {
+      const uId = usuario?.id_usuario || usuario?.id;
+      const nombre = usuario?.nombre || usuario?.username || 'Productor';
+      const correo = usuario?.correo || 'N/A';
+      const cleanPhone = String(telefono || usuario?.telefono || '').replace(/\D/g, '');
+
+      const msg = `
+🌾 <b>¡NUEVA SOLICITUD DE VENDEDOR CAMPESINO!</b>
+━━━━━━━━━━━━━━━━━━
+👤 <b>Productor:</b> ${nombre} (ID: <code>#${uId}</code>)
+📧 <b>Correo:</b> <code>${correo}</code>
+📞 <b>Teléfono:</b> <code>${telefono || usuario?.telefono || 'No registrado'}</code>
+📍 <b>Ubicación:</b> ${direccion || usuario?.direccion || 'Montes de María'}
+🏷️ <b>Categoría:</b> ${categoria || 'Cosechas y productos locales'}
+
+📝 <b>Descripción del Productor:</b>
+<i>"${descripcion || 'Productor campesino de la región de Montes de María'}"</i>
+━━━━━━━━━━━━━━━━━━
+`;
+      const buttons = [
+        [
+          { text: `✅ Aprobar Vendedor #${uId}`, callback_data: `approve_vendor:${uId}` }
+        ]
+      ];
+
+      if (cleanPhone.length >= 7) {
+        const waUrl = `https://wa.me/57${cleanPhone}?text=${encodeURIComponent(`Hola ${nombre}, te contactamos de De los Montes de María para validar tu registro de vendedor campesino.`)}`;
+        buttons.push([
+          { text: '💬 Contactar por WhatsApp', url: waUrl }
+        ]);
+      }
+
+      buttons.push([
+        { text: '🌐 Panel Web Administrativo', url: 'https://delosmontesdemaria.onrender.com/admin' }
+      ]);
+
+      const keyboard = {
+        reply_markup: {
+          inline_keyboard: buttons
+        }
+      };
+
+      await this.broadcastAdmins(msg, keyboard);
+    } catch (err) {
+      console.error('[Telegram] Error al notificar solicitud de vendedor:', err);
+    }
+  }
+
+  /**
    * Alerta de Stock Bajo
    */
   async notificarStockBajo({ producto, stockRestante }) {
     try {
       const prodName = producto?.nombre || producto?.nombre_producto || 'Producto';
+      const pId = producto?.id_producto || producto?.id || '';
       const msg = `
-⚠️ <b>¡ALERTA DE STOCK BAJO!</b>
+⚠️ <b>¡ALERTA DE STOCK CRÍTICO!</b>
 ━━━━━━━━━━━━━━━━━━
-📦 <b>Producto:</b> ${prodName}
+📦 <b>Producto:</b> ${prodName} (ID: <code>#${pId}</code>)
 🌾 <b>Stock Restante:</b> <code>${stockRestante} unidades</code>
 🏷️ <b>Categoría:</b> ${producto?.categoria || 'General'}
 ━━━━━━━━━━━━━━━━━━
+💡 <i>Puedes reabastecerlo escribiendo:</i> <code>/stock ${pId} [cantidad]</code>
 `;
       const keyboard = {
         reply_markup: {
@@ -281,7 +367,9 @@ ${productsList}
       const stateEmoji =
         nuevoEstado === 'en_camino' || nuevoEstado === 'despachado' ? '🚚' :
         nuevoEstado === 'entregado' ? '✅' :
-        nuevoEstado === 'en_preparacion' ? '👨‍🌾' : '📦';
+        nuevoEstado === 'en_reparto' ? '🛵' :
+        nuevoEstado === 'empaquetado' ? '📦' :
+        nuevoEstado === 'confirmado' || nuevoEstado === 'en_preparacion' ? '👨‍🌾' : '⏳';
 
       const msg = `
 ${stateEmoji} <b>ACTUALIZACIÓN DE DESPACHO</b>
@@ -299,31 +387,78 @@ ${usuario?.nombre ? `👤 <b>Cliente:</b> ${usuario.nombre}\n` : ''}
   }
 
   /**
-   * Notificar Nuevo Ticket de Soporte a Administradores
+   * Notificar Nuevo Ticket de Soporte a Administradores con Detección de Urgencia e IA
    */
   async notificarNuevoTicket({ ticket, mensajeInicial, excludeChatId = null }) {
     try {
       const ticketCode = ticket.ticket_code || ticket.session_id;
+      const textToCheck = `${ticket.asunto || ''} ${mensajeInicial || ''}`.toLowerCase();
+      
+      // Detección de Urgencia / Reclamo con IA / Palabras clave
+      const urgentWords = ['urgente', 'dañado', 'roto', 'reclam', 'estafa', 'no llegó', 'no me llego', 'demorado', 'tardanza', 'podrido', 'mal estado', 'error', 'perdido', 'dinero', 'cobro'];
+      const isUrgent = urgentWords.some((w) => textToCheck.includes(w));
+      const headerTitle = isUrgent ? '🔴 <b>¡URGENTE / RECLAMO DE CLIENTE!</b>' : '🎫 <b>NUEVA CONSULTA DE SOPORTE</b>';
+
+      // Generar respuesta sugerida por IA preliminar
+      let suggestedAiReply = '';
+      if (this.iaService && typeof this.iaService.generarRespuestaSoporte === 'function') {
+        try {
+          suggestedAiReply = await this.iaService.generarRespuestaSoporte(
+            mensajeInicial || ticket.asunto || 'Consulta de cliente',
+            `Cliente: ${ticket.nombre_cliente || 'Usuario'}`
+          );
+        } catch (_) {}
+      }
+
+      if (!suggestedAiReply) {
+        suggestedAiReply = `Hola ${ticket.nombre_cliente || ''}, con mucho gusto te ayudamos desde De los Montes de María con tu consulta sobre "${ticket.asunto || 'tu pedido'}". En este momento estamos revisando tu caso para darte pronta solución.`;
+      }
+
+      this.cachedAiReplies.set(String(ticketCode).toUpperCase().replace('#', '').trim(), suggestedAiReply);
+
+      const cleanPhone = String(ticket.telefono_cliente || '').replace(/\D/g, '');
+      const hasPhone = cleanPhone.length >= 7;
+
       const msg = `
-🎫 <b>NUEVA CONSULTA DE SOPORTE</b>
+${headerTitle}
 ━━━━━━━━━━━━━━━━━━
 Código: <code>#${ticketCode}</code>
 Cliente: <b>${ticket.nombre_cliente || 'Usuario'}</b>
 Correo: <code>${ticket.correo_cliente || 'N/A'}</code>
+Teléfono: <code>${ticket.telefono_cliente || 'No registrado'}</code>
 Asunto: <b>${ticket.asunto || 'Consulta'}</b>
 
-📝 <b>Mensaje:</b>
+📝 <b>Mensaje del Cliente:</b>
 <i>"${mensajeInicial || 'Solicitud de información'}"</i>
 ━━━━━━━━━━━━━━━━━━
+💡 <b>Respuesta Sugerida por IA:</b>
+<i>"${suggestedAiReply.slice(0, 240)}${suggestedAiReply.length > 240 ? '...' : ''}"</i>
 `;
+      const buttons = [
+        [
+          { text: `⚡ Enviar Respuesta de IA en 1-Clic`, callback_data: `ai_reply:${ticketCode}` }
+        ],
+        [
+          { text: `💬 Responder Manual`, callback_data: `reply_tk:${ticketCode}` },
+          { text: `🔒 Cerrar Ticket`, callback_data: `close_tk:${ticketCode}` }
+        ],
+        [
+          { text: '📍 Info Envíos', callback_data: `macro:${ticketCode}:envios` },
+          { text: '🧾 Factura', callback_data: `macro:${ticketCode}:factura` },
+          { text: '🌱 Calidad', callback_data: `macro:${ticketCode}:calidad` }
+        ]
+      ];
+
+      if (hasPhone) {
+        const waUrl = `https://wa.me/57${cleanPhone}?text=${encodeURIComponent(`Hola ${ticket.nombre_cliente || ''}, te contactamos del soporte oficial de De los Montes de María respecto a tu ticket #${ticketCode}.`)}`;
+        buttons.push([
+          { text: '💬 Abrir WhatsApp con el Cliente', url: waUrl }
+        ]);
+      }
+
       const keyboard = {
         reply_markup: {
-          inline_keyboard: [
-            [
-              { text: `💬 Responder a #${ticketCode}`, callback_data: `reply_tk:${ticketCode}` },
-              { text: `🔒 Cerrar Ticket`, callback_data: `close_tk:${ticketCode}` }
-            ]
-          ]
+          inline_keyboard: buttons
         }
       };
 
@@ -339,24 +474,41 @@ Asunto: <b>${ticket.asunto || 'Consulta'}</b>
   async notificarSolicitudAsesorHumano({ ticket, excludeChatId = null }) {
     try {
       const ticketCode = ticket.ticket_code || ticket.id;
+      const cleanPhone = String(ticket.telefono_cliente || '').replace(/\D/g, '');
+      const hasPhone = cleanPhone.length >= 7;
+
       const msg = `
 🚨 <b>¡CLIENTE SOLICITA ASESOR HUMANO!</b>
 ━━━━━━━━━━━━━━━━━━
 Ticket: <code>#${ticketCode}</code>
 Cliente: <b>${ticket.nombre_cliente}</b>
 Teléfono: <code>${ticket.telefono_cliente || 'N/A'}</code>
+Correo: <code>${ticket.correo_cliente || 'N/A'}</code>
 Asunto: <b>${ticket.asunto}</b>
 ━━━━━━━━━━━━━━━━━━
 ⚡ <i>Toca el botón de abajo para atender directamente desde Telegram:</i>
 `;
+      const buttons = [
+        [
+          { text: `💬 Atender #${ticketCode} Ahora`, callback_data: `reply_tk:${ticketCode}` },
+          { text: `🔒 Cerrar Ticket`, callback_data: `close_tk:${ticketCode}` }
+        ]
+      ];
+
+      if (hasPhone) {
+        const waUrl = `https://wa.me/57${cleanPhone}?text=${encodeURIComponent(`Hola ${ticket.nombre_cliente}, te atendemos desde el soporte de De los Montes de María sobre tu solicitud #${ticketCode}.`)}`;
+        buttons.push([
+          { text: '💬 Escribirle por WhatsApp', url: waUrl }
+        ]);
+      }
+
+      buttons.push([
+        { text: `🌐 Abrir en Panel Web`, url: 'https://delosmontesdemaria.onrender.com/admin/soporte' }
+      ]);
+
       const keyboard = {
         reply_markup: {
-          inline_keyboard: [
-            [
-              { text: `💬 Atender #${ticketCode} Ahora`, callback_data: `reply_tk:${ticketCode}` },
-              { text: `🌐 Abrir en Panel`, url: 'https://delosmontesdemaria.onrender.com/admin/soporte' }
-            ]
-          ]
+          inline_keyboard: buttons
         }
       };
 
@@ -381,6 +533,7 @@ Asunto: <b>${ticket.asunto}</b>
         reply_markup: {
           inline_keyboard: [
             [
+              { text: `💬 Responder a #${cleanCode}`, callback_data: `reply_tk:${cleanCode}` },
               { text: `🔒 Cerrar #${cleanCode}`, callback_data: `close_tk:${cleanCode}` }
             ]
           ]
@@ -616,6 +769,88 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
   }
 
   /**
+   * Persistencia de Códigos OTP en Base de Datos
+   */
+  async guardarCodigoOTPPendiente(chatId, user, code, expiresAt) {
+    try {
+      const strChatId = String(chatId);
+      const userId = user.id_usuario || user.id;
+      this.pendingAuth.set(strChatId, {
+        code: String(code),
+        userObj: user,
+        expiresAt: Number(expiresAt)
+      });
+      const db = require('../persistence/Database');
+      const sql = `INSERT INTO telegram_auth_codigos (chat_id, id_usuario, codigo, expires_at) 
+                   VALUES (?, ?, ?, ?) 
+                   ON DUPLICATE KEY UPDATE id_usuario = VALUES(id_usuario), codigo = VALUES(codigo), expires_at = VALUES(expires_at), created_at = CURRENT_TIMESTAMP`;
+      await new Promise((resolve) => db.query(sql, [strChatId, userId, String(code), expiresAt], () => resolve()));
+    } catch (err) {
+      console.warn('[Telegram guardarCodigoOTP Error]:', err.message);
+    }
+  }
+
+  async obtenerCodigoOTPPendiente(chatId) {
+    try {
+      const strChatId = String(chatId);
+      if (this.pendingAuth.has(strChatId)) {
+        const mem = this.pendingAuth.get(strChatId);
+        if (mem && mem.expiresAt > Date.now()) {
+          return mem;
+        }
+      }
+      const db = require('../persistence/Database');
+      const sql = `SELECT tac.codigo, tac.expires_at, u.* 
+                   FROM telegram_auth_codigos tac 
+                   JOIN usuarios u ON tac.id_usuario = u.id_usuario 
+                   WHERE tac.chat_id = ? LIMIT 1`;
+      const rows = await new Promise((resolve) => {
+        db.query(sql, [strChatId], (err, res) => {
+          if (err) return resolve([]);
+          resolve(res || []);
+        });
+      });
+
+      if (rows && rows.length > 0) {
+        const r = rows[0];
+        const userObj = {
+          id_usuario: r.id_usuario,
+          id: r.id_usuario,
+          nombre: r.nombre,
+          apodo: r.apodo,
+          correo: r.correo,
+          telefono: r.telefono,
+          contrasena: r.contrasena,
+          id_rol: Number(r.id_rol),
+          rolNombre: Number(r.id_rol) === 1 ? 'Administrador' : Number(r.id_rol) === 4 ? 'Asesor' : Number(r.id_rol) === 2 ? 'Campesino' : 'Comprador'
+        };
+        const pendingObj = {
+          code: String(r.codigo),
+          userObj,
+          expiresAt: Number(r.expires_at)
+        };
+        this.pendingAuth.set(strChatId, pendingObj);
+        return pendingObj;
+      }
+      return null;
+    } catch (err) {
+      console.warn('[Telegram obtenerCodigoOTP Error]:', err.message);
+      return null;
+    }
+  }
+
+  async eliminarCodigoOTPPendiente(chatId) {
+    try {
+      const strChatId = String(chatId);
+      this.pendingAuth.delete(strChatId);
+      const db = require('../persistence/Database');
+      await new Promise((resolve) => db.query(`DELETE FROM telegram_auth_codigos WHERE chat_id = ?`, [strChatId], () => resolve()));
+    } catch (err) {
+      console.warn('[Telegram eliminarCodigoOTP Error]:', err.message);
+    }
+  }
+
+  /**
    * Responder a un ticket desde Telegram (por Admin o Asesor)
    */
   async responderTicket(chatId, ticketCode, replyText, authUser) {
@@ -719,6 +954,44 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
         const rolId = authUser ? Number(authUser.id_rol) : null;
         const isAdminOrAdvisor = rolId === 1 || rolId === 4;
 
+        // ── GESTIÓN DE ESTADO DE PEDIDOS EN 1-CLIC (ADMIN) ──
+        if (cbData.startsWith('set_status:')) {
+          const parts = cbData.split(':');
+          const idCompra = parts[1];
+          const nuevoEstado = parts[2];
+          await this.cambiarEstadoPedidoDesdeTelegram(cbChatId, idCompra, nuevoEstado, authUser);
+          return { ok: true };
+        }
+
+        // ── RESPUESTA SUGERIDA POR IA EN 1-CLIC (ADMIN) ──
+        if (cbData.startsWith('ai_reply:')) {
+          const ticketCode = cbData.replace('ai_reply:', '').trim().toUpperCase();
+          const suggestedText = this.cachedAiReplies ? this.cachedAiReplies.get(ticketCode) : null;
+          if (suggestedText) {
+            await this.responderTicket(cbChatId, ticketCode, suggestedText, authUser);
+            await this.sendMessage(cbChatId, `⚡ <b>Respuesta de IA enviada exitosamente al ticket #${ticketCode}.</b>`);
+          } else {
+            await this.sendMessage(cbChatId, `⚠️ No hay respuesta de IA en memoria para #${ticketCode}. Escribe tu respuesta manualmente con <code>/responder ${ticketCode} [tu mensaje]</code>.`);
+          }
+          return { ok: true };
+        }
+
+        // ── RESPUESTAS RÁPIDAS PREDEFINIDAS / MACROS (ADMIN) ──
+        if (cbData.startsWith('macro:')) {
+          const parts = cbData.split(':');
+          const ticketCode = parts[1]?.trim().toUpperCase();
+          const macroType = parts[2];
+          await this.enviarMacroRespuesta(cbChatId, ticketCode, macroType, authUser);
+          return { ok: true };
+        }
+
+        // ── APROBACIÓN DE VENDEDOR CAMPESINO EN 1-CLIC (ADMIN) ──
+        if (cbData.startsWith('approve_vendor:')) {
+          const vendorId = cbData.replace('approve_vendor:', '').trim();
+          await this.aprobarVendedorDesdeTelegram(cbChatId, vendorId, authUser);
+          return { ok: true };
+        }
+
         if (cbData === 'resend_otp') {
           await this.reenviarCodigoOTP(cbChatId);
           return { ok: true };
@@ -732,16 +1005,16 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
 
         if (cbData === 'cmd_logout') {
           await this.eliminarSesionTelegram(cbChatId);
-          this.pendingAuth.delete(cbChatId);
+          await this.eliminarCodigoOTPPendiente(cbChatId);
           this.sessions.set(cbChatId, { state: 'IDLE', data: {}, activeTicket: null, activeSessionId: null });
           const kb = this.getPersistentKeyboard(null);
           await this.sendMessage(cbChatId, '👋 <b>Sesión cerrada exitosamente.</b>\nHas vuelto al modo invitado.', { reply_markup: kb });
           return { ok: true };
         }
 
-        if (cbData === 'cmd_resumen') {
+        if (cbData === 'cmd_resumen' || cbData === 'cmd_metricas') {
           if (isAdminOrAdvisor || cbChatId === String(this.adminChatId)) {
-            await this.mostrarResumenAdmin(cbChatId);
+            await this.mostrarMetricasNegocio(cbChatId);
           }
           return { ok: true };
         }
@@ -753,7 +1026,7 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
           return { ok: true };
         }
 
-        if (cbData === 'cmd_ventas') {
+        if (cbData === 'cmd_ventas' || cbData === 'cmd_pedidos') {
           if (isAdminOrAdvisor || cbChatId === String(this.adminChatId)) {
             await this.mostrarUltimasVentas(cbChatId);
           }
@@ -815,7 +1088,7 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
           session.replyTicketCode = ticketCode;
           await this.sendMessage(
             cbChatId,
-            `💬 <i>Escribe a continuación tu mensaje para #${ticketCode}:</i>`
+            `✍️ <b>Modo Respuesta Activado para #${ticketCode}</b>\n━━━━━━━━━━━━━━━━━━\nEscribe a continuación el mensaje que deseas enviar al cliente:\n<i>(O escribe /cancelar para salir)</i>`
           );
           return { ok: true };
         }
@@ -831,21 +1104,30 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
                 id_agente: authUser?.id_usuario || t.id_agente,
                 nombre_agente: authUser?.nombre || 'Administrador'
               });
-              await this.soporteRepository.agregarMensaje({
+              const msgCierre = await this.soporteRepository.agregarMensaje({
                 ticket_id: t.id,
                 session_id: t.session_id,
                 id_usuario: authUser?.id_usuario || null,
-                nombre_remitente: authUser?.nombre || 'Administrador',
+                nombre_remitente: 'Sistema',
                 rol: 'sistema',
-                mensaje: '🔒 El ticket ha sido cerrado y resuelto por el equipo de soporte.'
+                mensaje: '🔒 El ticket ha sido marcado como resuelto y cerrado por el equipo de soporte.'
               });
               if (this.socketHandler) {
-                this.socketHandler.emitirTicketCerrado(t.session_id, t.id);
+                this.socketHandler.emitirNuevoMensaje(t.session_id, {
+                  id: msgCierre.id,
+                  ticket_id: t.id,
+                  session_id: t.session_id,
+                  remitente: 'sistema',
+                  nombre_remitente: 'Sistema',
+                  mensaje: '🔒 El ticket ha sido marcado como resuelto y cerrado por el equipo de soporte.',
+                  fecha: new Date().toISOString()
+                });
+                this.socketHandler.emitirTicketCerrado(t.session_id, t.id, '✅ Tu ticket ha sido marcado como resuelto y cerrado por el equipo de soporte.');
               }
               if (t.session_id && t.session_id.startsWith('tg_')) {
                 const parts = t.session_id.split('_');
                 const clientChatId = parts[1];
-                if (clientChatId && clientChatId !== cbChatId) {
+                if (clientChatId && String(clientChatId) !== String(cbChatId)) {
                   await this.sendMessage(clientChatId, `✅ Tu ticket de soporte <code>#${ticketCode}</code> ha sido marcado como resuelto y cerrado. ¡Muchas gracias por contactarnos! 🌾`);
                 }
               }
@@ -943,7 +1225,7 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
       // ── COMANDOS GLOBALES DE REINICIO O SALIDA ──
       if (text === '/cancelar' || text === '/reset') {
         this.sessions.set(chatId, { state: 'IDLE', data: {}, activeTicket: null, activeSessionId: null });
-        this.pendingAuth.delete(chatId);
+        await this.eliminarCodigoOTPPendiente(chatId);
         const kb = this.getPersistentKeyboard(authUser);
         await this.sendMessage(chatId, '🔄 Proceso cancelado.', { reply_markup: kb });
         return { ok: true };
@@ -964,21 +1246,30 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
               id_agente: authUser?.id_usuario || t.id_agente,
               nombre_agente: authUser?.nombre || 'Administrador'
             });
-            await this.soporteRepository.agregarMensaje({
+            const msgCierre = await this.soporteRepository.agregarMensaje({
               ticket_id: t.id,
               session_id: t.session_id,
               id_usuario: authUser?.id_usuario || null,
-              nombre_remitente: authUser?.nombre || 'Administrador',
+              nombre_remitente: 'Sistema',
               rol: 'sistema',
-              mensaje: '🔒 El ticket ha sido cerrado y resuelto por el equipo de soporte.'
+              mensaje: '🔒 El ticket ha sido marcado como resuelto y cerrado por el equipo de soporte.'
             });
             if (this.socketHandler) {
-              this.socketHandler.emitirTicketCerrado(t.session_id, t.id);
+              this.socketHandler.emitirNuevoMensaje(t.session_id, {
+                id: msgCierre.id,
+                ticket_id: t.id,
+                session_id: t.session_id,
+                remitente: 'sistema',
+                nombre_remitente: 'Sistema',
+                mensaje: '🔒 El ticket ha sido marcado como resuelto y cerrado por el equipo de soporte.',
+                fecha: new Date().toISOString()
+              });
+              this.socketHandler.emitirTicketCerrado(t.session_id, t.id, '✅ Tu ticket ha sido marcado como resuelto y cerrado por el equipo de soporte.');
             }
             if (t.session_id && t.session_id.startsWith('tg_')) {
               const parts = t.session_id.split('_');
               const clientChatId = parts[1];
-              if (clientChatId && clientChatId !== chatId) {
+              if (clientChatId && String(clientChatId) !== String(chatId)) {
                 await this.sendMessage(clientChatId, `✅ Tu ticket de soporte <code>#${ticketCode}</code> ha sido cerrado y resuelto por el equipo de soporte. ¡Muchas gracias! 🌾`);
               }
             }
@@ -1032,7 +1323,7 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
       // ── GESTIÓN DE SESIÓN Y AUTENTICACIÓN (/LOGIN, /LOGOUT, /PERFIL) ──
       if (text === '/logout' || text === '/desconectar' || text === '/salir' || text === '🚪 Cerrar Sesión') {
         await this.eliminarSesionTelegram(chatId);
-        this.pendingAuth.delete(chatId);
+        await this.eliminarCodigoOTPPendiente(chatId);
         this.sessions.set(chatId, { state: 'IDLE', data: {}, activeTicket: null, activeSessionId: null });
         const kb = this.getPersistentKeyboard(null);
         await this.sendMessage(chatId, '👋 <b>Sesión cerrada exitosamente.</b>\nHas vuelto al modo invitado. Escribe /login cuando desees volver a identificarte.', { reply_markup: kb });
@@ -1067,14 +1358,19 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
         return { ok: true };
       }
 
-      if (session.state === 'LOGIN_WAIT_CODE' || session.state === 'LOGIN_WAIT_AUTH') {
+      // ── VALIDACIÓN INTELIGENTE DE CÓDIGO OTP O CONTRASEÑA ──
+      const cleanDigits = text.replace(/\D/g, '').trim();
+      const isSixDigits = cleanDigits.length === 6 && text.trim().length <= 8;
+      const isLoginState = session.state === 'LOGIN_WAIT_CODE' || session.state === 'LOGIN_WAIT_AUTH';
+      const pending = await this.obtenerCodigoOTPPendiente(chatId);
+
+      if (isLoginState || (isSixDigits && pending)) {
         const lower = text.toLowerCase();
         if (lower === '/reenviar' || lower === 'reenviar' || lower === 'reenviar codigo' || lower === '/resend' || lower === '/codigo') {
           await this.reenviarCodigoOTP(chatId);
           return { ok: true };
         }
 
-        const pending = this.pendingAuth.get(chatId);
         const user = pending?.userObj || session.data?.authUser || null;
 
         if (!user) {
@@ -1096,18 +1392,27 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
         let loginSuccess = false;
 
         // 1. Código OTP de 6 dígitos
-        const cleanDigits = text.replace(/\D/g, '').trim();
-        if (pending && cleanDigits.length === 6 && cleanDigits === pending.code) {
+        if (pending && cleanDigits.length === 6 && cleanDigits === String(pending.code)) {
           if (Date.now() <= pending.expiresAt) {
             loginSuccess = true;
           } else {
-            await this.sendMessage(chatId, '⌛ El código de 6 dígitos ha vencido. Puedes ingresar con tu <b>contraseña de la web</b> o pulsar reenviar código.');
+            const retryKeyboard = {
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    { text: '🔄 Reenviar nuevo código', callback_data: 'resend_otp' },
+                    { text: '❌ Cancelar', callback_data: 'cmd_logout' }
+                  ]
+                ]
+              }
+            };
+            await this.sendMessage(chatId, '⌛ El código de 6 dígitos ha vencido. Puedes ingresar con tu <b>contraseña de la web</b> o pulsar reenviar código.', retryKeyboard);
             return { ok: true };
           }
         }
 
         // 2. Contraseña del usuario (Bcrypt)
-        if (!loginSuccess && user.contrasena) {
+        if (!loginSuccess && user.contrasena && text.length >= 4 && !isSixDigits) {
           try {
             const passwordMatch = await bcrypt.compare(text, user.contrasena);
             if (passwordMatch) {
@@ -1127,7 +1432,7 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
 
         if (loginSuccess) {
           await this.guardarSesionTelegram(chatId, user);
-          this.pendingAuth.delete(chatId);
+          await this.eliminarCodigoOTPPendiente(chatId);
           session.state = 'IDLE';
           session.data = {};
 
@@ -1162,20 +1467,83 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
 
           await this.sendMessage(
             chatId,
-            `❌ <b>Datos no válidos</b>\n━━━━━━━━━━━━━━━━━━\nEscribe directamente:\n🔑 Tu <b>contraseña de la web</b>\n— o —\n📩 El <b>código de 6 dígitos</b> que llegó a tu correo.\n\n<i>(Escribe /cancelar para salir)</i>`,
+            `❌ <b>Código o contraseña no válidos</b>\n━━━━━━━━━━━━━━━━━━\nEscribe directamente:\n🔑 Tu <b>contraseña de la web</b>\n— o —\n📩 El <b>código de 6 dígitos</b> que enviamos a <code>${user.correo}</code>.\n\n<i>(Escribe /cancelar para salir)</i>`,
             retryKeyboard
           );
           return { ok: true };
         }
       }
 
-      // ── COMANDOS DE ACCESO RÁPIDO ──
+      // ── COMANDOS ADMINISTRATIVOS & GESTIÓN DE NEGOCIO ──
       if (text === '/admin' || text === '/resumen' || text === '/metricas' || text === '📊 Resumen') {
         if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
           await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador. Escribe <code>/login</code>.');
           return { ok: true };
         }
-        await this.mostrarResumenAdmin(chatId);
+        await this.mostrarMetricasNegocio(chatId);
+        return { ok: true };
+      }
+
+      if (text === '/pedidos' || text === '/ventas' || text === '🛒 Ventas') {
+        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
+          await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
+          return { ok: true };
+        }
+        await this.mostrarUltimasVentas(chatId);
+        return { ok: true };
+      }
+
+      if (text.startsWith('/cupon') || text.startsWith('/crearcupon')) {
+        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
+          await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
+          return { ok: true };
+        }
+        await this.crearCuponDesdeTelegram(chatId, text, authUser);
+        return { ok: true };
+      }
+
+      if (text.startsWith('/stock') || text === '⚠️ Stock') {
+        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
+          await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
+          return { ok: true };
+        }
+        await this.actualizarStockDesdeTelegram(chatId, text, authUser);
+        return { ok: true };
+      }
+
+      if (text.startsWith('/precio')) {
+        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
+          await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
+          return { ok: true };
+        }
+        await this.actualizarPrecioDesdeTelegram(chatId, text, authUser);
+        return { ok: true };
+      }
+
+      if (text.startsWith('/cliente') || text.startsWith('/buscar')) {
+        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
+          await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
+          return { ok: true };
+        }
+        await this.buscarFichaCliente(chatId, text, authUser);
+        return { ok: true };
+      }
+
+      if (text.startsWith('/difusion') || text.startsWith('/anuncio') || text.startsWith('/broadcast')) {
+        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
+          await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
+          return { ok: true };
+        }
+        await this.enviarDifusionMasiva(chatId, text, authUser);
+        return { ok: true };
+      }
+
+      if (text === '/reporte_soporte' || text === '/soporte_stats') {
+        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
+          await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
+          return { ok: true };
+        }
+        await this.mostrarReporteSoporte(chatId);
         return { ok: true };
       }
 
@@ -1185,24 +1553,6 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
           return { ok: true };
         }
         await this.mostrarTicketsPendientes(chatId);
-        return { ok: true };
-      }
-
-      if (text === '/ventas' || text === '🛒 Ventas') {
-        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
-          await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
-          return { ok: true };
-        }
-        await this.mostrarUltimasVentas(chatId);
-        return { ok: true };
-      }
-
-      if (text === '/stock' || text === '⚠️ Stock') {
-        if (!isAdminOrAdvisor && chatId !== String(this.adminChatId)) {
-          await this.sendMessage(chatId, '🔒 Requiere permisos de Administrador.');
-          return { ok: true };
-        }
-        await this.mostrarStockCritico(chatId);
         return { ok: true };
       }
 
@@ -1216,12 +1566,25 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
         return { ok: true };
       }
 
-      if (text === '/mispedidos' || text === '📦 Mis Pedidos') {
-        if (!authUser) {
-          await this.sendMessage(chatId, '🔒 Para consultar tus pedidos personales, primero inicia sesión escribiendo <code>/login</code>.');
-          return { ok: true };
-        }
-        await this.mostrarPedidosComprador(chatId, authUser);
+      if (text === '/soporte' || text === '💬 Soporte' || text === '/ayuda') {
+        await this.iniciarFlujoSoporte(chatId, authUser, session);
+        return { ok: true };
+      }
+
+      if (text === '🆔 Mi ID' || text === '/id') {
+        await this.sendMessage(chatId, `🆔 <b>Tu Chat ID de Telegram:</b> <code>${chatId}</code>\n${authUser ? `👤 <b>Usuario:</b> ${authUser.nombre || authUser.username} (${authUser.rolNombre || 'Registrado'})` : '🔒 No has iniciado sesión (/login)'}`);
+        return { ok: true };
+      }
+
+      if (text === '🛒 Ver Catálogo' || text === '🌾 Catálogo' || text === '/catalogo') {
+        const kb = {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '🛒 Abrir Catálogo Web', url: 'https://delosmontesdemaria.onrender.com/catalogo' }]
+            ]
+          }
+        };
+        await this.sendMessage(chatId, '🌾 <b>Catálogo de Cosechas - De los Montes de María</b>\n\nExplora productos frescos directo del campo a tu hogar:', kb);
         return { ok: true };
       }
 
@@ -1449,8 +1812,13 @@ ${aiReply}
         }
 
         if (currentTicket.estado === 'agente') {
-          // El mensaje ya se guardó y se transmitió al asesor en el panel en tiempo real.
-          // No enviamos mensajes repetitivos automáticos para que la conversación fluya limpiamente.
+          // Reenviar el mensaje a los asesores/administradores para conversación fluida y directa
+          this.notificarMensajeCliente({
+            ticket: currentTicket,
+            mensaje: text,
+            nombreRemitente: session.data.nombre || userName,
+            excludeChatId: chatId
+          }).catch(() => {});
           return { ok: true };
         }
 
@@ -1622,11 +1990,9 @@ ${aiReply}
       session.data = { authUser: user };
 
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-      this.pendingAuth.set(chatId, {
-        code: otpCode,
-        userObj: user,
-        expiresAt: Date.now() + 10 * 60 * 1000
-      });
+      const expiresAt = Date.now() + 10 * 60 * 1000;
+
+      await this.guardarCodigoOTPPendiente(chatId, user, otpCode, expiresAt);
 
       if (this.emailService && typeof this.emailService.enviarCodigoVerificacionTelegram === 'function') {
         this.emailService.enviarCodigoVerificacionTelegram({
@@ -1668,7 +2034,7 @@ Hemos enviado un <b>código de seguridad de 6 dígitos</b> a tu correo electrón
   }
 
   async reenviarCodigoOTP(chatId) {
-    const pending = this.pendingAuth.get(chatId);
+    const pending = await this.obtenerCodigoOTPPendiente(chatId);
 
     if (!pending || !pending.userObj) {
       await this.sendMessage(chatId, '⚠️ No tienes una solicitud activa de inicio de sesión. Escribe <b>/login</b> para comenzar.');
@@ -1677,12 +2043,18 @@ Hemos enviado un <b>código de seguridad de 6 dígitos</b> a tu correo electrón
 
     const user = pending.userObj;
     const newOtpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000;
 
-    this.pendingAuth.set(chatId, {
-      code: newOtpCode,
-      userObj: user,
-      expiresAt: Date.now() + 10 * 60 * 1000
-    });
+    await this.guardarCodigoOTPPendiente(chatId, user, newOtpCode, expiresAt);
+
+    let session = this.sessions.get(chatId);
+    if (!session) {
+      session = { state: 'LOGIN_WAIT_AUTH', data: { authUser: user }, activeTicket: null, activeSessionId: null };
+      this.sessions.set(chatId, session);
+    } else {
+      session.state = 'LOGIN_WAIT_AUTH';
+      session.data = { authUser: user };
+    }
 
     if (this.emailService && typeof this.emailService.enviarCodigoVerificacionTelegram === 'function') {
       this.emailService.enviarCodigoVerificacionTelegram({
@@ -1768,7 +2140,9 @@ Hemos enviado un nuevo código de 6 dígitos a:
 
       if (this.productoRepository) {
         try {
-          const prods = await this.productoRepository.buscarTodos();
+          const prods = typeof this.productoRepository.listarTodos === 'function'
+            ? await this.productoRepository.listarTodos()
+            : await this.productoRepository.buscarTodos();
           if (Array.isArray(prods)) {
             stockCriticoCount = prods.filter((p) => Number(p.stock || 0) <= 5).length;
           }
@@ -1813,44 +2187,48 @@ Hemos enviado un nuevo código de 6 dígitos a:
     }
   }
 
-  async mostrarTicketsPendientes(chatId) {
-    if (!this.soporteRepository) return;
+  async cambiarEstadoPedidoDesdeTelegram(chatId, idCompra, nuevoEstado, authUser) {
+    if (!this.compraRepository) return;
     try {
-      const tickets = await this.soporteRepository.listarTickets();
-      const pendientes = (tickets || []).filter((t) => t.estado !== 'cerrado').slice(0, 6);
-
-      if (pendientes.length === 0) {
-        await this.sendMessage(chatId, '🎉 <b>¡Excelente!</b> No hay tickets de soporte pendientes en este momento.');
+      const id = String(idCompra).replace(/\D/g, '');
+      const compra = await this.compraRepository.obtenerReciboCompleto(id);
+      if (!compra) {
+        await this.sendMessage(chatId, `❌ No se encontró la orden <code>#ORD-${id}</code>.`);
         return;
       }
 
-      let lista = '🎫 <b>TICKETS DE SOPORTE PENDIENTES:</b>\n━━━━━━━━━━━━━━━━━━\n';
-      const inlineButtons = [];
+      await this.compraRepository.actualizarEstado(id, nuevoEstado);
 
-      pendientes.forEach((t, idx) => {
-        const code = t.ticket_code || t.id;
-        const estadoTag = t.estado === 'agente' ? '👨‍🌾 En Atención' : '🤖 IA / Bot';
-        lista += `\n<b>${idx + 1}.</b> <code>#${code}</code> | ${estadoTag}\n   👤 <b>${t.nombre_cliente}</b>\n   📝 <i>${t.asunto}</i>\n`;
-
-        inlineButtons.push([
-          { text: `💬 Responder #${code}`, callback_data: `reply_tk:${code}` },
-          { text: `🔒 Cerrar #${code}`, callback_data: `close_tk:${code}` }
-        ]);
-      });
-
-      inlineButtons.push([
-        { text: '🌐 Abrir en Panel Web', url: 'https://delosmontesdemaria.onrender.com/admin/soporte' }
-      ]);
-
-      const keyboard = {
-        reply_markup: {
-          inline_keyboard: inlineButtons
+      // Reembolso de créditos si aplica
+      if ((nuevoEstado === 'reembolsado' || nuevoEstado === 'Reembolso procesado') && !compra.reembolsado) {
+        if (this.usuarioRepository) {
+          await this.usuarioRepository.actualizarCreditos(compra.id_usuario, (parseFloat(compra.total) || 0));
         }
-      };
+        await this.compraRepository.marcarReembolsado(id);
+      }
 
-      await this.sendMessage(chatId, lista, keyboard);
+      // Enviar correo electrónico enriquecido con stepper al comprador
+      if (this.emailService && compra.correo_cliente) {
+        this.emailService.sendOrderStatusEmail(compra, compra.correo_cliente, nuevoEstado).catch((e) => {
+          console.warn('[Telegram Status Email Warning]:', e.message);
+        });
+      }
+
+      const stateEmoji =
+        nuevoEstado === 'en_camino' || nuevoEstado === 'despachado' ? '🚚' :
+        nuevoEstado === 'entregado' ? '✅' :
+        nuevoEstado === 'en_reparto' ? '🛵' :
+        nuevoEstado === 'empaquetado' ? '📦' :
+        nuevoEstado === 'confirmado' || nuevoEstado === 'en_preparacion' ? '👨‍🌾' : '⏳';
+
+      const stateName = String(nuevoEstado).toUpperCase();
+      await this.sendMessage(
+        chatId,
+        `✅ <b>¡Orden #ORD-${id} Actualizada con Éxito!</b>\n━━━━━━━━━━━━━━━━━━\n${stateEmoji} Nuevo Estado: <b>${stateName}</b>\n📧 Se envió el correo de notificación con barra de progreso a <code>${compra.correo_cliente || 'cliente'}</code>.`
+      );
     } catch (err) {
-      await this.sendMessage(chatId, `⚠️ Error al listar tickets: ${err.message}`);
+      console.error('[Telegram cambiarEstadoPedido Error]:', err);
+      await this.sendMessage(chatId, `⚠️ Error al actualizar pedido: ${err.message}`);
     }
   }
 
@@ -1865,32 +2243,536 @@ Hemos enviado un nuevo código de 6 dígitos a:
         return;
       }
 
-      let lista = '🛒 <b>ÚLTIMAS VENTAS REGISTRADAS:</b>\n━━━━━━━━━━━━━━━━━━\n';
-      ultimas.forEach((c) => {
+      await this.sendMessage(chatId, `🛒 <b>GESTIÓN DE PEDIDOS Y DESPACHOS (${ultimas.length} recientes)</b>\n━━━━━━━━━━━━━━━━━━\n<i>Toca los botones interactivos debajo de cada orden para actualizar su estado y notificar al cliente por correo al instante:</i>`);
+
+      for (const c of ultimas) {
         const id = c.id_compra || c.id;
         const total = Number(c.total || 0).toLocaleString('es-CO');
-        const estado = (c.estado || 'Recibido').toUpperCase();
-        lista += `\n🧾 <b>#ORD-${id}</b> | <b>$${total} COP</b>\n   🚚 Estado: <code>${estado}</code>\n   💳 Pago: ${c.metodo_pago || 'Contra Entrega'}\n`;
+        const estado = (c.estado || 'pendiente').toLowerCase();
+        const clienteNombre = c.cliente_nombre || c.nombre_cliente || c.nombre || 'Cliente';
+        const clienteTelefono = c.cliente_telefono || c.telefono || '';
+        const direccion = c.direccion_envio || c.direccion || 'Montes de María';
+
+        const stateEmoji =
+          estado.includes('entreg') ? '✅' :
+          estado.includes('repart') || estado.includes('local') ? '🛵' :
+          estado.includes('camino') || estado.includes('despach') ? '🚚' :
+          estado.includes('empa') || estado.includes('listo') ? '📦' :
+          estado.includes('confirm') || estado.includes('prepar') ? '👨‍🌾' :
+          estado.includes('cancel') ? '❌' : '⏳';
+
+        const cleanPhone = String(clienteTelefono).replace(/\D/g, '');
+        const hasPhone = cleanPhone.length >= 7;
+
+        const orderText = `
+🧾 <b>ORDEN #ORD-${id}</b>
+━━━━━━━━━━━━━━━━━━
+👤 <b>Cliente:</b> ${clienteNombre}
+📞 <b>Teléfono:</b> <code>${clienteTelefono || 'No registrado'}</code>
+📍 <b>Entrega:</b> ${direccion}
+💰 <b>Total:</b> <b>$${total} COP</b>
+💳 <b>Pago:</b> ${c.metodo_pago || 'Contra Entrega'}
+${stateEmoji} <b>Estado Actual:</b> <code>${estado.toUpperCase()}</code>
+`;
+        const buttons = [
+          [
+            { text: '👨‍🌾 En Finca', callback_data: `set_status:${id}:confirmado` },
+            { text: '📦 Empacado', callback_data: `set_status:${id}:empaquetado` },
+            { text: '🚚 En Camino', callback_data: `set_status:${id}:en_camino` }
+          ],
+          [
+            { text: '🛵 En Reparto', callback_data: `set_status:${id}:en_reparto` },
+            { text: '✅ Entregado', callback_data: `set_status:${id}:entregado` },
+            { text: '❌ Cancelar', callback_data: `set_status:${id}:cancelado` }
+          ]
+        ];
+
+        if (hasPhone) {
+          const waUrl = `https://wa.me/57${cleanPhone}?text=${encodeURIComponent(`Hola ${clienteNombre}, te contactamos de De los Montes de María sobre tu pedido #ORD-${id}.`)}`;
+          buttons.push([
+            { text: '💬 Abrir WhatsApp con el Cliente', url: waUrl }
+          ]);
+        }
+
+        await this.sendMessage(chatId, orderText, {
+          reply_markup: { inline_keyboard: buttons }
+        });
+      }
+    } catch (err) {
+      await this.sendMessage(chatId, `⚠️ Error al listar ventas: ${err.message}`);
+    }
+  }
+
+  async mostrarMetricasNegocio(chatId) {
+    try {
+      const db = require('../persistence/Database');
+
+      // 1. Métricas de recaudación (Hoy, 7 días, Mes)
+      const revenueQuery = `
+        SELECT 
+          COALESCE(SUM(CASE WHEN DATE(fecha) = CURDATE() THEN total ELSE 0 END), 0) AS total_hoy,
+          COALESCE(SUM(CASE WHEN fecha >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN total ELSE 0 END), 0) AS total_semana,
+          COALESCE(SUM(CASE WHEN MONTH(fecha) = MONTH(CURRENT_DATE()) AND YEAR(fecha) = YEAR(CURRENT_DATE()) THEN total ELSE 0 END), 0) AS total_mes,
+          COALESCE(SUM(total), 0) AS total_historico,
+          COUNT(*) AS total_pedidos,
+          COALESCE(SUM(CASE WHEN estado IN ('entregado', 'Entregado') THEN 1 ELSE 0 END), 0) AS pedidos_entregados,
+          COALESCE(SUM(CASE WHEN estado IN ('en_camino', 'despachado', 'en_reparto') THEN 1 ELSE 0 END), 0) AS pedidos_en_camino,
+          COALESCE(SUM(CASE WHEN estado IN ('pendiente', 'confirmado', 'empaquetado', 'en_preparacion') THEN 1 ELSE 0 END), 0) AS pedidos_pendientes,
+          COALESCE(SUM(CASE WHEN estado IN ('cancelado', 'reembolsado') THEN 1 ELSE 0 END), 0) AS pedidos_cancelados
+        FROM compras
+      `;
+
+      const revData = await new Promise((res) => {
+        db.query(revenueQuery, (err, r) => res(r && r[0] ? r[0] : {}));
       });
+
+      // 2. Top 5 productos más vendidos
+      const topProductsQuery = `
+        SELECT p.nombre_producto, SUM(cd.cantidad) AS total_vendido, SUM(cd.cantidad * cd.precio_unitario) AS total_recaudado
+        FROM compra_detalles cd
+        JOIN productos p ON cd.id_producto = p.id_producto
+        GROUP BY cd.id_producto, p.nombre_producto
+        ORDER BY total_vendido DESC
+        LIMIT 5
+      `;
+      const topProducts = await new Promise((res) => {
+        db.query(topProductsQuery, (err, r) => res(r || []));
+      });
+
+      // 3. Usuarios registrados (compradores vs vendedores)
+      const usersQuery = `
+        SELECT 
+          COUNT(*) AS total_usuarios,
+          COALESCE(SUM(CASE WHEN id_rol = 2 THEN 1 ELSE 0 END), 0) AS total_campesinos,
+          COALESCE(SUM(CASE WHEN id_rol = 3 THEN 1 ELSE 0 END), 0) AS total_compradores,
+          COALESCE(SUM(CASE WHEN id_rol = 1 THEN 1 ELSE 0 END), 0) AS total_admins
+        FROM usuarios
+      `;
+      const usersData = await new Promise((res) => {
+        db.query(usersQuery, (err, r) => res(r && r[0] ? r[0] : {}));
+      });
+
+      let topList = '';
+      if (topProducts.length > 0) {
+        topProducts.forEach((p, idx) => {
+          const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '▫️';
+          topList += `${medal} <b>${p.nombre_producto}</b>: <code>${p.total_vendido} uds</code> ($${Number(p.total_recaudado || 0).toLocaleString('es-CO')})\n`;
+        });
+      } else {
+        topList = '  ▫️ Sin datos de ventas registrados aún.\n';
+      }
+
+      const msg = `
+📊 <b>REPORTE EJECUTIVO & FINANCIERO</b> 🌾
+━━━━━━━━━━━━━━━━━━
+💰 <b>RECAUDACIÓN DE VENTAS:</b>
+▫️ <b>Hoy:</b> <b>$${Number(revData.total_hoy || 0).toLocaleString('es-CO')} COP</b>
+▫️ <b>Últimos 7 días:</b> $${Number(revData.total_semana || 0).toLocaleString('es-CO')} COP
+▫️ <b>Mes actual:</b> $${Number(revData.total_mes || 0).toLocaleString('es-CO')} COP
+▫️ <b>Total Histórico:</b> $${Number(revData.total_historico || 0).toLocaleString('es-CO')} COP
+
+📦 <b>BALANCE DE PEDIDOS (${revData.total_pedidos || 0} totales):</b>
+⏳ <b>Pendientes / En Finca:</b> ${revData.pedidos_pendientes || 0}
+🚚 <b>En Ruta / Reparto:</b> ${revData.pedidos_en_camino || 0}
+✅ <b>Entregados:</b> ${revData.pedidos_entregados || 0}
+❌ <b>Cancelados:</b> ${revData.pedidos_cancelados || 0}
+
+🥇 <b>TOP COSECHAS MÁS VENDIDAS:</b>
+${topList}
+👥 <b>COMUNIDAD REGISTRADA:</b>
+👨‍🌾 <b>Campesinos Productores:</b> ${usersData.total_campesinos || 0}
+🛒 <b>Clientes Compradores:</b> ${usersData.total_compradores || 0}
+━━━━━━━━━━━━━━━━━━
+`;
 
       const keyboard = {
         reply_markup: {
           inline_keyboard: [
-            [{ text: '🌐 Ver Todas en Web', url: 'https://delosmontesdemaria.onrender.com/admin' }]
+            [
+              { text: '🛒 Ver Pedidos Activos', callback_data: 'cmd_ventas' },
+              { text: '🎫 Ver Tickets', callback_data: 'cmd_tickets' }
+            ],
+            [
+              { text: '⚠️ Ver Stock Bajo', callback_data: 'cmd_stock' },
+              { text: '🌐 Panel Web', url: 'https://delosmontesdemaria.onrender.com/admin' }
+            ]
           ]
         }
       };
 
-      await this.sendMessage(chatId, lista, keyboard);
+      await this.sendMessage(chatId, msg, keyboard);
     } catch (err) {
-      await this.sendMessage(chatId, `⚠️ Error al listar ventas: ${err.message}`);
+      console.error('[Telegram mostrarMetricasNegocio Error]:', err);
+      await this.sendMessage(chatId, `⚠️ Error al generar métricas: ${err.message}`);
+    }
+  }
+
+  async crearCuponDesdeTelegram(chatId, text, authUser) {
+    try {
+      const cleanArgs = text.replace(/^\/(cupon|crearcupon)\s*/i, '').trim();
+      const parts = cleanArgs.split(/\s+/);
+      if (parts.length < 2) {
+        const helpMsg = `
+🎟️ <b>CREAR CUPÓN DE DESCUENTO</b>
+━━━━━━━━━━━━━━━━━━
+<b>Uso:</b>
+<code>/cupon [CODIGO] [PORCENTAJE] [MONTO_MINIMO_OPCIONAL]</code>
+
+<b>Ejemplos:</b>
+▫️ <code>/cupon FINCA15 15</code> (15% de descuento sin mínimo)
+▫️ <code>/cupon MONTES20 20 50000</code> (20% de descuento en compras desde $50.000 COP)
+`;
+        await this.sendMessage(chatId, helpMsg);
+        return;
+      }
+
+      const codigo = parts[0].toUpperCase().trim();
+      const porcentaje = parseFloat(parts[1]) || 0;
+      const minimo = parseFloat(parts[2]) || 0;
+
+      if (porcentaje <= 0 || porcentaje > 100) {
+        await this.sendMessage(chatId, '❌ El porcentaje de descuento debe estar entre 1 y 100.');
+        return;
+      }
+
+      const db = require('../persistence/Database');
+      const sql = `
+        INSERT INTO cupones (codigo, descripcion, descuento_porcentaje, descuento_fijo, monto_minimo, uso_limite, activo)
+        VALUES (?, ?, ?, 0, ?, 100, 1)
+        ON DUPLICATE KEY UPDATE descuento_porcentaje = VALUES(descuento_porcentaje), monto_minimo = VALUES(monto_minimo), activo = 1
+      `;
+      const desc = `Cupón del ${porcentaje}% creado desde Telegram`;
+      await new Promise((resolve, reject) => {
+        db.query(sql, [codigo, desc, porcentaje, minimo], (err, res) => {
+          if (err) return reject(err);
+          resolve(res);
+        });
+      });
+
+      const confirmMsg = `
+🎉 <b>¡CUPÓN CREADO Y ACTIVADO CON ÉXITO!</b> 🎟️
+━━━━━━━━━━━━━━━━━━
+🏷️ <b>Código:</b> <code>${codigo}</code>
+📉 <b>Descuento:</b> <b>${porcentaje}% OFF</b>
+💵 <b>Monto Mínimo:</b> $${minimo.toLocaleString('es-CO')} COP
+✅ <b>Estado:</b> Activo inmediatamente en la tienda web
+━━━━━━━━━━━━━━━━━━
+🌐 Los clientes ya pueden canjear <code>${codigo}</code> en la pantalla de compra.
+`;
+      await this.sendMessage(chatId, confirmMsg);
+    } catch (err) {
+      console.error('[Telegram crearCupon Error]:', err);
+      await this.sendMessage(chatId, `⚠️ Error al crear cupón: ${err.message}`);
+    }
+  }
+
+  async actualizarStockDesdeTelegram(chatId, text, authUser) {
+    try {
+      const cleanArgs = text.replace(/^\/stock\s*/i, '').trim();
+      const parts = cleanArgs.split(/\s+/);
+      if (parts.length < 2) {
+        await this.mostrarStockCritico(chatId);
+        return;
+      }
+
+      const idOrName = parts[0].trim();
+      const cantidad = parseInt(parts[1], 10);
+
+      if (isNaN(cantidad) || cantidad < 0) {
+        await this.sendMessage(chatId, '❌ La cantidad de stock debe ser un número entero mayor o igual a 0.');
+        return;
+      }
+
+      const db = require('../persistence/Database');
+      let sql = '';
+      let params = [];
+
+      if (!isNaN(idOrName)) {
+        sql = 'UPDATE productos SET stock = ? WHERE id_producto = ?';
+        params = [cantidad, parseInt(idOrName, 10)];
+      } else {
+        sql = 'UPDATE productos SET stock = ? WHERE nombre_producto LIKE ?';
+        params = [cantidad, `%${idOrName}%`];
+      }
+
+      const result = await new Promise((resolve, reject) => {
+        db.query(sql, params, (err, res) => {
+          if (err) return reject(err);
+          resolve(res);
+        });
+      });
+
+      if (result.affectedRows > 0) {
+        await this.sendMessage(chatId, `✅ <b>¡Stock Actualizado!</b>\n📦 Producto: <b>${idOrName}</b>\n🌾 Nuevo Stock: <b>${cantidad} unidades</b>.`);
+      } else {
+        await this.sendMessage(chatId, `❌ No se encontró ningún producto que coincida con <b>${idOrName}</b>.`);
+      }
+    } catch (err) {
+      await this.sendMessage(chatId, `⚠️ Error al actualizar stock: ${err.message}`);
+    }
+  }
+
+  async actualizarPrecioDesdeTelegram(chatId, text, authUser) {
+    try {
+      const cleanArgs = text.replace(/^\/precio\s*/i, '').trim();
+      const parts = cleanArgs.split(/\s+/);
+      if (parts.length < 2) {
+        await this.sendMessage(chatId, '🏷️ <b>Uso:</b> <code>/precio [ID o Nombre] [NuevoPrecioCOP]</code>\n<i>Ejemplo: /precio 4 22000</i>');
+        return;
+      }
+
+      const idOrName = parts[0].trim();
+      const precio = parseFloat(parts[1]);
+
+      if (isNaN(precio) || precio <= 0) {
+        await this.sendMessage(chatId, '❌ El precio debe ser un número positivo.');
+        return;
+      }
+
+      const db = require('../persistence/Database');
+      let sql = '';
+      let params = [];
+
+      if (!isNaN(idOrName)) {
+        sql = 'UPDATE productos SET precio = ? WHERE id_producto = ?';
+        params = [precio, parseInt(idOrName, 10)];
+      } else {
+        sql = 'UPDATE productos SET precio = ? WHERE nombre_producto LIKE ?';
+        params = [precio, `%${idOrName}%`];
+      }
+
+      const result = await new Promise((resolve, reject) => {
+        db.query(sql, params, (err, res) => {
+          if (err) return reject(err);
+          resolve(res);
+        });
+      });
+
+      if (result.affectedRows > 0) {
+        await this.sendMessage(chatId, `✅ <b>¡Precio Actualizado!</b>\n🏷️ Producto: <b>${idOrName}</b>\n💵 Nuevo Precio: <b>$${precio.toLocaleString('es-CO')} COP</b>.`);
+      } else {
+        await this.sendMessage(chatId, `❌ No se encontró ningún producto que coincida con <b>${idOrName}</b>.`);
+      }
+    } catch (err) {
+      await this.sendMessage(chatId, `⚠️ Error al actualizar precio: ${err.message}`);
+    }
+  }
+
+  async buscarFichaCliente(chatId, text, authUser) {
+    try {
+      const term = text.replace(/^\/(cliente|buscar)\s*/i, '').trim();
+      if (!term) {
+        await this.sendMessage(chatId, '🔍 <b>Uso:</b> <code>/cliente [correo, teléfono o nombre]</code>\n<i>Ejemplo: /cliente danilo</i>');
+        return;
+      }
+
+      const db = require('../persistence/Database');
+      const userSql = `
+        SELECT * FROM usuarios 
+        WHERE correo LIKE ? OR telefono LIKE ? OR nombre LIKE ? OR apodo LIKE ?
+        LIMIT 1
+      `;
+      const likeTerm = `%${term}%`;
+      const users = await new Promise((res) => db.query(userSql, [likeTerm, likeTerm, likeTerm, likeTerm], (err, r) => res(r || [])));
+
+      if (users.length === 0) {
+        await this.sendMessage(chatId, `❌ No se encontró ningún cliente registrado con el término <b>${term}</b>.`);
+        return;
+      }
+
+      const u = users[0];
+      const uId = u.id_usuario;
+
+      // Consultar historial de compras
+      const ordersSql = `SELECT id_compra, total, estado, fecha, direccion_envio FROM compras WHERE id_usuario = ? ORDER BY fecha DESC LIMIT 5`;
+      const orders = await new Promise((res) => db.query(ordersSql, [uId], (err, r) => res(r || [])));
+
+      // Consultar tickets de soporte
+      const ticketsSql = `SELECT ticket_code, asunto, estado, created_at FROM soporte_tickets WHERE correo_cliente = ? OR id_usuario = ? ORDER BY created_at DESC LIMIT 3`;
+      const tickets = await new Promise((res) => db.query(ticketsSql, [u.correo, uId], (err, r) => res(r || [])));
+
+      const totalGastado = orders.reduce((acc, o) => acc + parseFloat(o.total || 0), 0);
+      const rolTexto = u.id_rol === 1 ? '👑 Admin' : u.id_rol === 2 ? '🌾 Campesino' : '🛒 Comprador';
+
+      let ordersList = '';
+      if (orders.length > 0) {
+        orders.forEach((o) => {
+          ordersList += `  ▫️ <b>#ORD-${o.id_compra}</b> | $${Number(o.total || 0).toLocaleString('es-CO')} | <code>${(o.estado || 'pendiente').toUpperCase()}</code>\n`;
+        });
+      } else {
+        ordersList = '  ▫️ Sin pedidos registrados aún.\n';
+      }
+
+      let ticketsList = '';
+      if (tickets.length > 0) {
+        tickets.forEach((t) => {
+          ticketsList += `  ▫️ <code>#${t.ticket_code}</code> | ${t.asunto} (<i>${t.estado}</i>)\n`;
+        });
+      } else {
+        ticketsList = '  ▫️ Sin tickets de soporte.\n';
+      }
+
+      const cleanPhone = String(u.telefono || '').replace(/\D/g, '');
+      const hasPhone = cleanPhone.length >= 7;
+
+      const profileMsg = `
+👤 <b>FICHA DEL CLIENTE #${uId}</b>
+━━━━━━━━━━━━━━━━━━
+📛 <b>Nombre:</b> ${u.nombre || u.apodo}
+📧 <b>Correo:</b> <code>${u.correo}</code>
+📞 <b>Teléfono:</b> <code>${u.telefono || 'Sin registrar'}</code>
+🏷️ <b>Rol:</b> ${rolTexto}
+📍 <b>Dirección:</b> ${u.direccion || 'No registrada'}
+💰 <b>Total Histórico Comprado:</b> <b>$${totalGastado.toLocaleString('es-CO')} COP</b>
+
+📦 <b>Últimos Pedidos (${orders.length}):</b>
+${ordersList}
+🎫 <b>Historial de Soporte (${tickets.length}):</b>
+${ticketsList}
+━━━━━━━━━━━━━━━━━━
+`;
+
+      const buttons = [];
+      if (hasPhone) {
+        buttons.push([
+          { text: '💬 Contactar por WhatsApp', url: `https://wa.me/57${cleanPhone}` }
+        ]);
+      }
+
+      await this.sendMessage(chatId, profileMsg, {
+        reply_markup: buttons.length > 0 ? { inline_keyboard: buttons } : undefined
+      });
+    } catch (err) {
+      console.error('[Telegram buscarFichaCliente Error]:', err);
+      await this.sendMessage(chatId, `⚠️ Error al consultar cliente: ${err.message}`);
+    }
+  }
+
+  async enviarDifusionMasiva(chatId, text, authUser) {
+    try {
+      const broadcastMsg = text.replace(/^\/(difusion|anuncio|broadcast)\s*/i, '').trim();
+      if (!broadcastMsg) {
+        await this.sendMessage(chatId, '📢 <b>Uso:</b> <code>/difusion [Mensaje del Comunicado]</code>\n<i>Ejemplo: /difusion 🌾 ¡Gran cosecha de aguacate esta semana con 15% de descuento!</i>');
+        return;
+      }
+
+      const formatted = `
+📢 <b>COMUNICADO OFICIAL</b> 🌾
+<b>De los Montes de María</b>
+━━━━━━━━━━━━━━━━━━
+${broadcastMsg}
+━━━━━━━━━━━━━━━━━━
+🌿 <i>Del campo colombiano directo a tu mesa</i>
+`;
+
+      let sentCount = 0;
+      for (const subscriberId of this.subscribers) {
+        try {
+          await this.sendMessage(subscriberId, formatted);
+          sentCount++;
+        } catch (_) {}
+      }
+
+      await this.sendMessage(chatId, `✅ <b>Difusión completada:</b> Mensaje enviado a <code>${sentCount}</code> suscriptores de Telegram.`);
+    } catch (err) {
+      await this.sendMessage(chatId, `⚠️ Error en difusión: ${err.message}`);
+    }
+  }
+
+  async mostrarReporteSoporte(chatId) {
+    try {
+      const db = require('../persistence/Database');
+      const statsQuery = `
+        SELECT 
+          COUNT(*) AS total_tickets,
+          COALESCE(SUM(CASE WHEN estado = 'cerrado' THEN 1 ELSE 0 END), 0) AS cerrados,
+          COALESCE(SUM(CASE WHEN estado = 'agente' THEN 1 ELSE 0 END), 0) AS en_agente,
+          COALESCE(SUM(CASE WHEN estado = 'bot' THEN 1 ELSE 0 END), 0) AS resueltos_ia,
+          COALESCE(SUM(CASE WHEN asunto LIKE '%pedido%' OR asunto LIKE '%envio%' THEN 1 ELSE 0 END), 0) AS tema_envios,
+          COALESCE(SUM(CASE WHEN asunto LIKE '%pago%' OR asunto LIKE '%factura%' THEN 1 ELSE 0 END), 0) AS tema_pagos,
+          COALESCE(SUM(CASE WHEN asunto LIKE '%producto%' OR asunto LIKE '%cosecha%' THEN 1 ELSE 0 END), 0) AS tema_productos
+        FROM soporte_tickets
+      `;
+
+      const stats = await new Promise((res) => db.query(statsQuery, (err, r) => res(r && r[0] ? r[0] : {})));
+
+      const msg = `
+📊 <b>REPORTE DE SOPORTE & ATENCIÓN AL CLIENTE</b>
+━━━━━━━━━━━━━━━━━━
+🎫 <b>Total de Tickets Recibidos:</b> <code>${stats.total_tickets || 0}</code>
+✅ <b>Tickets Resueltos & Cerrados:</b> ${stats.cerrados || 0}
+👨‍🌾 <b>Atendidos por Agentes Humanos:</b> ${stats.en_agente || 0}
+🤖 <b>Atendidos Directamente por IA:</b> ${stats.resueltos_ia || 0}
+
+🏷️ <b>TEMAS MÁS FRECUENTES:</b>
+📦 <b>Envíos y Despachos:</b> ${stats.tema_envios || 0} consultas
+🌱 <b>Productos y Frescura:</b> ${stats.tema_productos || 0} consultas
+💳 <b>Pagos y Facturas:</b> ${stats.tema_pagos || 0} consultas
+━━━━━━━━━━━━━━━━━━
+`;
+
+      const keyboard = {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🎫 Ver Tickets Pendientes', callback_data: 'cmd_tickets' }],
+            [{ text: '🌐 Panel Web de Soporte', url: 'https://delosmontesdemaria.onrender.com/admin/soporte' }]
+          ]
+        }
+      };
+
+      await this.sendMessage(chatId, msg, keyboard);
+    } catch (err) {
+      await this.sendMessage(chatId, `⚠️ Error al generar reporte de soporte: ${err.message}`);
+    }
+  }
+
+  async enviarMacroRespuesta(chatId, ticketCode, macroType, authUser) {
+    const macros = {
+      envios: '🚚 <b>Información de Envíos:</b> Despachamos cosechas frescas directamente desde los Montes de María a nivel regional y nacional. Los tiempos estimados de entrega son de 24 a 48 horas con empaques protegidos.',
+      factura: '🧾 <b>Facturación Electrónica:</b> Tu factura de venta oficial es enviada automáticamente a tu correo electrónico al confirmar la compra. También puedes descargarla desde tu perfil en la sección Mis Compras.',
+      calidad: '🌱 <b>Garantía Campesina:</b> Todos nuestros productos provienen de cosechas agroecológicas y artesanales de familias productoras de Montes de María. Garantizamos 100% de frescura y peso exacto.'
+    };
+
+    const textToSend = macros[macroType] || 'Con mucho gusto te asistimos desde el equipo de De los Montes de María.';
+    await this.responderTicket(chatId, ticketCode, textToSend, authUser);
+    await this.sendMessage(chatId, `✅ <b>Macro enviada exitosamente al ticket #${ticketCode}.</b>`);
+  }
+
+  async aprobarVendedorDesdeTelegram(chatId, vendorId, authUser) {
+    try {
+      const db = require('../persistence/Database');
+      const vId = parseInt(vendorId, 10);
+      await new Promise((res, rej) => {
+        db.query('UPDATE usuarios SET id_rol = 2 WHERE id_usuario = ?', [vId], (err, r) => err ? rej(err) : res(r));
+      });
+
+      if (this.usuarioRepository) {
+        const user = await this.usuarioRepository.buscarPorId(vId);
+        if (user && this.emailService && user.correo) {
+          this.emailService.sendMailSafe({
+            to: user.correo,
+            subject: '🌱 ¡Tu cuenta de Vendedor Campesino ha sido Aprobada!',
+            html: `
+              <p>Hola <strong>${user.nombre || 'Productor'}</strong>,</p>
+              <p>¡Nos alegra informarte que tu solicitud como <strong>Vendedor Campesino</strong> en De los Montes de María ha sido aprobada por el administrador!</p>
+              <p>Ya puedes ingresar a la plataforma y publicar tus cosechas para toda Colombia.</p>
+            `
+          }).catch(() => {});
+        }
+      }
+
+      await this.sendMessage(chatId, `🎉 <b>¡Vendedor #${vId} Aprobado con Éxito!</b>\nEl usuario ahora tiene permisos activos de campesino vendedor en la plataforma.`);
+    } catch (err) {
+      await this.sendMessage(chatId, `⚠️ Error al aprobar vendedor: ${err.message}`);
     }
   }
 
   async mostrarStockCritico(chatId) {
     if (!this.productoRepository) return;
     try {
-      const productos = await this.productoRepository.buscarTodos();
+      const productos = typeof this.productoRepository.listarTodos === 'function'
+        ? await this.productoRepository.listarTodos()
+        : await this.productoRepository.buscarTodos();
       const criticos = (productos || []).filter((p) => Number(p.stock || 0) <= 5);
 
       if (criticos.length === 0) {
@@ -1900,8 +2782,10 @@ Hemos enviado un nuevo código de 6 dígitos a:
 
       let lista = '⚠️ <b>COSECHAS CON STOCK BAJO (≤5 unidades):</b>\n━━━━━━━━━━━━━━━━━━\n';
       criticos.forEach((p) => {
-        lista += `\n📦 <b>${p.nombre}</b>\n   🌾 Stock: <b>${p.stock} unidades</b> ($${Number(p.precio || 0).toLocaleString('es-CO')})\n`;
+        lista += `\n📦 <b>${p.nombre || p.nombre_producto}</b> (ID: <code>#${p.id_producto || p.id}</code>)\n   🌾 Stock: <b>${p.stock} unidades</b> ($${Number(p.precio || 0).toLocaleString('es-CO')})\n`;
       });
+
+      lista += '\n💡 <i>Para reabastecer escribe:</i> <code>/stock [ID] [Cantidad]</code>';
 
       const keyboard = {
         reply_markup: {
@@ -1920,7 +2804,9 @@ Hemos enviado un nuevo código de 6 dígitos a:
   async mostrarProductosCampesino(chatId, authUser) {
     if (!this.productoRepository) return;
     try {
-      const productos = await this.productoRepository.buscarTodos();
+      const productos = typeof this.productoRepository.listarTodos === 'function'
+        ? await this.productoRepository.listarTodos()
+        : await this.productoRepository.buscarTodos();
       let misProds = productos || [];
       if (authUser && authUser.id_rol === 2) {
         misProds = misProds.filter((p) => p.id_vendedor === authUser.id_usuario);
@@ -1933,7 +2819,7 @@ Hemos enviado un nuevo código de 6 dígitos a:
 
       let lista = `🌾 <b>COSECHAS Y PRODUCTOS PUBLICADOS (${misProds.length}):</b>\n━━━━━━━━━━━━━━━━━━\n`;
       misProds.slice(0, 8).forEach((p) => {
-        lista += `\n🌱 <b>${p.nombre}</b>\n   📦 Stock: <code>${p.stock} unidades</code> | 💵 <b>$${Number(p.precio || 0).toLocaleString('es-CO')} COP</b>\n`;
+        lista += `\n🌱 <b>${p.nombre || p.nombre_producto}</b> (ID: <code>#${p.id_producto || p.id}</code>)\n   📦 Stock: <code>${p.stock} unidades</code> | 💵 <b>$${Number(p.precio || 0).toLocaleString('es-CO')} COP</b>\n`;
       });
 
       await this.sendMessage(chatId, lista);

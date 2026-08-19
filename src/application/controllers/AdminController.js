@@ -160,11 +160,12 @@ class AdminController {
       }
 
       let imagen = req.file ? req.file.filename : (req.body.imagen || null);
+      const vendorId = (id_vendedor && id_vendedor !== '' && id_vendedor !== 'null') ? parseInt(id_vendedor, 10) : (req.user?.id || 1);
 
       const Producto = require('../../domain/entities/Producto');
       const prod = new Producto({
-        id_vendedor: id_vendedor || req.user?.id || 1,
-        id_proveedor: id_vendedor || req.user?.id || 1,
+        id_vendedor: vendorId,
+        id_proveedor: vendorId,
         nombre_producto: nombreFinal.trim(),
         descripcion: descripcion || '',
         precio: parseFloat(precio) || 0,
@@ -198,7 +199,11 @@ class AdminController {
       if (categoria !== undefined) updateData.categoria = categoria;
       if (id_categoria !== undefined) updateData.id_categoria = id_categoria;
       if (unidad_medida !== undefined) updateData.unidad_medida = unidad_medida;
-      if (id_vendedor !== undefined) updateData.id_vendedor = id_vendedor;
+      if (id_vendedor !== undefined) {
+        const parsedVendor = (id_vendedor === '' || id_vendedor === 'null' || id_vendedor === null) ? null : parseInt(id_vendedor, 10);
+        updateData.id_vendedor = parsedVendor;
+        updateData.id_proveedor = parsedVendor;
+      }
 
       if (req.file) {
         updateData.imagen = req.file.filename;

@@ -157,29 +157,6 @@ export default function ProductCard({ producto }) {
             )}
           </button>
         </div>
-
-        {/* Telegram Direct Question */}
-        <a
-          href={`https://t.me/montesdemariabot?text=Hola,%20tengo%20una%20duda%20sobre%20el%20producto%20${encodeURIComponent(prodTitle)}`}
-          target="_blank"
-          rel="noreferrer"
-          className="product-telegram-ask-link"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.35rem',
-            fontSize: '0.72rem',
-            color: '#0284c7',
-            textDecoration: 'none',
-            marginTop: '0.45rem',
-            fontWeight: 600,
-            opacity: 0.88,
-          }}
-          title="Consultar por Telegram"
-        >
-          <i className="fab fa-telegram" style={{ color: '#229ED9' }} /> ¿Dudas? Preguntar en Telegram
-        </a>
       </div>
     </div>
   )

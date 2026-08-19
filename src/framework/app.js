@@ -83,7 +83,8 @@ const authController = new AuthController({
 
 const usuarioController = new UsuarioController({
   usuarioRepository,
-  emailService
+  emailService,
+  telegramService
 });
 
 const productoController = new ProductoController({

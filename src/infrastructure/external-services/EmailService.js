@@ -161,39 +161,44 @@ class EmailService {
    * Generador de tarjetas de código de seguridad con selección táctil instantánea para copiar
    */
   buildOtpCodeCard({ code, label = 'Código de Verificación', actionUrl = null, actionText = null, note = 'Este código vence en 10 minutos por tu seguridad.' }) {
+    const cleanCode = String(code || '').trim();
     return `
       <!-- OTP Security Card -->
-      <div style="margin: 26px auto; max-width: 460px; background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%); border: 2px dashed #16a34a; border-radius: 20px; padding: 26px 20px; text-align: center; box-shadow: 0 8px 24px rgba(22, 163, 74, 0.08);">
-        <div style="font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #166534; margin-bottom: 12px;">
-          🛡️ ${label}
-        </div>
-        
-        <div style="background: #ffffff; border: 1.5px solid #86efac; border-radius: 14px; padding: 14px 22px; display: inline-block; margin-bottom: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.04);">
-          <span style="font-size: 38px; font-weight: 900; letter-spacing: 8px; color: #14532d; font-family: 'Courier New', Courier, Consolas, monospace; line-height: 1; user-select: all; -webkit-user-select: all; -moz-user-select: all; display: inline-block; cursor: pointer;" title="Toca o selecciona para copiar">
-            ${code}
-          </span>
-        </div>
+      <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 460px; margin: 24px auto; background: #f0fdf4; border: 2px dashed #16a34a; border-radius: 18px; padding: 24px 16px; text-align: center;">
+        <tr>
+          <td align="center">
+            <div style="font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #166534; margin-bottom: 12px;">
+              🛡️ ${label}
+            </div>
+            
+            <div style="background: #ffffff; border: 2px solid #86efac; border-radius: 14px; padding: 14px 28px; display: inline-block; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(22,163,74,0.08);">
+              <span style="font-size: 36px; font-weight: 900; letter-spacing: 6px; color: #14532d; font-family: Consolas, 'Courier New', Monaco, monospace; line-height: 1; user-select: all; -webkit-user-select: all; -moz-user-select: all; display: inline-block;" title="Doble clic o mantén presionado para copiar">
+                ${cleanCode}
+              </span>
+            </div>
 
-        <div style="margin-bottom: 8px;">
-          <span style="display: inline-block; background: #166534; color: #ffffff; font-size: 12px; font-weight: 800; padding: 6px 18px; border-radius: 999px; box-shadow: 0 2px 8px rgba(22,101,52,0.25); letter-spacing: 0.3px;">
-            📋 Selecciona o mantén presionado para copiar
-          </span>
-        </div>
+            <div style="margin-top: 4px; margin-bottom: 6px;">
+              <span style="display: inline-block; background: #e0f2fe; border: 1px solid #bae6fd; color: #0369a1; font-size: 11.5px; font-weight: 700; padding: 6px 16px; border-radius: 999px; letter-spacing: 0.2px;">
+                💡 Doble clic o mantén presionado el número para copiar
+              </span>
+            </div>
 
-        ${actionUrl && actionText ? `
-          <div style="margin-top: 18px;">
-            <a href="${actionUrl}" target="_blank" style="background: linear-gradient(135deg, #15803d 0%, #166534 100%); color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 999px; font-size: 14px; font-weight: 800; display: inline-block; box-shadow: 0 4px 14px rgba(21,128,61,0.3);">
-              ${actionText} →
-            </a>
-          </div>
-        ` : ''}
+            ${actionUrl && actionText ? `
+              <div style="margin-top: 16px;">
+                <a href="${actionUrl}" target="_blank" style="background: linear-gradient(135deg, #15803d 0%, #166534 100%); color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 999px; font-size: 14px; font-weight: 800; display: inline-block; box-shadow: 0 4px 14px rgba(21,128,61,0.3);">
+                  ${actionText} →
+                </a>
+              </div>
+            ` : ''}
 
-        ${note ? `
-          <div style="margin-top: 14px; font-size: 12px; color: #475569; font-weight: 600; line-height: 1.4;">
-            ⏱️ ${note}
-          </div>
-        ` : ''}
-      </div>
+            ${note ? `
+              <div style="margin-top: 12px; font-size: 12px; color: #475569; font-weight: 600; line-height: 1.4;">
+                ⏱️ ${note}
+              </div>
+            ` : ''}
+          </td>
+        </tr>
+      </table>
     `;
   }
 
@@ -229,8 +234,8 @@ class EmailService {
                     <!-- Project Logo (Circular Frame with Gold/Emerald Border) -->
                     <table border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto 16px auto;">
                       <tr>
-                        <td align="center" style="background: #ffffff; padding: 5px; border-radius: 50%; box-shadow: 0 10px 25px rgba(0,0,0,0.25); border: 3px solid #86efac;">
-                          <img src="${logoUrl}" alt="De los Montes de María" width="82" height="82" style="display: block; width: 82px; height: 82px; border-radius: 50%; object-fit: cover; border: 0;" />
+                        <td align="center" style="background: #ffffff; width: 82px; height: 82px; border-radius: 50%; box-shadow: 0 10px 25px rgba(0,0,0,0.25); border: 3px solid #86efac; vertical-align: middle; overflow: hidden;">
+                          <img src="${logoUrl}" alt="🌱 De los Montes de María" width="82" height="82" style="display: block; width: 82px; height: 82px; border-radius: 50%; object-fit: cover; border: 0; font-size: 11px; font-weight: bold; color: #166534;" />
                         </td>
                       </tr>
                     </table>
@@ -609,42 +614,297 @@ class EmailService {
   }
 
   async sendOrderStatusEmail(compra, email, estado) {
-    const estadoLimpio = String(estado || 'actualizado').toUpperCase();
+    const rawKey = String(estado || '').toLowerCase().trim();
+    let statusKey = 'pendiente';
+    if (rawKey.includes('confirm') || rawKey.includes('prepar')) statusKey = 'confirmado';
+    else if (rawKey.includes('empa') || rawKey.includes('listo')) statusKey = 'empaquetado';
+    else if (rawKey.includes('camino') || rawKey.includes('despach')) statusKey = 'en_camino';
+    else if (rawKey.includes('repart') || rawKey.includes('local') || rawKey.includes('ruta')) statusKey = 'en_reparto';
+    else if (rawKey.includes('entreg')) statusKey = 'entregado';
+    else if (rawKey.includes('cancel')) statusKey = 'cancelado';
+    else if (rawKey.includes('reembols')) statusKey = 'reembolsado';
+
+    const STATUS_MAP = {
+      pendiente: {
+        label: 'Pendiente (Recibido)',
+        badge: '⏳ Orden Recibida',
+        icon: '⏳',
+        color: '#d97706',
+        bgColor: '#fffbeb',
+        borderColor: '#fde68a',
+        step: 1,
+        title: 'Tu pedido ha sido recibido',
+        subtitle: `Orden #${compra.id_compra} en espera de confirmación`,
+        subject: `⏳ Tu pedido #${compra.id_compra} ha sido recibido - De los Montes de María`,
+        description: 'Hemos recibido tu orden correctamente en nuestro sistema. El productor campesino está revisando los detalles para confirmar la disponibilidad y dar inicio a la recolección de tus cosechas.',
+        tip: 'Te avisaremos por correo en cuanto el productor confirme y comience a empacar tus productos frescos.'
+      },
+      confirmado: {
+        label: 'Confirmado / En Preparación en Finca',
+        badge: '👨‍🌾 En Preparación en Finca',
+        icon: '👨‍🌾',
+        color: '#15803d',
+        bgColor: '#f0fdf4',
+        borderColor: '#86efac',
+        step: 2,
+        title: '¡Tu pedido está en preparación en finca!',
+        subtitle: `Orden #${compra.id_compra} confirmada por el productor`,
+        subject: `👨‍🌾 ¡Tu pedido #${compra.id_compra} se está preparando en la finca! - De los Montes de María`,
+        description: '¡Buenas noticias! El campesino productor ha confirmado tu pedido y se encuentra cosechando, seleccionando y alistando los productos más frescos del campo para ti.',
+        tip: 'Tus productos están siendo seleccionados directamente del árbol y la tierra para asegurar la máxima frescura.'
+      },
+      empaquetado: {
+        label: 'Empacado y Listo para Despacho',
+        badge: '📦 Empacado en Finca',
+        icon: '📦',
+        color: '#0284c7',
+        bgColor: '#f0f9ff',
+        borderColor: '#bae6fd',
+        step: 3,
+        title: 'Tus productos están empacados y listos',
+        subtitle: `Orden #${compra.id_compra} lista para el transportador`,
+        subject: `📦 Tu pedido #${compra.id_compra} está empacado y listo para salir`,
+        description: 'Tus productos campesinos han sido clasificados, protegidos y empacados en sus respectivas canastillas o empaques ecológicos. Están listos para ser recogidos por el transportador regional.',
+        tip: 'El paquete saldrá en la próxima ruta de despacho directo desde los Montes de María.'
+      },
+      en_camino: {
+        label: 'En Camino (Despachado)',
+        badge: '🚚 En Camino a tu Destino',
+        icon: '🚚',
+        color: '#2563eb',
+        bgColor: '#eff6ff',
+        borderColor: '#bfdbfe',
+        step: 4,
+        title: '¡Tu pedido va en camino!',
+        subtitle: `Orden #${compra.id_compra} viajando desde Montes de María`,
+        subject: `🚚 ¡Tu pedido #${compra.id_compra} ya va en camino hacia tu puerta!`,
+        description: 'El transportador ya tiene tu pedido y se encuentra en ruta desde los Montes de María. Tus cosechas y alimentos frescos están viajando directamente a tu dirección.',
+        tip: 'Mantén tu teléfono disponible por si el transportador necesita validar detalles de llegada a tu domicilio.'
+      },
+      en_reparto: {
+        label: 'En Reparto Local (Llega Hoy)',
+        badge: '🛵 En Reparto Local',
+        icon: '🛵',
+        color: '#7c3aed',
+        bgColor: '#faf5ff',
+        borderColor: '#e9d5ff',
+        step: 5,
+        title: '¡Tu pedido llega hoy a tu puerta!',
+        subtitle: `Orden #${compra.id_compra} en última milla de entrega`,
+        subject: `🛵 ¡Tu pedido #${compra.id_compra} está en reparto local y llega hoy!`,
+        description: '¡Tu pedido ya arribó a tu ciudad o municipio! El domiciliario / repartidor se encuentra en recorrido para entregarte el paquete en el transcurso del día.',
+        tip: 'Asegúrate de que haya alguien en la dirección registrada para recibir y revisar tus productos.'
+      },
+      entregado: {
+        label: 'Entregado con Éxito',
+        badge: '✅ Entregado con Éxito',
+        icon: '✅',
+        color: '#166534',
+        bgColor: '#f0fdf4',
+        borderColor: '#4ade80',
+        step: 6,
+        title: '¡Tu pedido ha sido entregado!',
+        subtitle: `Orden #${compra.id_compra} completada`,
+        subject: `✅ ¡Pedido #${compra.id_compra} entregado! - Gracias por apoyar al campo`,
+        description: 'Confirmamos que tu pedido ha sido entregado en tu dirección. ¡De parte de todas las familias campesinas de Montes de María, te damos las gracias por tu compra y confianza!',
+        tip: '¡Esperamos que disfrutes tus productos! Si tienes alguna duda o sugerencia, nuestro canal de soporte está siempre abierto para ti.'
+      },
+      cancelado: {
+        label: 'Cancelado',
+        badge: '❌ Pedido Cancelado',
+        icon: '❌',
+        color: '#dc2626',
+        bgColor: '#fef2f2',
+        borderColor: '#fecaca',
+        step: 0,
+        title: 'Tu pedido ha sido cancelado',
+        subtitle: `Orden #${compra.id_compra}`,
+        subject: `❌ Pedido #${compra.id_compra} cancelado - De los Montes de María`,
+        description: 'Te informamos que tu pedido ha sido marcado como cancelado. Si esto se debe a un error o requieres asistencia adicional, por favor comunícate con nosotros de inmediato.',
+        tip: 'Puedes comunicarte con soporte al WhatsApp +57 300 872 3989 para resolver cualquier inquietud.'
+      },
+      reembolsado: {
+        label: 'Reembolso Procesado',
+        badge: '💰 Reembolso Procesado',
+        icon: '💰',
+        color: '#9333ea',
+        bgColor: '#faf5ff',
+        borderColor: '#f3e8ff',
+        step: 0,
+        title: 'Reembolso procesado exitosamente',
+        subtitle: `Orden #${compra.id_compra}`,
+        subject: `💰 Reembolso procesado para el pedido #${compra.id_compra}`,
+        description: 'Hemos procesado el reembolso del valor correspondiente a tu pedido. El saldo o crédito ha sido reintegrado conforme a las políticas de la plataforma.',
+        tip: 'Puedes consultar el estado de tu cuenta y créditos disponibles desde tu perfil web.'
+      }
+    };
+
+    const st = STATUS_MAP[statusKey] || STATUS_MAP.pendiente;
+
+    // Generar tabla de productos si existen en el recibo
+    let itemsTableHtml = '';
+    if (Array.isArray(compra.detalles) && compra.detalles.length > 0) {
+      let itemRows = '';
+      compra.detalles.forEach((it, idx) => {
+        const cant = Number(it.cantidad) || 1;
+        const price = parseFloat(it.precio_unitario) || 0;
+        const sub = cant * price;
+        const bg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
+        itemRows += `
+          <tr style="background-color: ${bg};">
+            <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #1e293b;">
+              <strong>${it.nombre_producto || 'Producto Campesino'}</strong>
+              ${it.presentacion ? `<br><span style="font-size: 11px; color: #64748b;">${it.presentacion}</span>` : ''}
+            </td>
+            <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: center; font-size: 13px; color: #475569;">
+              ${cant}
+            </td>
+            <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-size: 13px; font-weight: 700; color: #166534;">
+              $${sub.toLocaleString('es-CO')}
+            </td>
+          </tr>
+        `;
+      });
+
+      itemsTableHtml = `
+        <div style="margin: 22px 0 16px 0; border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden;">
+          <div style="background: #14532d; color: #ffffff; padding: 10px 14px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
+            🛒 Resumen de Productos en tu Pedido
+          </div>
+          <table width="100%" border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+            <thead>
+              <tr style="background: #f1f5f9; color: #475569; font-size: 11.5px; font-weight: 700;">
+                <th style="padding: 8px 12px; text-align: left;">Producto</th>
+                <th style="padding: 8px 12px; text-align: center;">Cant</th>
+                <th style="padding: 8px 12px; text-align: right;">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemRows}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // Stepper visual de progreso (si no es cancelado ni reembolsado)
+    let stepperHtml = '';
+    if (st.step > 0) {
+      const steps = [
+        { num: 1, label: 'Recibido' },
+        { num: 2, label: 'En Finca' },
+        { num: 3, label: 'Empacado' },
+        { num: 4, label: 'En Camino' },
+        { num: 5, label: 'En Reparto' },
+        { num: 6, label: 'Entregado' }
+      ];
+
+      const stepItems = steps.map((s) => {
+        const isCurrent = s.num === st.step;
+        const isPast = s.num < st.step;
+        const circleBg = isCurrent ? st.color : isPast ? '#16a34a' : '#e2e8f0';
+        const circleColor = isCurrent || isPast ? '#ffffff' : '#94a3b8';
+        const labelWeight = isCurrent ? '800' : isPast ? '600' : '400';
+        const labelColor = isCurrent ? st.color : isPast ? '#166534' : '#94a3b8';
+        return `
+          <td align="center" style="padding: 4px 2px; font-size: 10px;">
+            <div style="width: 24px; height: 24px; border-radius: 50%; background-color: ${circleBg}; color: ${circleColor}; line-height: 24px; text-align: center; font-weight: 800; margin: 0 auto 4px auto; font-size: 11px; box-shadow: ${isCurrent ? '0 0 0 3px rgba(22,163,74,0.2)' : 'none'};">
+              ${isPast ? '✓' : s.num}
+            </div>
+            <span style="display: block; color: ${labelColor}; font-weight: ${labelWeight}; font-size: 9.5px; line-height: 1.1;">
+              ${s.label}
+            </span>
+          </td>
+        `;
+      }).join('');
+
+      stepperHtml = `
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 8px 12px; margin: 18px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+          <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: #64748b; margin-bottom: 10px; text-align: center; letter-spacing: 0.5px;">
+            📍 Estado de Avance de tu Pedido (Paso ${st.step} de 6)
+          </div>
+          <table width="100%" border="0" cellpadding="0" cellspacing="0">
+            <tr>
+              ${stepItems}
+            </tr>
+          </table>
+        </div>
+      `;
+    }
+
     const contentHtml = `
-      <p style="font-size: 16px; margin: 0 0 14px 0;">Hola <strong>${compra.nombre_cliente || 'Cliente'}</strong>,</p>
-      <p style="margin: 0 0 18px 0;">
-        Te informamos que tu pedido <strong>#${compra.id_compra}</strong> ha cambiado de estado:
+      <p style="font-size: 16px; margin: 0 0 12px 0;">Hola <strong>${compra.nombre_cliente || 'Estimado(a) Cliente'}</strong>,</p>
+      <p style="margin: 0 0 16px 0; font-size: 15px; color: #334155; line-height: 1.6;">
+        ${st.description}
       </p>
 
-      <!-- Status Highlight Badge -->
-      <div style="text-align: center; margin: 24px 0; padding: 22px; background-color: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 16px; box-shadow: 0 4px 12px rgba(22,163,74,0.06);">
-        <span style="font-size: 12px; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 6px;">
-          Nuevo Estado del Pedido
-        </span>
-        <span style="font-size: 24px; font-weight: 900; color: #14532d;">
-          📦 ${estadoLimpio}
-        </span>
+      <!-- Main Highlight Status Box -->
+      <div style="text-align: center; margin: 20px 0; padding: 22px 18px; background-color: ${st.bgColor}; border: 2px solid ${st.borderColor}; border-radius: 18px; box-shadow: 0 6px 18px rgba(0,0,0,0.04);">
+        <div style="font-size: 11.5px; font-weight: 800; color: ${st.color}; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 6px;">
+          Estado Actual del Pedido
+        </div>
+        <div style="font-size: 24px; font-weight: 900; color: ${st.color}; line-height: 1.25;">
+          ${st.icon} ${st.label}
+        </div>
       </div>
 
-      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px 22px; margin: 20px 0; font-size: 14px; color: #334155;">
-        <p style="margin: 0 0 8px 0;"><strong>Dirección de Entrega:</strong> ${compra.direccion_envio || 'Registrada en la orden'}</p>
-        <p style="margin: 0;"><strong>Total del Pedido:</strong> $${(parseFloat(compra.total) || 0).toLocaleString('es-CO')} COP</p>
+      ${stepperHtml}
+
+      ${itemsTableHtml}
+
+      <!-- Order Details Summary Card -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px 20px; margin: 18px 0; font-size: 13.5px; color: #334155;">
+        <table width="100%" border="0" cellpadding="4" cellspacing="0">
+          <tr>
+            <td width="130" style="color: #64748b; font-weight: 600;">N° de Orden:</td>
+            <td style="font-weight: 800; color: #0f172a;">#${compra.id_compra}</td>
+          </tr>
+          <tr>
+            <td style="color: #64748b; font-weight: 600;">Dirección de Entrega:</td>
+            <td style="font-weight: 700; color: #0f172a;">${compra.direccion_envio || 'Registrada en la orden'}</td>
+          </tr>
+          <tr>
+            <td style="color: #64748b; font-weight: 600;">Método de Pago:</td>
+            <td style="font-weight: 700; color: #166534;">${compra.metodo_pago || 'Contra Entrega'}</td>
+          </tr>
+          <tr>
+            <td style="color: #64748b; font-weight: 600;">Total del Pedido:</td>
+            <td style="font-weight: 900; color: #14532d; font-size: 15px;">$${(parseFloat(compra.total) || 0).toLocaleString('es-CO')} COP</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Helpful Advice Card -->
+      <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 14px 18px; margin: 18px 0;">
+        <p style="margin: 0; color: #166534; font-size: 13px; font-weight: 600; line-height: 1.5;">
+          💡 <strong>Información importante:</strong> ${st.tip}
+        </p>
+      </div>
+
+      <!-- Quick Support Contact -->
+      <div style="text-align: center; margin-top: 22px; padding: 14px; background: #fafafa; border: 1px dashed #cbd5e1; border-radius: 12px;">
+        <p style="margin: 0 0 8px 0; font-size: 12.5px; color: #475569; font-weight: 600;">
+          ¿Tienes preguntas o deseas consultar con nuestro equipo de atención?
+        </p>
+        <a href="https://wa.me/573008723989?text=Hola,%20quisiera%20consultar%20sobre%20mi%20pedido%20%23${compra.id_compra}" target="_blank" style="display: inline-block; background: #25d366; color: #ffffff; text-decoration: none; padding: 8px 18px; border-radius: 999px; font-size: 12.5px; font-weight: 800; box-shadow: 0 2px 8px rgba(37,211,102,0.3);">
+          💬 WhatsApp Soporte: +57 300 872 3989
+        </a>
       </div>
     `;
 
     const html = this.buildEmailLayout({
-      badge: '📦 Seguimiento de Pedido',
-      title: 'Estado de Pedido Actualizado',
-      subtitle: `Orden #${compra.id_compra}`,
+      badge: st.badge,
+      title: st.title,
+      subtitle: st.subtitle,
       contentHtml,
-      ctaText: 'Ver Detalles del Pedido',
+      ctaText: 'Ver Mi Pedido y Factura',
       ctaLink: '/mis-compras',
-      footerNote: 'Recibirás más actualizaciones a medida que tu pedido avance en el proceso de entrega.'
+      footerNote: 'Recibirás nuevas notificaciones por correo automáticamente con cada avance en el despacho de tu pedido.'
     });
 
     return this.sendMailSafe({
       to: email,
-      subject: `📦 Pedido #${compra.id_compra} - Estado: ${estadoLimpio}`,
+      subject: st.subject,
       html
     });
   }

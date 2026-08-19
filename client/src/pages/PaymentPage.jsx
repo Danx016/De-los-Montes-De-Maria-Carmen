@@ -568,16 +568,16 @@ export default function PaymentPage() {
             )}
 
             <form onSubmit={handleVerifyAndConfirmOrder}>
-              <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
                 <input
                   type="text"
                   maxLength={6}
                   value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   placeholder="000000"
                   autoFocus
                   style={{
-                    width: '220px',
+                    width: '200px',
                     height: '56px',
                     fontSize: '1.8rem',
                     textAlign: 'center',
@@ -591,6 +591,34 @@ export default function PaymentPage() {
                     boxShadow: '0 4px 12px rgba(46, 125, 50, 0.15)',
                   }}
                 />
+                <button
+                  type="button"
+                  title="Pegar código del portapapeles"
+                  onClick={async () => {
+                    try {
+                      const text = await navigator.clipboard.readText()
+                      const clean = text.replace(/\D/g, '').slice(0, 6)
+                      if (clean) setOtpCode(clean)
+                    } catch (e) {}
+                  }}
+                  className="btn"
+                  style={{
+                    height: '56px',
+                    padding: '0 14px',
+                    borderRadius: '12px',
+                    background: '#f0fdf4',
+                    border: '1.5px solid #86efac',
+                    color: '#166534',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <i className="fa fa-paste" /> Pegar
+                </button>
               </div>
 
               <button

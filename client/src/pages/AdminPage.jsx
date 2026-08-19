@@ -142,6 +142,7 @@ export default function AdminPage() {
     stock: '',
     categoria: '',
     unidad_medida: 'Unidad',
+    id_vendedor: '',
   })
   const [newProdImageFile, setNewProdImageFile] = useState(null)
   const [newProdImagePreview, setNewProdImagePreview] = useState('')
@@ -158,6 +159,7 @@ export default function AdminPage() {
     stock: '',
     categoria: '',
     unidad_medida: 'Unidad',
+    id_vendedor: '',
     imagen: '',
   })
   const [editProdImageFile, setEditProdImageFile] = useState(null)
@@ -937,6 +939,7 @@ export default function AdminPage() {
       stock: '',
       categoria: categorias.length > 0 ? (categorias[0].slug || categorias[0].nombre_categoria) : 'cosechas',
       unidad_medida: 'Kg',
+      id_vendedor: '',
       imagen: '',
     })
     setNewProdImageFile(null)
@@ -948,6 +951,9 @@ export default function AdminPage() {
   const handleOpenEditProduct = (prod) => {
     setEditingProd(prod)
     const isCodeOrUrl = prod.imagen && (prod.imagen.startsWith('<') || prod.imagen.startsWith('http'))
+    const vendorVal = prod.id_vendedor !== undefined && prod.id_vendedor !== null
+      ? String(prod.id_vendedor)
+      : (prod.id_proveedor ? String(prod.id_proveedor) : '')
     setEditProdForm({
       nombre_producto: prod.nombre_producto || prod.nombre || '',
       descripcion: prod.descripcion || '',
@@ -955,6 +961,7 @@ export default function AdminPage() {
       stock: prod.stock !== undefined ? prod.stock : '',
       categoria: prod.categoria || (categorias.length > 0 ? (categorias[0].slug || categorias[0].nombre_categoria) : ''),
       unidad_medida: prod.unidad_medida || 'Unidad',
+      id_vendedor: vendorVal,
       imagen: isCodeOrUrl ? prod.imagen : '',
     })
     setEditProdImageFile(null)
@@ -990,6 +997,7 @@ export default function AdminPage() {
       formData.append('stock', newProdForm.stock)
       formData.append('categoria', newProdForm.categoria)
       formData.append('unidad_medida', newProdForm.unidad_medida)
+      formData.append('id_vendedor', newProdForm.id_vendedor || '')
       if (newProdImageFile) {
         formData.append('imagen', newProdImageFile)
       } else if (newProdForm.imagen) {
@@ -1024,6 +1032,7 @@ export default function AdminPage() {
       formData.append('stock', editProdForm.stock)
       formData.append('categoria', editProdForm.categoria)
       formData.append('unidad_medida', editProdForm.unidad_medida)
+      formData.append('id_vendedor', editProdForm.id_vendedor !== undefined ? editProdForm.id_vendedor : '')
       if (editProdImageFile) {
         formData.append('imagen', editProdImageFile)
       } else if (editProdForm.imagen !== undefined) {
@@ -1318,9 +1327,15 @@ export default function AdminPage() {
                               {prod.descripcion && <p className="table-desc">{prod.descripcion.slice(0, 50)}...</p>}
                             </td>
                             <td>
-                              <span className="badge badge-info">
-                                <i className="fa fa-user" /> {prod.vendedor_nombre || `Vendedor #${prod.id_vendedor || '1'}`}
-                              </span>
+                              {prod.id_vendedor && prod.id_vendedor !== 1 && !prod.vendedor_nombre?.toLowerCase().includes('sin asignar') && !prod.vendedor_nombre?.toLowerCase().includes('administrador') ? (
+                                <span className="badge" style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', fontWeight: 700, padding: '0.35rem 0.65rem', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                                  <i className="fa fa-user-check text-primary" /> {prod.vendedor_nombre || `Campesino #${prod.id_vendedor}`}
+                                </span>
+                              ) : (
+                                <span className="badge" style={{ background: '#f1f5f9', color: '#64748b', border: '1px solid #cbd5e1', fontWeight: 600, padding: '0.35rem 0.65rem', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                                  <i className="fa fa-user" /> {prod.vendedor_nombre || 'Tienda Oficial / Admin'}
+                                </span>
+                              )}
                             </td>
                             <td>
                               <span className="badge badge-primary">{prod.categoria || 'General'}</span>
@@ -1924,6 +1939,43 @@ export default function AdminPage() {
                   </div>
 
                   <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                    <label className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <i className="fa fa-user-tag text-success" /> Vendedor / Productor Campesino (Dueño del Producto)
+                    </label>
+                    <select
+                      value={newProdForm.id_vendedor}
+                      onChange={(e) => setNewProdForm({ ...newProdForm, id_vendedor: e.target.value })}
+                      className="form-select"
+                      style={{ borderRadius: '8px' }}
+                    >
+                      <option value="">👤 Administrador / Tienda Oficial (Sin Vendedor Asignado)</option>
+                      {usuarios.filter((u) => Number(u.id_rol) === 2 || u.rol?.toLowerCase().includes('vendedor') || u.rol?.toLowerCase().includes('campesino')).length > 0 && (
+                        <optgroup label="👨‍🌾 Campesinos y Vendedores Registrados">
+                          {usuarios
+                            .filter((u) => Number(u.id_rol) === 2 || u.rol?.toLowerCase().includes('vendedor') || u.rol?.toLowerCase().includes('campesino'))
+                            .map((u) => (
+                              <option key={u.id_usuario} value={u.id_usuario}>
+                                {u.nombre || u.apodo} - {u.correo} ({u.municipio || u.direccion || 'Campesino'})
+                              </option>
+                            ))}
+                        </optgroup>
+                      )}
+                      <optgroup label="👥 Otros Usuarios de la Plataforma">
+                        {usuarios
+                          .filter((u) => Number(u.id_rol) !== 2 && !u.rol?.toLowerCase().includes('vendedor') && !u.rol?.toLowerCase().includes('campesino'))
+                          .map((u) => (
+                            <option key={u.id_usuario} value={u.id_usuario}>
+                              {u.nombre || u.apodo} ({u.rolNombre || (Number(u.id_rol) === 1 ? 'Admin' : 'Usuario')}) - {u.correo}
+                            </option>
+                          ))}
+                      </optgroup>
+                    </select>
+                    <span className="text-muted" style={{ fontSize: '0.78rem', marginTop: '0.2rem', display: 'block' }}>
+                      El producto quedará asociado a este campesino o vendedor real de la plataforma.
+                    </span>
+                  </div>
+
+                  <div className="form-group" style={{ marginTop: '0.75rem' }}>
                     <label className="form-label">
                       <i className="fa fa-image text-primary" /> Foto del Producto
                     </label>
@@ -2063,6 +2115,43 @@ export default function AdminPage() {
                       onChange={(e) => setEditProdForm({ ...editProdForm, descripcion: e.target.value })}
                       className="form-input"
                     />
+                  </div>
+
+                  <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                    <label className="form-label" style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <i className="fa fa-user-tag text-success" /> Vendedor / Productor Campesino (Dueño del Producto)
+                    </label>
+                    <select
+                      value={editProdForm.id_vendedor}
+                      onChange={(e) => setEditProdForm({ ...editProdForm, id_vendedor: e.target.value })}
+                      className="form-select"
+                      style={{ borderRadius: '8px' }}
+                    >
+                      <option value="">👤 Administrador / Tienda Oficial (Sin Vendedor Asignado)</option>
+                      {usuarios.filter((u) => Number(u.id_rol) === 2 || u.rol?.toLowerCase().includes('vendedor') || u.rol?.toLowerCase().includes('campesino')).length > 0 && (
+                        <optgroup label="👨‍🌾 Campesinos y Vendedores Registrados">
+                          {usuarios
+                            .filter((u) => Number(u.id_rol) === 2 || u.rol?.toLowerCase().includes('vendedor') || u.rol?.toLowerCase().includes('campesino'))
+                            .map((u) => (
+                              <option key={u.id_usuario} value={u.id_usuario}>
+                                {u.nombre || u.apodo} - {u.correo} ({u.municipio || u.direccion || 'Campesino'})
+                              </option>
+                            ))}
+                        </optgroup>
+                      )}
+                      <optgroup label="👥 Otros Usuarios de la Plataforma">
+                        {usuarios
+                          .filter((u) => Number(u.id_rol) !== 2 && !u.rol?.toLowerCase().includes('vendedor') && !u.rol?.toLowerCase().includes('campesino'))
+                          .map((u) => (
+                            <option key={u.id_usuario} value={u.id_usuario}>
+                              {u.nombre || u.apodo} ({u.rolNombre || (Number(u.id_rol) === 1 ? 'Admin' : 'Usuario')}) - {u.correo}
+                            </option>
+                          ))}
+                      </optgroup>
+                    </select>
+                    <span className="text-muted" style={{ fontSize: '0.78rem', marginTop: '0.2rem', display: 'block' }}>
+                      El producto quedará asociado a este campesino o vendedor real de la plataforma.
+                    </span>
                   </div>
 
                   <div className="form-group" style={{ marginTop: '0.75rem' }}>

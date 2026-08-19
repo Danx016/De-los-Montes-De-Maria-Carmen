@@ -52,15 +52,34 @@ class SocketHandler {
     }
   }
 
-  emitirTicketCerrado(ticketId, sessionId, closeMsg) {
-    if (this.soporteNamespace) {
-      this.soporteNamespace.to('admin_room').emit('ticket_cerrado', { ticket_id: ticketId, session_id: sessionId });
-      if (sessionId) {
-        this.soporteNamespace.to(sessionId).emit('ticket_cerrado_cliente', {
-          ticket_id: ticketId,
-          mensaje: closeMsg
-        });
-      }
+  emitirTicketCerrado(arg1, arg2, closeMsg) {
+    if (!this.soporteNamespace) return;
+
+    let sessionId = null;
+    let ticketId = null;
+
+    if (typeof arg1 === 'string' && (arg1.startsWith('sess_') || arg1.startsWith('tg_') || isNaN(Number(arg1)))) {
+      sessionId = arg1;
+      ticketId = arg2;
+    } else if (typeof arg2 === 'string' && (arg2.startsWith('sess_') || arg2.startsWith('tg_') || isNaN(Number(arg2)))) {
+      sessionId = arg2;
+      ticketId = arg1;
+    } else {
+      sessionId = arg1;
+      ticketId = arg2;
+    }
+
+    const payload = {
+      ticketId,
+      ticket_id: ticketId,
+      sessionId,
+      session_id: sessionId,
+      mensaje: closeMsg || 'El ticket ha sido cerrado y resuelto por el equipo de soporte.'
+    };
+
+    this.soporteNamespace.to('admin_room').emit('ticket_cerrado', payload);
+    if (sessionId) {
+      this.soporteNamespace.to(sessionId).emit('ticket_cerrado_cliente', payload);
     }
   }
 }

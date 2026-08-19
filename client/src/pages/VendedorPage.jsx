@@ -175,10 +175,23 @@ export default function VendedorPage() {
   const handleUpdateStatus = async (idCompra, nuevoEstado) => {
     try {
       await actualizarEstadoDespacho(idCompra, { estado: nuevoEstado })
+      toast.success('¡Estado actualizado y correo de notificación enviado al cliente!')
       loadData()
     } catch {
       toast.error('Error al actualizar el estado de la venta.')
     }
+  }
+
+  const getStatusBadge = (estado) => {
+    const raw = String(estado || '').toLowerCase().trim()
+    if (raw.includes('entreg')) return { label: 'Entregado con Éxito', className: 'badge-success', icon: 'fa fa-check-circle' }
+    if (raw.includes('repart') || raw.includes('local')) return { label: 'En Reparto Local', className: 'badge-primary', icon: 'fa fa-motorcycle' }
+    if (raw.includes('camino') || raw.includes('despach')) return { label: 'En Camino', className: 'badge-info', icon: 'fa fa-truck' }
+    if (raw.includes('empa') || raw.includes('listo')) return { label: 'Empacado', className: 'badge-info', icon: 'fa fa-box' }
+    if (raw.includes('confirm') || raw.includes('prepar')) return { label: 'En Preparación (Finca)', className: 'badge-primary', icon: 'fa fa-seedling' }
+    if (raw.includes('cancel')) return { label: 'Cancelado', className: 'badge-danger', icon: 'fa fa-times-circle' }
+    if (raw.includes('reembols')) return { label: 'Reembolsado', className: 'badge-secondary', icon: 'fa fa-undo' }
+    return { label: 'Pendiente', className: 'badge-warning', icon: 'fa fa-clock' }
   }
 
   const formatCOP = (val) =>
@@ -570,30 +583,38 @@ export default function VendedorPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {ventas.map((v) => (
-                        <tr key={v.id_compra || v.id}>
-                          <td><strong>#{v.id_compra || v.id}</strong></td>
-                          <td>{v.cliente_nombre || v.usuario_nombre || 'Cliente Registrado'}</td>
-                          <td><strong>{formatCOP(v.total)}</strong></td>
-                          <td>
-                            <span className={`badge ${v.estado === 'entregado' ? 'badge-success' : v.estado === 'en_camino' ? 'badge-info' : 'badge-warning'}`}>
-                              {v.estado || 'Pendiente'}
-                            </span>
-                          </td>
-                          <td>
-                            <select
-                              value={v.estado || 'pendiente'}
-                              onChange={(e) => handleUpdateStatus(v.id_compra || v.id, e.target.value)}
-                              className="form-select form-select-sm"
-                            >
-                              <option value="pendiente">Pendiente</option>
-                              <option value="en_camino">En Camino (Despachado)</option>
-                              <option value="entregado">Entregado</option>
-                              <option value="cancelado">Cancelado</option>
-                            </select>
-                          </td>
-                        </tr>
-                      ))}
+                      {ventas.map((v) => {
+                        const badgeInfo = getStatusBadge(v.estado)
+                        return (
+                          <tr key={v.id_compra || v.id}>
+                            <td><strong>#{v.id_compra || v.id}</strong></td>
+                            <td>{v.cliente_nombre || v.usuario_nombre || 'Cliente Registrado'}</td>
+                            <td><strong>{formatCOP(v.total)}</strong></td>
+                            <td>
+                              <span className={`badge ${badgeInfo.className}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                                <i className={badgeInfo.icon} /> {badgeInfo.label}
+                              </span>
+                            </td>
+                            <td>
+                              <select
+                                value={v.estado || 'pendiente'}
+                                onChange={(e) => handleUpdateStatus(v.id_compra || v.id, e.target.value)}
+                                className="form-select form-select-sm"
+                                style={{ minWidth: '220px', fontWeight: 600 }}
+                              >
+                                <option value="pendiente">⏳ Pendiente (Recibido)</option>
+                                <option value="confirmado">👨‍🌾 Confirmado / En Preparación en Finca</option>
+                                <option value="empaquetado">📦 Empacado y Listo para Despacho</option>
+                                <option value="en_camino">🚚 En Camino (Despachado)</option>
+                                <option value="en_reparto">🛵 En Reparto Local (Llega Hoy)</option>
+                                <option value="entregado">✅ Entregado con Éxito</option>
+                                <option value="cancelado">❌ Cancelado</option>
+                                <option value="reembolsado">💰 Reembolso Procesado</option>
+                              </select>
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>

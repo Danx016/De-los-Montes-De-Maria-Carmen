@@ -264,6 +264,10 @@ class SoporteController {
             fecha: new Date().toISOString()
           });
         }
+        if (this.telegramService) {
+          this.telegramService.notificarSolicitudAsesorHumano({ ticket })
+            .catch((tErr) => console.warn('[Telegram Asesor Alert Warning]:', tErr.message));
+        }
         return res.json({ ok: true, transferido: true, escalated: true, reply: avisoPase, respuestaBot: avisoPase });
       }
 

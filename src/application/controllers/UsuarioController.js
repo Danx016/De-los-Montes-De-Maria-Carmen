@@ -7,9 +7,10 @@ const DeleteAccount = require('../../domain/use-cases/user/DeleteAccount');
 const ManageAddresses = require('../../domain/use-cases/user/ManageAddresses');
 
 class UsuarioController {
-  constructor({ usuarioRepository, emailService }) {
+  constructor({ usuarioRepository, emailService, telegramService = null }) {
     this.usuarioRepository = usuarioRepository;
     this.emailService = emailService;
+    this.telegramService = telegramService;
     this.updateProfile = new UpdateProfile(usuarioRepository);
     this.deleteAccount = new DeleteAccount(usuarioRepository, emailService);
     this.manageAddresses = new ManageAddresses(usuarioRepository);
@@ -222,6 +223,17 @@ class UsuarioController {
       });
 
       const updatedUser = await this.usuarioRepository.buscarPorId(userId);
+
+      // Notificar al Administrador por Telegram sobre el nuevo vendedor campesino
+      if (this.telegramService && typeof this.telegramService.notificarSolicitudVendedor === 'function') {
+        this.telegramService.notificarSolicitudVendedor({
+          usuario: updatedUser,
+          descripcion: descripcion || user.descripcion,
+          categoria: categoria_productos || user.categoria_productos,
+          telefono: telefono || user.telefono,
+          direccion: direccion || user.direccion
+        }).catch((err) => console.warn('[Telegram Vendedor Alert Warning]:', err.message));
+      }
 
       const jwt = require('jsonwebtoken');
       const appConfig = require('../../infrastructure/config/app.config');

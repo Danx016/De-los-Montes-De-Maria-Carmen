@@ -81,6 +81,36 @@ export default function SoportePage() {
     }
   }, [activeTicket])
 
+  // Sincronizar periódicamente con la base de datos para detectar cambios de estado (ej: cierre o asesor asignado)
+  useEffect(() => {
+    if (!activeTicket || activeTicket.estado === 'cerrado') return
+
+    const syncTicketStatus = async () => {
+      try {
+        const query = activeTicket.ticket_code || activeTicket.id || activeTicket.session_id
+        if (!query) return
+        const res = await buscarTicket({ q: query })
+        const list = res.data?.tickets || res.data || []
+        const current = list.find((t) => t.id === activeTicket.id || t.session_id === activeTicket.session_id || t.ticket_code === activeTicket.ticket_code)
+        if (current) {
+          if (current.estado === 'cerrado') {
+            setActiveTicket((prev) => (prev ? { ...prev, estado: 'cerrado' } : null))
+            localStorage.removeItem('agro_active_ticket')
+          } else if (current.estado !== activeTicket.estado || current.nombre_agente !== activeTicket.nombre_agente) {
+            setActiveTicket((prev) => (prev ? { ...prev, ...current } : null))
+          }
+          if (current.mensajes && current.mensajes.length > messages.length) {
+            setMessages(current.mensajes)
+          }
+        }
+      } catch (_) {}
+    }
+
+    syncTicketStatus()
+    const interval = setInterval(syncTicketStatus, 3000)
+    return () => clearInterval(interval)
+  }, [activeTicket?.id, activeTicket?.session_id, activeTicket?.estado, messages.length])
+
   // Sincronizar datos si el usuario inicia sesión o ya está en sesión
   useEffect(() => {
     let u = user
@@ -108,9 +138,25 @@ export default function SoportePage() {
     'cliente',
     {
       onNuevoMensaje: (msg) => {
+        // Si el mensaje proviene de un asesor, actualizar estado a asesor en línea
+        if (msg.remitente === 'agente' || msg.rol === 'agente') {
+          setActiveTicket((prev) => (prev ? {
+            ...prev,
+            estado: 'agente',
+            nombre_agente: msg.nombre_remitente || prev.nombre_agente || 'Asesor Humano'
+          } : null))
+        }
+
+        // Si es mensaje del sistema indicando cierre
+        if (msg.rol === 'sistema' && (msg.mensaje?.toLowerCase().includes('cerrado') || msg.mensaje?.toLowerCase().includes('resuelto'))) {
+          setActiveTicket((prev) => (prev ? { ...prev, estado: 'cerrado' } : null))
+          localStorage.removeItem('agro_active_ticket')
+        }
+
         setMessages((prev) => {
           if (msg.id && prev.some((m) => m.id === msg.id)) return prev
 
+          // Reemplazar mensaje temporal optimista si existe
           const tempIdx = prev.findIndex(
             (m) =>
               (String(m.id).startsWith('temp_') || !m.id) &&
@@ -123,15 +169,22 @@ export default function SoportePage() {
             return next
           }
 
-          if (prev.some((m) => m.remitente === msg.remitente && m.mensaje?.trim() === msg.mensaje?.trim())) {
-            return prev
-          }
-
           return [...prev, msg]
         })
       },
-      onTicketCerrado: () => {
+      onTicketCerrado: (data) => {
         setActiveTicket((prev) => (prev ? { ...prev, estado: 'cerrado' } : null))
+        localStorage.removeItem('agro_active_ticket')
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `sys_close_${Date.now()}`,
+            remitente: 'sistema',
+            rol: 'sistema',
+            mensaje: data?.mensaje || '✅ Tu ticket ha sido marcado como resuelto y cerrado por el equipo de soporte.',
+            fecha: new Date().toISOString()
+          }
+        ])
       },
     }
   )
@@ -225,11 +278,18 @@ export default function SoportePage() {
         remitente: 'user',
       })
 
-      if (res.data?.transferido || res.data?.escalated) {
+      if (res.data?.closed) {
+        setActiveTicket((prev) => (prev ? { ...prev, estado: 'cerrado' } : null))
+        localStorage.removeItem('agro_active_ticket')
+      } else if (res.data?.transferido || res.data?.escalated) {
         setActiveTicket((prev) => (prev ? { ...prev, estado: 'agente' } : null))
       }
     } catch (err) {
       console.error('Error enviando mensaje:', err)
+      if (err.response?.data?.closed) {
+        setActiveTicket((prev) => (prev ? { ...prev, estado: 'cerrado' } : null))
+        localStorage.removeItem('agro_active_ticket')
+      }
     }
   }
 
@@ -294,14 +354,37 @@ export default function SoportePage() {
   }
 
   const getStatusBadge = (estado) => {
-    switch (estado) {
-      case 'cerrado':
-        return <span className="badge badge-danger" style={{ fontSize: '0.72rem' }}><i className="fa fa-check-circle" /> Resuelto</span>
-      case 'agente':
-        return <span className="badge badge-warning" style={{ fontSize: '0.72rem' }}><i className="fa fa-user-tie" /> En espera de Asesor</span>
-      default:
-        return <span className="badge badge-success" style={{ fontSize: '0.72rem' }}><i className="fa fa-robot" /> Asistente en Vivo</span>
+    if (estado === 'cerrado') {
+      return (
+        <span className="badge" style={{ fontSize: '0.74rem', padding: '0.35rem 0.75rem', borderRadius: '999px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}>
+          <i className="fa fa-check-circle" /> Resuelto & Cerrado
+        </span>
+      )
     }
+
+    const hasAgentMsg = messages.some((m) => (m.remitente === 'agente' || m.rol === 'agente') && m.mensaje?.trim())
+    const agentName = activeTicket?.nombre_agente || messages.find((m) => m.remitente === 'agente' || m.rol === 'agente')?.nombre_remitente
+
+    if (estado === 'agente' || hasAgentMsg || agentName) {
+      if (hasAgentMsg || agentName) {
+        return (
+          <span className="badge" style={{ fontSize: '0.74rem', padding: '0.35rem 0.75rem', borderRadius: '999px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+            <i className="fa fa-user-check" /> Asesor en Línea: {agentName || 'Asesor'}
+          </span>
+        )
+      }
+      return (
+        <span className="badge" style={{ fontSize: '0.74rem', padding: '0.35rem 0.75rem', borderRadius: '999px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
+          <i className="fa fa-spinner fa-spin" /> Conectando con Asesor...
+        </span>
+      )
+    }
+
+    return (
+      <span className="badge" style={{ fontSize: '0.74rem', padding: '0.35rem 0.75rem', borderRadius: '999px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0' }}>
+        <i className="fa fa-robot" /> Asistente en Vivo
+      </span>
+    )
   }
 
   return (

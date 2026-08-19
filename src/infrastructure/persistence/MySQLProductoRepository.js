@@ -122,6 +122,10 @@ class MySQLProductoRepository extends ProductoRepository {
     });
   }
 
+  async buscarTodos() {
+    return this.listarTodos();
+  }
+
   async listarPorVendedor(idVendedor) {
     return new Promise((resolve, reject) => {
       const sql = `
