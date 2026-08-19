@@ -1149,6 +1149,22 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
           return { ok: true };
         }
 
+        if (cbData.startsWith('prod_page:')) {
+          const parts = cbData.split(':');
+          const targetPage = parseInt(parts[1], 10) || 1;
+          const search = parts.slice(2).join(':') || '';
+          if (isAdminOrAdvisor || cbChatId === String(this.adminChatId)) {
+            await this.mostrarMenuGestionProductos(cbChatId, search, targetPage, callbackQuery.message?.message_id);
+          }
+          await this.answerCallbackQuery(callbackQuery.id);
+          return { ok: true };
+        }
+
+        if (cbData === 'noop') {
+          await this.answerCallbackQuery(callbackQuery.id);
+          return { ok: true };
+        }
+
         // ── GESTIÓN DE USUARIOS EN 1-CLIC (ADMIN) ──
         if (cbData.startsWith('usr_toggle:')) {
           const userId = cbData.replace('usr_toggle:', '').trim();
@@ -1208,6 +1224,17 @@ Toca el botón <b>🔐 Iniciar Sesión</b> abajo o escribe <code>/login</code>.
             await this.mostrarMenuGestionUsuarios(cbChatId, '', 1);
           } else {
             await this.sendMessage(cbChatId, '🔒 Esta opción requiere permisos de Administrador.');
+          }
+          await this.answerCallbackQuery(callbackQuery.id);
+          return { ok: true };
+        }
+
+        if (cbData.startsWith('usr_page:')) {
+          const parts = cbData.split(':');
+          const targetPage = parseInt(parts[1], 10) || 1;
+          const search = parts.slice(2).join(':') || '';
+          if (isAdminOrAdvisor || cbChatId === String(this.adminChatId)) {
+            await this.mostrarMenuGestionUsuarios(cbChatId, search, targetPage, callbackQuery.message?.message_id);
           }
           await this.answerCallbackQuery(callbackQuery.id);
           return { ok: true };
@@ -2762,13 +2789,29 @@ ${topList}
   async mostrarMenuGestionProductos(chatId, searchTerm = '', page = 1, messageIdToEdit = null) {
     try {
       const db = require('../persistence/Database');
+      const limit = 6;
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const offset = (pageNum - 1) * limit;
+
+      let countSql = 'SELECT COUNT(*) AS total FROM productos';
       let sql = 'SELECT * FROM productos';
+      let countParams = [];
       let params = [];
+
       if (searchTerm && searchTerm.trim()) {
+        const filter = `%${searchTerm.trim()}%`;
+        countSql += ' WHERE nombre_producto LIKE ? OR descripcion LIKE ?';
+        countParams = [filter, filter];
         sql += ' WHERE nombre_producto LIKE ? OR descripcion LIKE ?';
-        params = [`%${searchTerm.trim()}%`, `%${searchTerm.trim()}%`];
+        params = [filter, filter];
       }
-      sql += ' ORDER BY id_producto DESC LIMIT 6';
+
+      sql += ' ORDER BY id_producto DESC LIMIT ? OFFSET ?';
+      params.push(limit, offset);
+
+      const countResult = await new Promise((res) => db.query(countSql, countParams, (err, r) => res(r && r[0] ? r[0].total : 0)));
+      const totalCount = parseInt(countResult, 10) || 0;
+      const totalPages = Math.ceil(totalCount / limit) || 1;
 
       const prods = await new Promise((res) => db.query(sql, params, (err, r) => res(r || [])));
 
@@ -2783,7 +2826,8 @@ ${topList}
         return;
       }
 
-      let msg = `📦 <b>GESTIÓN DE PRODUCTOS & PRECIOS</b> 🌾\n━━━━━━━━━━━━━━━━━━\n`;
+      let msg = `📦 <b>GESTIÓN DE PRODUCTOS & PRECIOS</b> 🌾\n`;
+      msg += `📄 <i>Página ${pageNum} de ${totalPages} (${totalCount} productos en total)</i>\n━━━━━━━━━━━━━━━━━━\n`;
       if (searchTerm) msg += `🔍 <i>Filtro: "${escapeHtml(searchTerm)}"</i>\n\n`;
 
       const keyboard = [];
@@ -2808,9 +2852,21 @@ ${topList}
 
       msg += `━━━━━━━━━━━━━━━━━━\n💡 <i>Toca un producto para ajustar su precio o stock en 1 toque.</i>`;
 
+      // Botones de paginación
+      const navRow = [];
+      const cleanTerm = searchTerm ? searchTerm.trim() : '';
+      if (pageNum > 1) {
+        navRow.push({ text: '◀️ Anterior', callback_data: `prod_page:${pageNum - 1}:${cleanTerm}` });
+      }
+      navRow.push({ text: `📄 ${pageNum}/${totalPages}`, callback_data: 'noop' });
+      if (pageNum < totalPages) {
+        navRow.push({ text: 'Siguiente ▶️', callback_data: `prod_page:${pageNum + 1}:${cleanTerm}` });
+      }
+      keyboard.push(navRow);
+
       keyboard.push([
         { text: '⚠️ Ver Solo Stock Bajo', callback_data: 'cmd_stock' },
-        { text: '🔄 Refrescar', callback_data: 'cmd_productos' }
+        { text: '🔄 Refrescar', callback_data: `prod_page:${pageNum}:${cleanTerm}` }
       ]);
 
       if (messageIdToEdit) {
@@ -3042,14 +3098,29 @@ ${topList}
   async mostrarMenuGestionUsuarios(chatId, searchTerm = '', page = 1, messageIdToEdit = null) {
     try {
       const db = require('../persistence/Database');
+      const limit = 6;
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const offset = (pageNum - 1) * limit;
+
+      let countSql = 'SELECT COUNT(*) AS total FROM usuarios';
       let sql = 'SELECT * FROM usuarios';
+      let countParams = [];
       let params = [];
+
       if (searchTerm && searchTerm.trim()) {
+        const filter = `%${searchTerm.trim()}%`;
+        countSql += ' WHERE nombre LIKE ? OR apodo LIKE ? OR correo LIKE ? OR telefono LIKE ?';
+        countParams = [filter, filter, filter, filter];
         sql += ' WHERE nombre LIKE ? OR apodo LIKE ? OR correo LIKE ? OR telefono LIKE ?';
-        const like = `%${searchTerm.trim()}%`;
-        params = [like, like, like, like];
+        params = [filter, filter, filter, filter];
       }
-      sql += ' ORDER BY id_usuario DESC LIMIT 6';
+
+      sql += ' ORDER BY id_usuario DESC LIMIT ? OFFSET ?';
+      params.push(limit, offset);
+
+      const countResult = await new Promise((res) => db.query(countSql, countParams, (err, r) => res(r && r[0] ? r[0].total : 0)));
+      const totalCount = parseInt(countResult, 10) || 0;
+      const totalPages = Math.ceil(totalCount / limit) || 1;
 
       const users = await new Promise((res) => db.query(sql, params, (err, r) => res(r || [])));
 
@@ -3064,7 +3135,8 @@ ${topList}
         return;
       }
 
-      let msg = `👥 <b>GESTIÓN Y CONTROL DE USUARIOS</b> 🛡️\n━━━━━━━━━━━━━━━━━━\n`;
+      let msg = `👥 <b>GESTIÓN Y CONTROL DE USUARIOS</b> 🛡️\n`;
+      msg += `📄 <i>Página ${pageNum} de ${totalPages} (${totalCount} usuarios en total)</i>\n━━━━━━━━━━━━━━━━━━\n`;
       if (searchTerm) msg += `🔍 <i>Filtro: "${escapeHtml(searchTerm)}"</i>\n\n`;
 
       const keyboard = [];
@@ -3088,8 +3160,20 @@ ${topList}
 
       msg += `━━━━━━━━━━━━━━━━━━\n💡 <i>Toca un usuario para ver su ficha completa, recargar saldo o eliminarlo.</i>`;
 
+      // Botones de paginación
+      const navRow = [];
+      const cleanTerm = searchTerm ? searchTerm.trim() : '';
+      if (pageNum > 1) {
+        navRow.push({ text: '◀️ Anterior', callback_data: `usr_page:${pageNum - 1}:${cleanTerm}` });
+      }
+      navRow.push({ text: `📄 ${pageNum}/${totalPages}`, callback_data: 'noop' });
+      if (pageNum < totalPages) {
+        navRow.push({ text: 'Siguiente ▶️', callback_data: `usr_page:${pageNum + 1}:${cleanTerm}` });
+      }
+      keyboard.push(navRow);
+
       keyboard.push([
-        { text: '🔄 Refrescar Lista', callback_data: 'cmd_usuarios' }
+        { text: '🔄 Refrescar Lista', callback_data: `usr_page:${pageNum}:${cleanTerm}` }
       ]);
 
       if (messageIdToEdit) {
