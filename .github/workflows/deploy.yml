@@ -1,0 +1,21 @@
+name: Auto Deploy to Oracle Cloud
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Conectar por SSH y Desplegar
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 157.137.233.119
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            /home/ubuntu/montesdemaria/deploy.sh
