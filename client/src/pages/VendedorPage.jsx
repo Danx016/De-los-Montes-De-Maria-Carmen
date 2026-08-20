@@ -197,13 +197,21 @@ export default function VendedorPage() {
     try {
       if (editingId) {
         await actualizarProducto(editingId, formData)
+        toast.success('¡Producto actualizado exitosamente!')
       } else {
         await crearProducto(formData)
+        toast.success('¡Producto publicado exitosamente en el catálogo!')
       }
       setShowModal(false)
       loadData()
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al guardar el producto.')
+      const serverMsg =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        (err.response?.data?.errors && err.response.data.errors.map((e) => e.message || e.msg).join(', ')) ||
+        'Error al guardar el producto.'
+      setError(serverMsg)
+      toast.error(serverMsg)
     } finally {
       setSaving(false)
     }

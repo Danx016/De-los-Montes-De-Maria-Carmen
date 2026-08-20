@@ -38,27 +38,25 @@ class ProductoController {
 
   async crear(req, res) {
     try {
-      const { nombre, precio, imagen, descripcion, categoria, origen, presentacion, cuidado, disponibilidad, id_vendedor } = req.body;
-      const finalImagen = req.file ? `/uploads/products/${req.file.filename}` : (imagen || null);
+      const { nombre, precio, imagen, descripcion, categoria, origen, presentacion, cuidado, disponibilidad, id_vendedor, stock, unidad_medida } = req.body;
+      const finalImagen = req.file ? `/uploads/products/${req.file.filename}` : (imagen || '/img/Logo.jpg');
 
-      if (!finalImagen) {
-        return res.status(400).json({ error: 'Se requiere una URL de imagen o subir un archivo.' });
-      }
-
-      const vendorId = req.user?.id || id_vendedor || null;
+      const vendorId = req.user?.id || req.user?.id_usuario || id_vendedor || null;
 
       const nuevo = await this.createProduct.execute({
         id_vendedor: vendorId,
         id_proveedor: vendorId,
         nombre_producto: nombre,
         precio: parseFloat(precio),
+        stock: stock !== undefined && stock !== '' ? parseInt(stock, 10) : 0,
+        unidad_medida: unidad_medida || 'Kg',
         imagen: finalImagen,
-        descripcion,
-        categoria,
-        origen,
-        presentacion,
-        cuidado,
-        disponibilidad
+        descripcion: descripcion || '',
+        categoria: categoria || 'cosechas',
+        origen: origen || 'Montes de María',
+        presentacion: presentacion || '',
+        cuidado: cuidado || '',
+        disponibilidad: disponibilidad || 'disponible'
       });
 
       res.status(201).json(nuevo.toJSON());
@@ -70,7 +68,7 @@ class ProductoController {
   async actualizar(req, res) {
     try {
       const productId = req.params.id_producto;
-      const { nombre, precio, imagen, descripcion, categoria, origen, presentacion, cuidado, disponibilidad, stock } = req.body;
+      const { nombre, precio, imagen, descripcion, categoria, origen, presentacion, cuidado, disponibilidad, stock, unidad_medida } = req.body;
 
       const current = await this.productoRepository.buscarPorId(productId);
       if (!current) return res.status(404).json({ error: 'Producto no encontrado' });
@@ -90,7 +88,8 @@ class ProductoController {
       const updated = await this.updateProduct.execute(productId, {
         nombre_producto: nombre !== undefined ? nombre : current.nombre_producto,
         precio: precio !== undefined ? parseFloat(precio) : current.precio,
-        stock: stock !== undefined ? parseInt(stock, 10) : current.stock,
+        stock: stock !== undefined && stock !== '' ? parseInt(stock, 10) : current.stock,
+        unidad_medida: unidad_medida !== undefined ? unidad_medida : current.unidad_medida,
         imagen: finalImagen,
         descripcion: descripcion !== undefined ? descripcion : current.descripcion,
         categoria: categoria !== undefined ? categoria : current.categoria,

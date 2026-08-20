@@ -91,26 +91,11 @@ const productRules = [
   body('precio')
     .notEmpty().withMessage('El precio es obligatorio')
     .isFloat({ min: 0 }).withMessage('El precio debe ser un número positivo'),
-  body('imagen')
-    .custom((value, { req }) => {
-      const hasUrl = typeof value === 'string' && value.trim().length > 0;
-      const hasFile = req.file != null;
-      if (!hasUrl && !hasFile) {
-        throw new Error('La imagen es obligatoria');
-      }
-      if (hasUrl && value.trim().length > 1000) {
-        throw new Error('URL de imagen demasiado larga');
-      }
-      return true;
-    })
-    .optional({ nullable: true, checkFalsy: true })
-    .trim()
-    .escape(),
   body('descripcion')
     .optional({ checkFalsy: true })
     .trim()
     .isLength({ max: 5000 }).withMessage('La descripción es demasiado larga')
-    .escape() // Sanitize to prevent Stored XSS
+    .escape()
 ];
 
 // Reglas para actualizar perfil
