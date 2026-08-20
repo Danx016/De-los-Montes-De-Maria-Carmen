@@ -3,7 +3,6 @@
  * Maneja tickets de soporte, interacción con IA de soporte, calificación y gestión de agentes
  */
 const ProcessSupportAIChat = require('../../domain/use-cases/support/ProcessSupportAIChat');
-const db = require('../../infrastructure/persistence/Database');
 
 function generateTicketCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

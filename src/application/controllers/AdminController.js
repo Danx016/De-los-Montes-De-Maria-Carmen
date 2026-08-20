@@ -1,19 +1,23 @@
 /**
  * Controlador: AdminController
- * Maneja panel administrativo: usuarios, métricas, productos y órdenes
+ * Maneja panel administrativo: usuarios, métricas, productos, categorías y órdenes
+ * mediante adaptadores de repositorios y casos de uso en Arquitectura Hexagonal.
  */
 const GetAdminStats = require('../../domain/use-cases/admin/GetAdminStats');
 const ManageUsersAdmin = require('../../domain/use-cases/admin/ManageUsersAdmin');
 const ProcessAdminAIChat = require('../../domain/use-cases/admin/ProcessAdminAIChat');
+const Producto = require('../../domain/entities/Producto');
+const Usuario = require('../../domain/entities/Usuario');
 
 class AdminController {
-  constructor({ usuarioRepository, productoRepository, compraRepository, emailService, iaService }) {
+  constructor({ usuarioRepository, productoRepository, compraRepository, categoriaRepository, emailService, iaService }) {
     this.usuarioRepository = usuarioRepository;
     this.productoRepository = productoRepository;
     this.compraRepository = compraRepository;
+    this.categoriaRepository = categoriaRepository;
     this.emailService = emailService;
     this.iaService = iaService;
-    this.getAdminStats = new GetAdminStats();
+    this.getAdminStats = new GetAdminStats(compraRepository);
     this.manageUsersAdmin = new ManageUsersAdmin(usuarioRepository, emailService);
     this.processAdminAIChat = new ProcessAdminAIChat(iaService, {
       usuarioRepository,
@@ -79,7 +83,6 @@ class AdminController {
       if (existing) {
         return res.status(400).json({ error: 'Ya existe un usuario con este correo electrónico.' });
       }
-      const Usuario = require('../../domain/entities/Usuario');
       const nuevoUsuario = new Usuario({
         nombre: nombre || 'Usuario',
         apodo: apodo || (correo.split('@')[0] + Math.floor(Math.random() * 100)),
@@ -130,23 +133,23 @@ class AdminController {
   async listarProductosGlobal(req, res) {
     try {
       const productos = await this.productoRepository.listarTodos();
-      const db = require('../../infrastructure/persistence/Database');
-
-      db.query('SELECT id_usuario, nombre, apodo FROM usuarios', (err, users) => {
-        const userMap = {};
-        if (!err && users) {
-          users.forEach(u => { userMap[u.id_usuario] = u.nombre || u.apodo; });
-        }
-
-        const enriched = productos.map(p => {
-          const json = p.toJSON();
-          json.vendedor_nombre = userMap[json.id_vendedor] || userMap[json.id_proveedor] || 'Administrador / Sin asignar';
-          return json;
+      const usuarios = await this.usuarioRepository.listarTodos();
+      const userMap = {};
+      if (Array.isArray(usuarios)) {
+        usuarios.forEach(u => {
+          userMap[u.id_usuario] = u.nombre || u.apodo;
         });
+      }
 
-        res.json(enriched);
+      const enriched = productos.map(p => {
+        const json = typeof p.toJSON === 'function' ? p.toJSON() : p;
+        json.vendedor_nombre = userMap[json.id_vendedor] || userMap[json.id_proveedor] || 'Administrador / Sin asignar';
+        return json;
       });
+
+      res.json(enriched);
     } catch (error) {
+      console.error('Error al listar inventario global:', error);
       res.status(500).json({ error: 'Error al listar inventario global' });
     }
   }
@@ -162,7 +165,6 @@ class AdminController {
       let imagen = req.file ? req.file.filename : (req.body.imagen || null);
       const vendorId = (id_vendedor && id_vendedor !== '' && id_vendedor !== 'null') ? parseInt(id_vendedor, 10) : (req.user?.id || 1);
 
-      const Producto = require('../../domain/entities/Producto');
       const prod = new Producto({
         id_vendedor: vendorId,
         id_proveedor: vendorId,
@@ -238,13 +240,14 @@ class AdminController {
   // --- Gestión de Categorías (Admin) ---
   async listarCategorias(req, res) {
     try {
-      const db = require('../../infrastructure/persistence/Database');
-      db.query('SELECT * FROM categorias ORDER BY id_categoria ASC', (err, rows) => {
-        if (err) return res.status(500).json({ error: 'Error al obtener categorías' });
-        res.json(rows || []);
-      });
+      if (!this.categoriaRepository) {
+        return res.json([]);
+      }
+      const categorias = await this.categoriaRepository.obtenerTodas();
+      res.json(categorias || []);
     } catch (error) {
-      res.status(500).json({ error: 'Error en el servidor' });
+      console.error('Error al obtener categorías:', error);
+      res.status(500).json({ error: 'Error al obtener categorías' });
     }
   }
 
@@ -264,37 +267,22 @@ class AdminController {
 
       let imagen = req.file ? req.file.filename : (req.body.imagen || null);
 
-      const db = require('../../infrastructure/persistence/Database');
-      db.query(
-        'INSERT INTO categorias (nombre_categoria, descripcion, slug, imagen, icono, color) VALUES (?, ?, ?, ?, ?, ?)',
-        [
-          nombre_categoria.trim(),
-          descripcion || null,
-          safeSlug,
-          imagen,
-          icono || 'fa-box',
-          color || '#2e7d32'
-        ],
-        (err, result) => {
-          if (err) {
-            console.error('Error al crear categoría:', err);
-            return res.status(400).json({ error: 'Error al crear la categoría. Verifica que no exista duplicada.' });
-          }
-          res.status(201).json({
-            id_categoria: result.insertId,
-            nombre_categoria: nombre_categoria.trim(),
-            descripcion: descripcion || null,
-            slug: safeSlug,
-            imagen: imagen,
-            icono: icono || 'fa-box',
-            color: color || '#2e7d32',
-            message: 'Categoría agregada exitosamente.'
-          });
-        }
-      );
+      const nueva = await this.categoriaRepository.crear({
+        nombre_categoria: nombre_categoria.trim(),
+        descripcion: descripcion || null,
+        slug: safeSlug,
+        imagen,
+        icono: icono || 'fa-box',
+        color: color || '#2e7d32'
+      });
+
+      res.status(201).json({
+        ...nueva,
+        message: 'Categoría agregada exitosamente.'
+      });
     } catch (error) {
       console.error('Error en crearCategoria:', error);
-      res.status(500).json({ error: 'Error en el servidor' });
+      res.status(400).json({ error: 'Error al crear la categoría. Verifica que no exista duplicada.' });
     }
   }
 
@@ -314,50 +302,39 @@ class AdminController {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
 
-      const db = require('../../infrastructure/persistence/Database');
-
-      // Si subió nueva imagen
-      let imagenSql = '';
-      let params = [nombre_categoria.trim(), descripcion || null, safeSlug, icono || 'fa-box', color || '#2e7d32'];
+      const updateData = {
+        nombre_categoria: nombre_categoria.trim(),
+        descripcion: descripcion || null,
+        slug: safeSlug,
+        icono: icono || 'fa-box',
+        color: color || '#2e7d32'
+      };
 
       if (req.file) {
-        imagenSql = ', imagen = ?';
-        params.push(req.file.filename);
+        updateData.imagen = req.file.filename;
       } else if (req.body.imagen !== undefined) {
-        imagenSql = ', imagen = ?';
-        params.push(req.body.imagen || null);
+        updateData.imagen = req.body.imagen;
       }
 
-      params.push(idCategoria);
-
-      const sql = `UPDATE categorias SET nombre_categoria = ?, descripcion = ?, slug = ?, icono = ?, color = ? ${imagenSql} WHERE id_categoria = ?`;
-
-      db.query(sql, params, (err, result) => {
-        if (err) {
-          console.error('Error al actualizar categoría:', err);
-          return res.status(400).json({ error: 'Error al actualizar categoría.' });
-        }
-        res.json({
-          success: true,
-          message: 'Categoría actualizada exitosamente.'
-        });
+      await this.categoriaRepository.actualizar(idCategoria, updateData);
+      res.json({
+        success: true,
+        message: 'Categoría actualizada exitosamente.'
       });
     } catch (error) {
       console.error('Error en actualizarCategoria:', error);
-      res.status(500).json({ error: 'Error en el servidor' });
+      res.status(400).json({ error: 'Error al actualizar categoría.' });
     }
   }
 
   async eliminarCategoria(req, res) {
     try {
       const idCategoria = req.params.id_categoria;
-      const db = require('../../infrastructure/persistence/Database');
-      db.query('DELETE FROM categorias WHERE id_categoria = ?', [idCategoria], (err, result) => {
-        if (err) return res.status(500).json({ error: 'Error al eliminar categoría' });
-        res.json({ success: true, message: 'Categoría eliminada con éxito.' });
-      });
+      await this.categoriaRepository.eliminar(idCategoria);
+      res.json({ success: true, message: 'Categoría eliminada con éxito.' });
     } catch (error) {
-      res.status(500).json({ error: 'Error en el servidor' });
+      console.error('Error al eliminar categoría:', error);
+      res.status(500).json({ error: 'Error al eliminar categoría' });
     }
   }
 

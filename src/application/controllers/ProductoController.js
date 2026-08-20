@@ -1,6 +1,6 @@
 /**
  * Controlador: ProductoController
- * Maneja operaciones del catálogo de productos
+ * Maneja operaciones del catálogo de productos mediante casos de uso y repositorios inyectados
  */
 const CreateProduct = require('../../domain/use-cases/CreateProduct');
 const UpdateProduct = require('../../domain/use-cases/product/UpdateProduct');
@@ -8,8 +8,9 @@ const DeleteProduct = require('../../domain/use-cases/product/DeleteProduct');
 const SearchProducts = require('../../domain/use-cases/product/SearchProducts');
 
 class ProductoController {
-  constructor({ productoRepository }) {
+  constructor({ productoRepository, categoriaRepository }) {
     this.productoRepository = productoRepository;
+    this.categoriaRepository = categoriaRepository;
     this.createProduct = new CreateProduct(productoRepository);
     this.updateProduct = new UpdateProduct(productoRepository);
     this.deleteProduct = new DeleteProduct(productoRepository);
@@ -130,11 +131,11 @@ class ProductoController {
 
   async listarCategorias(req, res) {
     try {
-      const db = require('../../infrastructure/persistence/Database');
-      db.query('SELECT * FROM categorias ORDER BY id_categoria ASC', (err, rows) => {
-        if (err) return res.status(500).json({ error: 'Error al obtener categorías' });
-        res.json(rows || []);
-      });
+      if (!this.categoriaRepository) {
+        return res.json([]);
+      }
+      const categorias = await this.categoriaRepository.obtenerTodas();
+      res.json(categorias || []);
     } catch (error) {
       res.status(500).json({ error: 'Error al obtener categorías' });
     }

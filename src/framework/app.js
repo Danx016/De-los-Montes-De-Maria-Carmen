@@ -91,7 +91,8 @@ const usuarioController = new UsuarioController({
 });
 
 const productoController = new ProductoController({
-  productoRepository
+  productoRepository,
+  categoriaRepository
 });
 
 const couponController = new CouponController(couponRepository);
@@ -129,6 +130,7 @@ const adminController = new AdminController({
   usuarioRepository,
   productoRepository,
   compraRepository,
+  categoriaRepository,
   emailService,
   iaService
 });

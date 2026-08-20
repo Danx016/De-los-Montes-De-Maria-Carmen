@@ -1,5 +1,6 @@
 const db = require('./Database');
 const CategoriaRepository = require('../../domain/repositories/CategoriaRepository');
+const Categoria = require('../../domain/entities/Categoria');
 
 /**
  * Adaptador de Persistencia MySQL para Categorías
@@ -8,7 +9,7 @@ const CategoriaRepository = require('../../domain/repositories/CategoriaReposito
 class MySQLCategoriaRepository extends CategoriaRepository {
   async obtenerTodas() {
     return new Promise((resolve, reject) => {
-      const sql = 'SELECT * FROM categorias ORDER BY nombre ASC';
+      const sql = 'SELECT * FROM categorias ORDER BY id_categoria ASC';
       db.query(sql, (err, rows) => {
         if (err) return reject(err);
         resolve(rows || []);
@@ -38,20 +39,50 @@ class MySQLCategoriaRepository extends CategoriaRepository {
 
   async crear(data) {
     return new Promise((resolve, reject) => {
-      const sql = 'INSERT INTO categorias (nombre, descripcion, imagen, slug) VALUES (?, ?, ?, ?)';
-      const slug = data.slug || data.nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      db.query(sql, [data.nombre, data.descripcion || null, data.imagen || null, slug], (err, result) => {
+      const nombre = (data.nombre_categoria || data.nombre || '').trim();
+      const slug = data.slug || nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const sql = 'INSERT INTO categorias (nombre_categoria, descripcion, slug, imagen, icono, color) VALUES (?, ?, ?, ?, ?, ?)';
+      
+      db.query(sql, [
+        nombre,
+        data.descripcion || null,
+        slug,
+        data.imagen || null,
+        data.icono || 'fa-box',
+        data.color || '#2e7d32'
+      ], (err, result) => {
         if (err) return reject(err);
-        resolve({ id_categoria: result.insertId, ...data, slug });
+        resolve({
+          id_categoria: result.insertId,
+          nombre_categoria: nombre,
+          descripcion: data.descripcion || null,
+          slug,
+          imagen: data.imagen || null,
+          icono: data.icono || 'fa-box',
+          color: data.color || '#2e7d32'
+        });
       });
     });
   }
 
   async actualizar(id, data) {
     return new Promise((resolve, reject) => {
-      const sql = 'UPDATE categorias SET nombre = ?, descripcion = ?, imagen = ?, slug = ? WHERE id_categoria = ?';
-      const slug = data.slug || data.nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      db.query(sql, [data.nombre, data.descripcion || null, data.imagen || null, slug, id], (err, result) => {
+      const nombre = (data.nombre_categoria || data.nombre || '').trim();
+      const slug = data.slug || nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      
+      let imagenSql = '';
+      const params = [nombre, data.descripcion || null, slug, data.icono || 'fa-box', data.color || '#2e7d32'];
+
+      if (data.imagen !== undefined) {
+        imagenSql = ', imagen = ?';
+        params.push(data.imagen);
+      }
+
+      params.push(id);
+
+      const sql = `UPDATE categorias SET nombre_categoria = ?, descripcion = ?, slug = ?, icono = ?, color = ? ${imagenSql} WHERE id_categoria = ?`;
+      
+      db.query(sql, params, (err, result) => {
         if (err) return reject(err);
         resolve(result);
       });

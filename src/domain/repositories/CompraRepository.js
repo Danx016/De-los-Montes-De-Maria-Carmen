@@ -46,6 +46,14 @@ class CompraRepository {
   async obtenerDetalles(idCompra) {
     throw new Error('Método no implementado');
   }
+
+  async obtenerEstadisticasGlobales() {
+    throw new Error('Método no implementado');
+  }
+
+  async obtenerDesgloseEstadisticas() {
+    throw new Error('Método no implementado');
+  }
 }
 
 module.exports = CompraRepository;

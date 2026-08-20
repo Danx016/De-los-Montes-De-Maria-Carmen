@@ -6,13 +6,20 @@ class Categoria {
   constructor({
     id_categoria,
     nombre_categoria,
+    nombre,
     descripcion,
-    slug
+    slug,
+    imagen,
+    icono,
+    color
   }) {
     this.id_categoria = id_categoria;
-    this.nombre_categoria = nombre_categoria;
+    this.nombre_categoria = nombre_categoria || nombre;
     this.descripcion = descripcion;
-    this.slug = slug || this.generarSlug(nombre_categoria);
+    this.slug = slug || this.generarSlug(this.nombre_categoria);
+    this.imagen = imagen || null;
+    this.icono = icono || 'fa-box';
+    this.color = color || '#2e7d32';
   }
 
   // Métodos de negocio
@@ -43,7 +50,10 @@ class Categoria {
       id_categoria: this.id_categoria,
       nombre_categoria: this.nombre_categoria,
       descripcion: this.descripcion,
-      slug: this.slug
+      slug: this.slug,
+      imagen: this.imagen,
+      icono: this.icono,
+      color: this.color
     };
   }
 }

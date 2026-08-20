@@ -1,34 +1,25 @@
 /**
  * Caso de uso: GetAdminStats
  * Compila estadísticas clave de ventas, usuarios, productos y categorías
+ * a través de contratos de repositorio sin acoplamiento a infraestructura.
  */
-const db = require('../../../infrastructure/persistence/Database');
-
 class GetAdminStats {
+  constructor(compraRepository) {
+    this.compraRepository = compraRepository;
+  }
+
   async execute() {
-    const query = (sql, params = []) => new Promise((resolve, reject) => {
-      db.query(sql, params, (err, results) => {
-        if (err) reject(err);
-        else resolve(results);
-      });
-    });
-
-    const ventasResult = await query("SELECT SUM(total) as ingresos, COUNT(id_compra) as ventas FROM compras");
-    const usuariosResult = await query("SELECT COUNT(id_usuario) as usuarios FROM usuarios");
-    const productosResult = await query("SELECT COUNT(id_producto) as productos FROM productos");
-
-    const productosCat = await query("SELECT IFNULL(categoria, 'Sin Categoría') as categoria, COUNT(*) as cantidad FROM productos GROUP BY categoria");
-    const usuariosRol = await query("SELECT id_rol, COUNT(*) as cantidad FROM usuarios GROUP BY id_rol");
-    const ventasEstado = await query("SELECT IFNULL(estado, 'Completado') as estado, COUNT(*) as cantidad FROM compras GROUP BY estado");
+    const totales = await this.compraRepository.obtenerEstadisticasGlobales();
+    const desglose = await this.compraRepository.obtenerDesgloseEstadisticas();
 
     return {
-      ingresos: ventasResult[0]?.ingresos || 0,
-      ventas: ventasResult[0]?.ventas || 0,
-      usuarios: usuariosResult[0]?.usuarios || 0,
-      productos: productosResult[0]?.productos || 0,
-      productosCat: productosCat || [],
-      usuariosRol: usuariosRol || [],
-      ventasEstado: ventasEstado || []
+      ingresos: parseFloat(totales.ingresos) || 0,
+      ventas: parseInt(totales.ventas, 10) || 0,
+      usuarios: parseInt(totales.usuarios, 10) || 0,
+      productos: parseInt(totales.productos, 10) || 0,
+      productosCat: desglose.productosCat || [],
+      usuariosRol: desglose.usuariosRol || [],
+      ventasEstado: desglose.ventasEstado || []
     };
   }
 }

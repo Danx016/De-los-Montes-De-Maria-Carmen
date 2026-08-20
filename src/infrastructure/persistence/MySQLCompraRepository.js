@@ -212,6 +212,35 @@ class MySQLCompraRepository extends CompraRepository {
       });
     });
   }
+
+  async obtenerEstadisticasGlobales() {
+    return new Promise((resolve, reject) => {
+      const sql = `
+        SELECT 
+          (SELECT IFNULL(SUM(total), 0) FROM compras) as ingresos,
+          (SELECT COUNT(*) FROM compras) as ventas,
+          (SELECT COUNT(*) FROM usuarios) as usuarios,
+          (SELECT COUNT(*) FROM productos) as productos
+      `;
+      db.query(sql, (err, rows) => {
+        if (err) return reject(err);
+        resolve(rows[0] || { ingresos: 0, ventas: 0, usuarios: 0, productos: 0 });
+      });
+    });
+  }
+
+  async obtenerDesgloseEstadisticas() {
+    return new Promise((resolve, reject) => {
+      const queryPromise = (sql) => new Promise((res, rej) => db.query(sql, (e, r) => e ? rej(e) : res(r || [])));
+      Promise.all([
+        queryPromise("SELECT IFNULL(categoria, 'Sin Categoría') as categoria, COUNT(*) as cantidad FROM productos GROUP BY categoria"),
+        queryPromise("SELECT id_rol, COUNT(*) as cantidad FROM usuarios GROUP BY id_rol"),
+        queryPromise("SELECT IFNULL(estado, 'Completado') as estado, COUNT(*) as cantidad FROM compras GROUP BY estado")
+      ]).then(([productosCat, usuariosRol, ventasEstado]) => {
+        resolve({ productosCat, usuariosRol, ventasEstado });
+      }).catch(reject);
+    });
+  }
 }
 
 module.exports = MySQLCompraRepository;
