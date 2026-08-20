@@ -4,7 +4,7 @@
 [![React Version](https://img.shields.io/badge/React-18.x-61DAFB?logo=react)](https://react.dev)
 [![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?logo=vite)](https://vitejs.dev)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql)](https://www.mysql.com)
-[![Deployed on Render](https://img.shields.io/badge/Render-Live-46E3B7?logo=render)](https://delosmontesdemaria.onrender.com)
+[![Self Hosted Server](https://img.shields.io/badge/Ubuntu%20Linux-Nginx%20%2B%20PM2-E95420?logo=ubuntu)](http://delosmontesdemaria.duckdns.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 > **De los Montes de María** es una plataforma tecnológica integral de comercio electrónico y gestión agropecuaria diseñada para conectar de forma directa y sin intermediarios a los productores campesinos de la subregión de los **Montes de María** (El Carmen de Bolívar, San Jacinto, Ovejas, San Juan Nepomuceno, etc.) con consumidores y compradores de toda Colombia.
@@ -13,7 +13,7 @@
 
 ## 🌐 Enlaces del Proyecto
 
-- **Sitio Web en Producción:** [https://delosmontesdemaria.onrender.com](https://delosmontesdemaria.onrender.com)
+- **Sitio Web en Producción (Servidor Propio):** [http://delosmontesdemaria.duckdns.org](http://delosmontesdemaria.duckdns.org)
 - **Repositorio Oficial en GitHub:** [https://github.com/Danx016/delosmontesdemaria](https://github.com/Danx016/delosmontesdemaria)
 
 ---
@@ -102,7 +102,7 @@ El proyecto está estructurado bajo **Arquitectura Limpia (Clean Architecture)**
 | **Base de Datos** | MySQL 8.0 en Aiven Cloud (SSL, Connection Pooling) |
 | **Seguridad** | Helmet, CORS, CSRF Protection, Rate Limiter, Validación de Esquemas |
 | **Integraciones** | Nodemailer (Emails OTP & Facturas), Google OAuth 2.0 |
-| **Despliegue** | Render (PaaS con CI/CD automático desde GitHub) |
+| **Despliegue** | Servidor Propio (Ubuntu Linux 22.04 LTS, Nginx Reverse Proxy, PM2) |
 
 ---
 
@@ -167,14 +167,14 @@ Visita en tu navegador: **`http://localhost:3000`**
 
 ---
 
-## 👥 Roles y Credenciales Predeterminadas
+## 👥 Roles y Permisos del Sistema
 
-| Rol | Correo | Contraseña | Permisos |
-| :--- | :--- | :--- | :--- |
-| **Administrador** | `danilorodelo355@gmail.com` | `123456` | Acceso total al panel `/admin`, gestión de productos, banners, cupones y usuarios |
-| **Soporte** | `soporte@montesdemaria.com` | `123456` | Atención de tickets y chat en tiempo real |
-| **Vendedor / Productor** | `roberto.salcedo@montesdemaria.com` | `123456` | Publicación y administración de cosechas propias |
-| **Cliente** | `cliente@ejemplo.com` | `123456` | Compra de productos, seguimiento de pedidos y soporte |
+| Rol | Permisos y Alcance |
+| :--- | :--- |
+| **Administrador** | Acceso total al panel `/admin`, gestión de productos, banners, cupones y usuarios |
+| **Soporte** | Atención de tickets y chat en tiempo real |
+| **Vendedor / Productor** | Publicación y administración de cosechas propias |
+| **Cliente** | Compra de productos, seguimiento de pedidos y soporte |
 
 ---
 

@@ -358,21 +358,56 @@ TELEGRAM_ADMIN_CHAT_ID=
 
 ---
 
-## 14. Guía de Instalación y Despliegue
+## 14. Guía de Instalación y Despliegue en Servidor Propio (Ubuntu + Nginx + PM2)
 
-### Despliegue en Render (Automático vía GitHub):
-1. Conectar el repositorio de GitHub `Danx016/delosmontesdemaria` a un **Web Service** en Render.
-2. **Build Command:**
-   ```bash
-   npm install && npm run build
-   ```
-3. **Start Command:**
-   ```bash
-   npm start
-   ```
-4. Configurar las variables de entorno en la sección *Environment* de Render.
-5. El Webhook de Telegram se registrará automáticamente en la URL:
-   `https://delosmontesdemaria.onrender.com/api/telegram/webhook`
+### 1. Requisitos del Servidor
+* **Sistema Operativo:** Ubuntu 22.04 LTS (o superior)
+* **Software:** Node.js >= 18.0.0, NPM, Nginx, PM2, Git
+
+### 2. Configuración en el Servidor Linux (`/home/ubuntu/montesdemaria`):
+```bash
+# Clonar o actualizar el repositorio
+git clone https://github.com/Danx016/delosmontesdemaria.git /home/ubuntu/montesdemaria
+cd /home/ubuntu/montesdemaria
+
+# Instalar dependencias y compilar
+npm install
+npm run build
+
+# Iniciar y persistir con PM2
+pm2 start src/framework/server.js --name montesdemaria
+pm2 save
+pm2 startup
+```
+
+### 3. Configuración de Nginx (`/etc/nginx/sites-available/default`):
+```nginx
+server {
+    listen 80;
+    listen [::]:80;
+    server_name delosmontesdemaria.duckdns.org;
+    client_max_body_size 50M;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+### 4. Automatización de Actualizaciones (`deploy.sh`):
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
+*El Webhook de Telegram apunta a:* `http://delosmontesdemaria.duckdns.org/api/telegram/webhook`
 
 ---
 
