@@ -10,11 +10,13 @@ export const buscarProductos = (q) =>
 export const crearProducto = (formData) =>
   api.post('/productos', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 60000,
   })
 
 export const actualizarProducto = (id, formData) =>
   api.put(`/productos/${id}`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 60000,
   })
 
 export const eliminarProducto = (id) => api.delete(`/productos/${id}`)

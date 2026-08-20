@@ -9,6 +9,7 @@ import { listarProductos, crearProducto, actualizarProducto, eliminarProducto, l
 import { listarTodasVendedor, actualizarEstadoDespacho } from '../api/compras.api'
 import { convertirseEnVendedor } from '../api/usuario.api'
 import { getProductImageUrl, handleProductImageError } from '../utils/productImage'
+import { compressImage } from '../utils/imageCompressor'
 
 export default function VendedorPage() {
   const toast = useToast()
@@ -53,6 +54,7 @@ export default function VendedorPage() {
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [existingImage, setExistingImage] = useState(null)
+  const [compressing, setCompressing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -152,11 +154,24 @@ export default function VendedorPage() {
     setShowModal(true)
   }
 
-  const handleImageChange = (e) => {
+  const handleImageChange = async (e) => {
     const file = e.target.files?.[0]
     if (file) {
-      setImageFile(file)
-      setImagePreview(URL.createObjectURL(file))
+      setCompressing(true)
+      try {
+        const optimized = await compressImage(file)
+        setImageFile(optimized)
+        if (imagePreview) {
+          URL.revokeObjectURL(imagePreview)
+        }
+        setImagePreview(URL.createObjectURL(optimized))
+      } catch (err) {
+        console.warn('Error al procesar foto:', err)
+        setImageFile(file)
+        setImagePreview(URL.createObjectURL(file))
+      } finally {
+        setCompressing(false)
+      }
     }
   }
 
@@ -826,13 +841,19 @@ export default function VendedorPage() {
                     <label className="form-label" style={{ fontWeight: 600 }}>Foto o Imagen del Producto</label>
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/*,image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
                       onChange={handleImageChange}
                       className="form-input"
                     />
                     
+                    {compressing && (
+                      <div style={{ marginTop: '0.6rem', color: 'var(--primary-color)', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <i className="fa fa-spinner fa-spin" /> Optimizando imagen para carga rápida...
+                      </div>
+                    )}
+                    
                     {/* Visual Preview */}
-                    {(imagePreview || existingImage) && (
+                    {(imagePreview || existingImage) && !compressing && (
                       <div
                         style={{
                           marginTop: '0.75rem',
