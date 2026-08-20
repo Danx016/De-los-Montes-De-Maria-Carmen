@@ -56,6 +56,26 @@ class TelegramService {
     if (this.adminChatId) {
       this.subscribers.add(String(this.adminChatId));
     }
+
+    this.initWebhook();
+  }
+
+  /**
+   * Sincroniza automáticamente el Webhook de Telegram con la URL base actual
+   */
+  async initWebhook() {
+    const baseUrl = process.env.BASE_URL;
+    if (baseUrl && this.token) {
+      const webhookUrl = `${baseUrl.replace(/\/$/, '')}/api/telegram/webhook`;
+      try {
+        const res = await this.request('setWebhook', { url: webhookUrl });
+        if (res && res.ok) {
+          console.log(`🤖 [Telegram] Webhook sincronizado con éxito: ${webhookUrl}`);
+        }
+      } catch (err) {
+        console.error('[Telegram] Error al registrar webhook:', err.message);
+      }
+    }
   }
 
   /**
