@@ -29,9 +29,11 @@ const dbConfig = {
   password: dbPass,
   database: dbName,
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: 25,
   queueLimit: 0,
-  connectTimeout: 15000,
+  connectTimeout: 20000,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 10000,
   multipleStatements: true,
   ssl: useSsl ? { rejectUnauthorized: false } : undefined,
 };
