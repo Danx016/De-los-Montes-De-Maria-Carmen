@@ -19,6 +19,7 @@ const MySQLTokenRepository = require('../infrastructure/persistence/MySQLTokenRe
 const MySQLChatRepository = require('../infrastructure/persistence/MySQLChatRepository');
 const MySQLBannerRepository = require('../infrastructure/persistence/MySQLBannerRepository');
 const MySQLCategoriaRepository = require('../infrastructure/persistence/MySQLCategoriaRepository');
+const MySQLCouponRepository = require('../infrastructure/persistence/MySQLCouponRepository');
 
 // Servicios Externos
 const EmailService = require('../infrastructure/external-services/EmailService');
@@ -39,6 +40,7 @@ const SoporteController = require('../application/controllers/SoporteController'
 const ChatController = require('../application/controllers/ChatController');
 const AdminController = require('../application/controllers/AdminController');
 const BannerController = require('../application/controllers/BannerController');
+const CouponController = require('../application/controllers/CouponController');
 
 // Enrutador y Middlewares
 const setupRoutes = require('../application/routes/index');
@@ -47,7 +49,7 @@ const { requestLogger, logError } = require('../application/middleware/logger');
 const { globalLimiter } = require('../application/middleware/rateLimiter');
 const appConfig = require('../infrastructure/config/app.config');
 
-// 1. Inicializar Repositorios
+// 1. Inicializar Repositorios (Adaptadores Secundarios)
 const usuarioRepository = new MySQLUsuarioRepository();
 const productoRepository = new MySQLProductoRepository();
 const compraRepository = new MySQLCompraRepository();
@@ -56,6 +58,7 @@ const tokenRepository = new MySQLTokenRepository();
 const chatRepository = new MySQLChatRepository();
 const bannerRepository = new MySQLBannerRepository();
 const categoriaRepository = new MySQLCategoriaRepository();
+const couponRepository = new MySQLCouponRepository();
 
 // 2. Inicializar Servicios Externos
 const emailService = new EmailService();
@@ -74,7 +77,7 @@ const telegramService = new TelegramService({
 // Variable para el manejador de websockets
 let socketHandler = null;
 
-// 3. Inicializar Controladores (Inyección de Dependencias)
+// 3. Inicializar Controladores (Adaptadores Primarios con Inyección de Dependencias)
 const authController = new AuthController({
   usuarioRepository,
   emailService,
@@ -91,9 +94,6 @@ const productoController = new ProductoController({
   productoRepository
 });
 
-const MySQLCouponRepository = require('../infrastructure/persistence/MySQLCouponRepository');
-const CouponController = require('../application/controllers/CouponController');
-const couponRepository = new MySQLCouponRepository();
 const couponController = new CouponController(couponRepository);
 
 const compraController = new CompraController({
