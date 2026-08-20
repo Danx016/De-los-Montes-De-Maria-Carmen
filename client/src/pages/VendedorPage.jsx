@@ -8,6 +8,7 @@ import { useConfirm } from '../context/ConfirmContext'
 import { listarProductos, crearProducto, actualizarProducto, eliminarProducto, listarCategoriasPublicas } from '../api/productos.api'
 import { listarTodasVendedor, actualizarEstadoDespacho } from '../api/compras.api'
 import { convertirseEnVendedor } from '../api/usuario.api'
+import { getProductImageUrl, handleProductImageError } from '../utils/productImage'
 
 export default function VendedorPage() {
   const toast = useToast()
@@ -50,6 +51,8 @@ export default function VendedorPage() {
     cuidado: '',
   })
   const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
+  const [existingImage, setExistingImage] = useState(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -123,6 +126,8 @@ export default function VendedorPage() {
       cuidado: 'Conservar en lugar fresco y seco',
     })
     setImageFile(null)
+    setImagePreview(null)
+    setExistingImage(null)
     setError('')
     setShowModal(true)
   }
@@ -141,8 +146,18 @@ export default function VendedorPage() {
       cuidado: prod.cuidado || '',
     })
     setImageFile(null)
+    setImagePreview(null)
+    setExistingImage(prod.imagen || null)
     setError('')
     setShowModal(true)
+  }
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setImageFile(file)
+      setImagePreview(URL.createObjectURL(file))
+    }
   }
 
   const handleSaveProduct = async (e) => {
@@ -452,12 +467,7 @@ export default function VendedorPage() {
                     return (
                       <div className="seller-products-grid" style={{ marginTop: '1rem' }}>
                         {filtered.map((prod) => {
-                          const img = prod.imagen?.startsWith('http')
-                            ? prod.imagen
-                            : prod.imagen
-                            ? `/uploads/${prod.imagen}`
-                            : '/img/Logo.jpg'
-
+                          const img = getProductImageUrl(prod)
                           const title = prod.nombre || prod.nombre_producto
 
                           return (
@@ -467,7 +477,7 @@ export default function VendedorPage() {
                                   src={img}
                                   alt={title}
                                   className="seller-item-img"
-                                  onError={(e) => { e.target.src = '/img/Logo.jpg' }}
+                                  onError={handleProductImageError}
                                 />
                                 <div className="seller-item-badges">
                                   <span className="badge badge-primary">
@@ -531,12 +541,7 @@ export default function VendedorPage() {
                         </thead>
                         <tbody>
                           {filtered.map((prod) => {
-                            const img = prod.imagen?.startsWith('http')
-                              ? prod.imagen
-                              : prod.imagen
-                              ? `/uploads/${prod.imagen}`
-                              : '/img/Logo.jpg'
-
+                            const img = getProductImageUrl(prod)
                             const title = prod.nombre || prod.nombre_producto
 
                             return (
@@ -546,7 +551,7 @@ export default function VendedorPage() {
                                     src={img}
                                     alt={title}
                                     className="table-thumb"
-                                    onError={(e) => { e.target.src = '/img/Logo.jpg' }}
+                                    onError={handleProductImageError}
                                   />
                                 </td>
                                 <td>
@@ -822,12 +827,57 @@ export default function VendedorPage() {
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => setImageFile(e.target.files[0])}
+                      onChange={handleImageChange}
                       className="form-input"
                     />
-                    {imageFile && (
-                      <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--primary-color)' }}>
-                        <i className="fa fa-image" /> Archivo seleccionado: <strong>{imageFile.name}</strong>
+                    
+                    {/* Visual Preview */}
+                    {(imagePreview || existingImage) && (
+                      <div
+                        style={{
+                          marginTop: '0.75rem',
+                          padding: '0.75rem',
+                          background: 'var(--bg-alt, #f8fafc)',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-color, #e2e8f0)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '1rem',
+                        }}
+                      >
+                        <img
+                          src={imagePreview || getProductImageUrl(existingImage)}
+                          alt="Vista previa"
+                          onError={handleProductImageError}
+                          style={{
+                            width: '64px',
+                            height: '64px',
+                            objectFit: 'cover',
+                            borderRadius: '6px',
+                            border: '1px solid var(--border-color, #e2e8f0)',
+                          }}
+                        />
+                        <div style={{ flex: 1, fontSize: '0.85rem' }}>
+                          <span className={`badge ${imagePreview ? 'badge-primary' : 'badge-secondary'}`} style={{ marginBottom: '0.25rem', display: 'inline-block' }}>
+                            {imagePreview ? '✨ Nueva foto seleccionada' : '🖼️ Foto actual'}
+                          </span>
+                          <div style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }}>
+                            {imageFile ? imageFile.name : 'Imagen cargada en catálogo'}
+                          </div>
+                        </div>
+                        {imagePreview && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setImageFile(null)
+                              setImagePreview(null)
+                            }}
+                            className="btn btn-sm btn-outline-danger"
+                            title="Quitar foto nueva"
+                          >
+                            <i className="fa fa-times" />
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>

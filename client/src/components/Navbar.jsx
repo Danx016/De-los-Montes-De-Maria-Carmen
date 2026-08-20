@@ -6,6 +6,7 @@ import { buscarProductos, listarCategoriasPublicas } from '../api/productos.api'
 import MediaRenderer from './MediaRenderer'
 import PromoCouponBanner from './PromoCouponBanner'
 import { getAvatarUrl, handleAvatarError } from '../utils/avatar'
+import { getProductImageUrl, handleProductImageError } from '../utils/productImage'
 
 export default function Navbar() {
   const { user, isAuthenticated, isAdmin, isVendedor, logout } = useAuth()
@@ -159,10 +160,10 @@ export default function Navbar() {
                         className="search-dropdown-item"
                       >
                         <img
-                          src={prod.imagen?.startsWith('http') ? prod.imagen : (prod.imagen ? `/uploads/${prod.imagen}` : '/img/Logo.jpg')}
+                          src={getProductImageUrl(prod)}
                           alt={prod.nombre}
                           className="search-dropdown-thumb"
-                          onError={(e) => { e.target.src = '/img/Logo.jpg' }}
+                          onError={handleProductImageError}
                         />
                         <div className="search-dropdown-meta">
                           <span className="search-dropdown-title">{prod.nombre}</span>

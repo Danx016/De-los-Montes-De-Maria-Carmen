@@ -69,7 +69,13 @@ export default function MediaRenderer({
   // 2. Si es una URL o nombre de archivo de imagen
   let finalSrc = content
   if (!content.startsWith('http') && !content.startsWith('data:') && !content.startsWith('/') && !content.startsWith('blob:')) {
-    finalSrc = type === 'category' ? `/uploads/categories/${content}` : `/uploads/products/${content}`
+    if (content.startsWith('uploads/')) {
+      finalSrc = `/${content}`
+    } else if (content.startsWith('products/') || content.startsWith('categories/') || content.startsWith('profiles/') || content.startsWith('banners/')) {
+      finalSrc = `/uploads/${content}`
+    } else {
+      finalSrc = type === 'category' ? `/uploads/categories/${content}` : `/uploads/products/${content}`
+    }
   }
 
   return (

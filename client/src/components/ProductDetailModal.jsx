@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
+import { getProductImageUrl, handleProductImageError } from '../utils/productImage'
 
 export default function ProductDetailModal({ producto, isOpen, onClose }) {
   const { addItem } = useCart()
@@ -36,11 +37,7 @@ export default function ProductDetailModal({ producto, isOpen, onClose }) {
     })
   }
 
-  const imageUrl = producto.imagen?.startsWith('http')
-    ? producto.imagen
-    : producto.imagen
-    ? (producto.imagen.startsWith('/') ? producto.imagen : `/uploads/products/${producto.imagen}`)
-    : '/img/Logo.jpg'
+  const imageUrl = getProductImageUrl(producto)
 
   const vendorId = producto.id_vendedor || producto.id_proveedor
   const prodTitle = producto.nombre || producto.nombre_producto || 'Cosecha Campesina'
@@ -175,9 +172,7 @@ export default function ProductDetailModal({ producto, isOpen, onClose }) {
                   objectFit: 'cover',
                   transition: 'transform 0.4s ease',
                 }}
-                onError={(e) => {
-                  e.target.src = '/img/Logo.jpg'
-                }}
+                onError={handleProductImageError}
               />
             </div>
 

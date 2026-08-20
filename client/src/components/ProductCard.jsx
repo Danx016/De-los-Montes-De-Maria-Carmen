@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import ProductDetailModal from './ProductDetailModal'
+import { getProductImageUrl, handleProductImageError } from '../utils/productImage'
 
 export default function ProductCard({ producto }) {
   const { addItem } = useCart()
@@ -26,11 +27,7 @@ export default function ProductCard({ producto }) {
     })
   }
 
-  const imageUrl = producto.imagen?.startsWith('http')
-    ? producto.imagen
-    : producto.imagen
-    ? (producto.imagen.startsWith('/') ? producto.imagen : `/uploads/products/${producto.imagen}`)
-    : '/img/Logo.jpg'
+  const imageUrl = getProductImageUrl(producto)
 
   const vendorId = producto.id_vendedor || producto.id_proveedor
   const prodTitle = producto.nombre || producto.nombre_producto || 'Producto Campesino'
@@ -49,9 +46,7 @@ export default function ProductCard({ producto }) {
             src={imageUrl}
             alt={prodTitle}
             className="product-card-img"
-            onError={(e) => {
-              e.target.src = '/img/Logo.jpg'
-            }}
+            onError={handleProductImageError}
             loading="lazy"
           />
           {producto.categoria && (

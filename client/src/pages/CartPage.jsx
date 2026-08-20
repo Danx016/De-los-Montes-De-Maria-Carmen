@@ -3,6 +3,7 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
+import { getProductImageUrl, handleProductImageError } from '../utils/productImage'
 
 export default function CartPage() {
   const { items, updateQty, removeItem, clearCart, total, count } = useCart()
@@ -55,11 +56,7 @@ export default function CartPage() {
                 <div className="card cart-table-card">
                   <div className="cart-items-list">
                     {items.map((item) => {
-                      const img = item.imagen?.startsWith('http')
-                        ? item.imagen
-                        : item.imagen
-                        ? `/uploads/${item.imagen}`
-                        : '/img/Logo.jpg'
+                      const img = getProductImageUrl(item)
 
                       return (
                         <div key={item.id_producto} className="cart-item-row">
@@ -67,7 +64,7 @@ export default function CartPage() {
                             src={img}
                             alt={item.nombre}
                             className="cart-item-image"
-                            onError={(e) => { e.target.src = '/img/Logo.jpg' }}
+                            onError={handleProductImageError}
                           />
 
                           <div className="cart-item-info">
