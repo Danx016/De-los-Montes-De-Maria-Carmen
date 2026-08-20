@@ -18,4 +18,9 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
-            /home/ubuntu/montesdemaria/deploy.sh
+            cd /home/ubuntu/montesdemaria
+            git fetch origin main
+            git reset --hard origin/main
+            npm install --production=false
+            npm run build
+            pm2 restart montesdemaria || pm2 restart all
