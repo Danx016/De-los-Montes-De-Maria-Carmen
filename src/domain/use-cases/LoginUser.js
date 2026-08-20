@@ -20,16 +20,16 @@ class LoginUser {
         throw new Error('Usuario de Google no encontrado');
       }
     } else {
-      // Login tradicional con correo y contraseña
-      usuario = await this.usuarioRepository.buscarPorCorreo(correo);
+      // Login tradicional con correo o nombre de usuario (apodo) y contraseña
+      usuario = await this.usuarioRepository.buscarPorApodoOCorreo(correo ? String(correo).trim() : '');
       if (!usuario) {
-        throw new Error('Credenciales inválidas');
+        throw new Error('Usuario o contraseña incorrectos');
       }
 
       // Verificar contraseña
       const contrasenaValida = await bcrypt.compare(contrasena, usuario.contrasena);
       if (!contrasenaValida) {
-        throw new Error('Credenciales inválidas');
+        throw new Error('Usuario o contraseña incorrectos');
       }
     }
 

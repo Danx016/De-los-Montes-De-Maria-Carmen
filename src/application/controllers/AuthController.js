@@ -23,39 +23,23 @@ class AuthController {
   async login(req, res) {
     try {
       const { username, password } = req.body;
-      const user = await this.usuarioRepository.buscarPorApodoOCorreo(username.trim());
-      if (!user) {
-        return res.status(401).json({ message: 'Usuario o contraseña incorrectos' });
+      if (!username || !password) {
+        return res.status(400).json({ message: 'Usuario y contraseña requeridos.' });
       }
 
-      const bcrypt = require('bcrypt');
-      const passwordMatch = await bcrypt.compare(password, user.contrasena);
-      if (!passwordMatch) {
-        return res.status(401).json({ message: 'Usuario o contraseña incorrectos' });
-      }
-
-      const jwt = require('jsonwebtoken');
-      const rolId = user.id_rol !== null && user.id_rol !== undefined ? parseInt(user.id_rol, 10) : null;
-      const token = jwt.sign(
-        {
-          id: user.id_usuario,
-          correo: user.correo,
-          rol: rolId,
-          username: user.apodo,
-          avatar: user.avatar || null
-        },
-        appConfig.jwtSecret,
-        { expiresIn: '365d', algorithm: 'HS256' }
-      );
+      const result = await this.loginUser.execute(username, password);
+      const user = result.usuario || {};
 
       const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https' || req.protocol === 'https';
-      res.cookie('jwt', token, {
+      res.cookie('jwt', result.token, {
         httpOnly: true,
         secure: isHttps,
         sameSite: isHttps ? 'none' : 'lax',
         path: '/',
         maxAge: 365 * 24 * 60 * 60 * 1000
       });
+
+      const rolId = user.id_rol !== null && user.id_rol !== undefined ? parseInt(user.id_rol, 10) : null;
 
       res.status(200).json({
         idUser: user.id_usuario,
@@ -65,12 +49,12 @@ class AuthController {
         id_rol: rolId,
         rolUser: rolId,
         avatar: user.avatar || null,
-        token,
+        token: result.token,
         message: 'Inicio de sesión exitoso'
       });
     } catch (error) {
-      console.error('Error en AuthController.login:', error);
-      res.status(500).json({ message: 'Error en el servidor' });
+      console.error('Error en AuthController.login:', error.message);
+      res.status(401).json({ message: error.message || 'Credenciales inválidas' });
     }
   }
 
