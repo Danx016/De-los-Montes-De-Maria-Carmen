@@ -11,8 +11,6 @@
     "dev:server": "node src/framework/server.js",
     "dev:client": "npm --prefix client run dev",
     "install:all": "npm install && npm --prefix client install",
-    "start:legacy": "node app.js",
-    "import-db": "node scripts/import_mysql_to_sqlite.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -25,7 +23,6 @@
     "cors": "^2.8.6",
     "csurf": "^1.11.0",
     "dotenv": "^16.5.0",
-    "ejs": "^5.0.2",
     "express": "^5.1.0",
     "express-rate-limit": "^8.5.2",
     "express-validator": "^7.3.2",

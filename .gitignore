@@ -26,16 +26,14 @@ cert/
 *.pem
 
 # Archivos de prueba y temporales
+*.sql
+*.log
 test-out.html
 temp_pass.js
 test-clientId.js
 test_*.js
-*.sql
 replace.js
 replace.py
-scripts/export_aiven_backup.js
-scripts/restore_to_oracle.js
-scripts/setup_dbmontesdm.js
 
 # Sistema operativo
 Thumbs.db
