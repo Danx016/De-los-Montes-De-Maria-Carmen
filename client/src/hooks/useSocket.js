@@ -20,9 +20,10 @@ export function useSocket(sessionId, rol, handlers = {}) {
     if (!sessionId) return
 
     const socket = io('/soporte', {
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       withCredentials: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
     })
 
     socketRef.current = socket

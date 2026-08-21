@@ -56,12 +56,17 @@ if (useHTTPS) {
 // Configurar Socket.IO
 const io = new Server(mainServer, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' 
-      ? (process.env.PRODUCTION_URL || '*') 
-      : ['http://localhost:3000', 'http://localhost:3443', 'http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: (origin, callback) => {
+      // Permitir origen dinámicamente para soportar credenciales correctamente
+      callback(null, true);
+    },
     methods: ['GET', 'POST'],
     credentials: true
-  }
+  },
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  transports: ['polling', 'websocket'],
+  allowEIO3: true
 });
 
 app.setupSocketIO(io);

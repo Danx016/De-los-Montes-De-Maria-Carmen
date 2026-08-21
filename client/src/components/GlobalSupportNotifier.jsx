@@ -22,9 +22,10 @@ export default function GlobalSupportNotifier() {
   useEffect(() => {
     // Conectar al socket de soporte
     const socket = io('/soporte', {
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       withCredentials: true,
       reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
     })
 
     socketRef.current = socket
