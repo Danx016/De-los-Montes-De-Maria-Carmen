@@ -1,17 +1,15 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { listarCuponesPromocionales } from '../api/cupones.api'
 import { useToast } from '../context/ToastContext'
 
 export default function PromoCouponBanner() {
   const [promos, setPromos] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [animClass, setAnimClass] = useState('promo-slide-in-right')
-  const [isTransitioning, setIsTransitioning] = useState(false)
+  const [direction, setDirection] = useState('next')
   const [dismissed, setDismissed] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
   const [copiedCode, setCopiedCode] = useState(null)
   const toast = useToast()
-  const transitionTimeoutRef = useRef(null)
 
   useEffect(() => {
     listarCuponesPromocionales()
@@ -24,45 +22,25 @@ export default function PromoCouponBanner() {
       })
   }, [])
 
-  const goToPromo = (newIndex, direction = 'next') => {
-    if (isTransitioning || promos.length <= 1) return
-    setIsTransitioning(true)
-
-    // Trigger exit animation
-    const exitClass = direction === 'next' ? 'promo-slide-out-left' : 'promo-slide-out-right'
-    const enterClass = direction === 'next' ? 'promo-slide-in-right' : 'promo-slide-in-left'
-    setAnimClass(exitClass)
-
-    if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current)
-
-    transitionTimeoutRef.current = setTimeout(() => {
-      setCurrentIndex(newIndex)
-      setAnimClass(enterClass)
-      setIsTransitioning(false)
-    }, 240)
-  }
-
   const handleNext = () => {
-    const nextIdx = (currentIndex + 1) % promos.length
-    goToPromo(nextIdx, 'next')
+    setDirection('next')
+    setCurrentIndex((prev) => (prev + 1) % promos.length)
   }
 
   const handlePrev = () => {
-    const prevIdx = (currentIndex - 1 + promos.length) % promos.length
-    goToPromo(prevIdx, 'prev')
+    setDirection('prev')
+    setCurrentIndex((prev) => (prev - 1 + promos.length) % promos.length)
   }
 
-  // Auto-rotate if multiple promo coupons exist and not hovered
+  // Auto-rotación segura cada 5.5 segundos (se pausa al pasar el cursor)
   useEffect(() => {
     if (promos.length <= 1 || isPaused) return
     const timer = setInterval(() => {
-      handleNext()
-    }, 6000)
-    return () => {
-      clearInterval(timer)
-      if (transitionTimeoutRef.current) clearTimeout(transitionTimeoutRef.current)
-    }
-  }, [promos.length, currentIndex, isPaused, isTransitioning])
+      setDirection('next')
+      setCurrentIndex((prev) => (prev + 1) % promos.length)
+    }, 5500)
+    return () => clearInterval(timer)
+  }, [promos.length, isPaused])
 
   if (dismissed || promos.length === 0) return null
 
@@ -132,7 +110,6 @@ export default function PromoCouponBanner() {
             type="button"
             className="promo-nav-btn"
             onClick={handlePrev}
-            disabled={isTransitioning}
             title="Anterior promoción"
             aria-label="Anterior promoción"
           >
@@ -143,8 +120,8 @@ export default function PromoCouponBanner() {
         {/* Center animated content track */}
         <div style={{ flex: 1, overflow: 'hidden', minHeight: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div
-            key={currentPromo.id_cupon || currentIndex}
-            className={`promo-banner-track ${animClass}`}
+            key={`${currentPromo.id_cupon || currentIndex}-${direction}-${currentIndex}`}
+            className={`promo-banner-track ${direction === 'next' ? 'promo-slide-in-right' : 'promo-slide-in-left'}`}
           >
             <span
               style={{
@@ -208,7 +185,6 @@ export default function PromoCouponBanner() {
               type="button"
               className="promo-nav-btn"
               onClick={handleNext}
-              disabled={isTransitioning}
               title="Siguiente promoción"
               aria-label="Siguiente promoción"
             >

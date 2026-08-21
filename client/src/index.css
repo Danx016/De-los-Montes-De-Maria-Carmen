@@ -8069,30 +8069,21 @@ h1, h2, h3, h4, h5, h6 {
   flex-wrap: wrap;
   gap: 0.65rem;
   text-align: center;
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform, opacity;
 }
 
 .promo-slide-in-right {
-  animation: promoSlideInRight 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: promoSlideInRight 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .promo-slide-in-left {
-  animation: promoSlideInLeft 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.promo-slide-out-left {
-  animation: promoSlideOutLeft 0.28s cubic-bezier(0.7, 0, 0.84, 0) forwards;
-}
-
-.promo-slide-out-right {
-  animation: promoSlideOutRight 0.28s cubic-bezier(0.7, 0, 0.84, 0) forwards;
+  animation: promoSlideInLeft 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes promoSlideInRight {
   0% {
     opacity: 0;
-    transform: translate3d(30px, 0, 0) scale(0.96);
+    transform: translate3d(24px, 0, 0) scale(0.97);
   }
   100% {
     opacity: 1;
@@ -8103,33 +8094,11 @@ h1, h2, h3, h4, h5, h6 {
 @keyframes promoSlideInLeft {
   0% {
     opacity: 0;
-    transform: translate3d(-30px, 0, 0) scale(0.96);
+    transform: translate3d(-24px, 0, 0) scale(0.97);
   }
   100% {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1);
-  }
-}
-
-@keyframes promoSlideOutLeft {
-  0% {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translate3d(-30px, 0, 0) scale(0.96);
-  }
-}
-
-@keyframes promoSlideOutRight {
-  0% {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translate3d(30px, 0, 0) scale(0.96);
   }
 }
 
