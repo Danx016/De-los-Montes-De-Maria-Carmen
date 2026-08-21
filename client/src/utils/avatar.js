@@ -19,5 +19,9 @@ export function getAvatarUrl(user, nameFallback = null) {
 }
 
 export function handleAvatarError(e, name = 'Usuario') {
-  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=15803d&color=ffffff&bold=true&size=256`;
+  if (!e?.target) return;
+  const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=15803d&color=ffffff&bold=true&size=256`;
+  if (e.target.src !== fallback) {
+    e.target.src = fallback;
+  }
 }

@@ -126,7 +126,7 @@ export default function AIAssistantWidget() {
         nombre: prodData.nombre,
         nombre_producto: prodData.nombre,
         precio: Number(prodData.precio) || 0,
-        imagen: prodData.imagen || '/img/verduras.avif',
+        imagen: prodData.imagen || '/img/Logo.jpg',
         presentacion: prodData.presentacion || 'Unidad',
         cantidad: 1,
         stock: Number(prodData.disponibilidad) || 10
@@ -176,9 +176,9 @@ export default function AIAssistantWidget() {
               <div key={pIdx} className="ai-product-card fade-in">
                 <div className="ai-prod-img-wrap">
                   <img
-                    src={p.imagen || '/img/verduras.avif'}
+                    src={p.imagen || '/img/Logo.jpg'}
                     alt={p.nombre}
-                    onError={(e) => { e.currentTarget.src = '/img/verduras.avif' }}
+                    onError={(e) => { e.currentTarget.src = '/img/Logo.jpg' }}
                   />
                   <span className="ai-prod-badge">🌱 Disponible</span>
                 </div>

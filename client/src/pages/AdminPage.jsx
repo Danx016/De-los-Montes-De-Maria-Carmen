@@ -2752,7 +2752,7 @@ export default function AdminPage() {
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', backgroundColor: '#f1f5f9', border: '1px solid var(--border-color)', flexShrink: 0 }}>
                                   <img
-                                    src={b.categoria_thumb || '/img/verduras.avif'}
+                                    src={b.categoria_thumb || '/img/Logo.jpg'}
                                     alt={b.categoria_nombre}
                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                     onError={(e) => { e.target.src = '/img/Logo.jpg' }}
@@ -4200,8 +4200,8 @@ export default function AdminPage() {
                           color_acento: bannerForm.color_acento || '#22c55e',
                           categoryName: bannerForm.categoria_nombre || 'Cosechas Frescas',
                           categoria_nombre: bannerForm.categoria_nombre || 'Cosechas Frescas',
-                          categoryThumb: bannerThumbPreview || bannerForm.categoria_thumb || '/img/verduras.avif',
-                          categoria_thumb: bannerThumbPreview || bannerForm.categoria_thumb || '/img/verduras.avif',
+                          categoryThumb: bannerThumbPreview || bannerForm.categoria_thumb || '/img/Logo.jpg',
+                          categoria_thumb: bannerThumbPreview || bannerForm.categoria_thumb || '/img/Logo.jpg',
                           categorySlug: bannerForm.categoria_slug || 'cosechas',
                           categoria_slug: bannerForm.categoria_slug || 'cosechas',
                           title: bannerForm.titulo || 'Título Principal del Banner',

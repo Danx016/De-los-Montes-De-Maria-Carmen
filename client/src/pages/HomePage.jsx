@@ -195,7 +195,7 @@ export default function HomePage() {
         bgClass: `slide-bg-${(idx % 4) + 1}`,
         accentColor: b.color_acento || '#22c55e',
         categoryName: b.categoria_nombre || 'Cosechas Frescas',
-        categoryThumb: b.categoria_thumb || '/img/verduras.avif',
+        categoryThumb: b.categoria_thumb || '/img/Logo.jpg',
         categorySlug: b.categoria_slug || 'cosechas',
         title: b.titulo,
         subtitle: b.subtitulo,
