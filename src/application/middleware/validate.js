@@ -61,8 +61,9 @@ const registerRules = [
   body('confirmPassword')
     .notEmpty().withMessage('Confirmar contraseña es obligatorio'),
   body('terms')
+    .optional()
     .custom((value) => {
-      if (value !== true && value !== 'true') {
+      if (value !== undefined && value !== true && value !== 'true') {
         throw new Error('Debes aceptar los términos y condiciones');
       }
       return true;

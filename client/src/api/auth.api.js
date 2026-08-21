@@ -16,7 +16,8 @@ export const register = (data) =>
     apodo: data.apodo,
     email: data.correo,
     password: data.contrasena,
-    confirmPassword: data.confirmarContrasena || data.contrasena
+    confirmPassword: data.confirmarContrasena || data.contrasena,
+    terms: true,
   })
 
 export const checkUsername = (username) =>

@@ -28,7 +28,9 @@ function verifyToken(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
+    decoded.id = decoded.id ?? decoded.id_usuario ?? null;
     decoded.role = decoded.rol ?? decoded.id_rol ?? null;
+    decoded.username = decoded.username ?? decoded.apodo ?? null;
     req.user = decoded;
     next();
   } catch (error) {
