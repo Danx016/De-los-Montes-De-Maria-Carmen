@@ -8053,3 +8053,121 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* ==========================================================================
+   BARRA PROMOCIONAL DE CUPONES (Animaciones de Transición)
+   ========================================================================== */
+
+.promo-coupon-bar {
+  transition: background 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.promo-banner-track {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  text-align: center;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, opacity;
+}
+
+.promo-slide-in-right {
+  animation: promoSlideInRight 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.promo-slide-in-left {
+  animation: promoSlideInLeft 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.promo-slide-out-left {
+  animation: promoSlideOutLeft 0.28s cubic-bezier(0.7, 0, 0.84, 0) forwards;
+}
+
+.promo-slide-out-right {
+  animation: promoSlideOutRight 0.28s cubic-bezier(0.7, 0, 0.84, 0) forwards;
+}
+
+@keyframes promoSlideInRight {
+  0% {
+    opacity: 0;
+    transform: translate3d(30px, 0, 0) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes promoSlideInLeft {
+  0% {
+    opacity: 0;
+    transform: translate3d(-30px, 0, 0) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes promoSlideOutLeft {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-30px, 0, 0) scale(0.96);
+  }
+}
+
+@keyframes promoSlideOutRight {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(30px, 0, 0) scale(0.96);
+  }
+}
+
+.promo-nav-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  font-size: 0.82rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.promo-nav-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.18);
+  transform: scale(1.15);
+}
+
+.promo-nav-btn:active {
+  transform: scale(0.95);
+}
+
+.promo-copy-btn {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, opacity 0.15s ease !important;
+}
+
+.promo-copy-btn:hover {
+  transform: translateY(-1px) scale(1.04);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+}
+
+.promo-copy-btn:active {
+  transform: translateY(0) scale(0.97);
+}
+
+
