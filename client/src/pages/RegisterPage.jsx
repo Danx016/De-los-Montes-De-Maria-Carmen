@@ -448,7 +448,18 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <button type="submit" disabled={loading} className="form-submit-btn" style={{ marginTop: '0.5rem' }}>
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted, #64748b)', textAlign: 'center', margin: '0.75rem 0' }}>
+            Al registrarte, confirmas que aceptas nuestros{' '}
+            <Link to="/terminos" target="_blank" style={{ color: 'var(--primary-color, #438E44)', fontWeight: 600, textDecoration: 'underline' }}>
+              Términos & Condiciones
+            </Link>{' '}
+            y nuestra{' '}
+            <Link to="/privacidad" target="_blank" style={{ color: 'var(--primary-color, #438E44)', fontWeight: 600, textDecoration: 'underline' }}>
+              Política de Privacidad
+            </Link>.
+          </p>
+
+          <button type="submit" disabled={loading} className="form-submit-btn" style={{ marginTop: '0.25rem' }}>
             {loading ? (
               <>
                 <i className="fa fa-spinner fa-spin" /> Creando cuenta segura...

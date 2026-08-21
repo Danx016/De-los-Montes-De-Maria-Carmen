@@ -82,8 +82,8 @@ export default function Footer() {
         <div className="app-container bottom-inner">
           <p>&copy; {new Date().getFullYear()} De los Montes de María. Todos los derechos reservados.</p>
           <div className="legal-links">
-            <Link to="/soporte">Términos & Condiciones</Link>
-            <Link to="/soporte">Privacidad</Link>
+            <Link to="/terminos">Términos & Condiciones</Link>
+            <Link to="/privacidad">Privacidad</Link>
           </div>
         </div>
       </div>

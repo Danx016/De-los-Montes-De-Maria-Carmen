@@ -32,6 +32,8 @@ import SoportePage from './pages/SoportePage'
 import AdminPage from './pages/AdminPage'
 import AdminSoportePage from './pages/AdminSoportePage'
 import AdminLoginPage from './pages/AdminLoginPage'
+import TerminosPage from './pages/TerminosPage'
+import PrivacidadPage from './pages/PrivacidadPage'
 import NotFoundPage from './pages/NotFoundPage'
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '95151482078-k07kflr5nbjnjs89ntoff2dgikgsor1u.apps.googleusercontent.com'
 export default function App() {
@@ -59,6 +61,10 @@ export default function App() {
               <Route path="/vendedores" element={<VendedoresPage />} />
               <Route path="/vendedor/:id" element={<VendedorPerfilPage />} />
               <Route path="/soporte" element={<SoportePage />} />
+              <Route path="/terminos" element={<TerminosPage />} />
+              <Route path="/terminos-condiciones" element={<TerminosPage />} />
+              <Route path="/privacidad" element={<PrivacidadPage />} />
+              <Route path="/politica-privacidad" element={<PrivacidadPage />} />
               <Route path="/admin-login" element={<AdminLoginPage />} />
 
               {/* Rutas protegidas (usuario autenticado) */}
