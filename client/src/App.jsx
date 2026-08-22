@@ -7,6 +7,7 @@ import { ConfirmProvider } from './context/ConfirmContext'
 import ToastPortal from './components/ToastPortal'
 import GlobalSupportNotifier from './components/GlobalSupportNotifier'
 import AIAssistantWidget from './components/AIAssistantWidget'
+import PWAInstallPrompt from './components/PWAInstallPrompt'
 import ScrollToTop from './components/ScrollToTop'
 import BottomMobileNav from './components/BottomMobileNav'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -47,6 +48,7 @@ export default function App() {
             <ScrollToTop />
             <GlobalSupportNotifier />
             <AIAssistantWidget />
+            <PWAInstallPrompt />
             <Routes>
               {/* Rutas públicas */}
               <Route path="/" element={<HomePage />} />
