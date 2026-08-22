@@ -7,6 +7,7 @@ import Footer from '../components/Footer'
 import MediaRenderer from '../components/MediaRenderer'
 import HeroSlideRenderer from '../components/HeroSlideRenderer'
 import { getAvatarUrl, handleAvatarError } from '../utils/avatar'
+import { exportarVentasExcel, generarReportePDF } from '../utils/reportExporter'
 import {
   obtenerEstadisticas,
   listarUsuarios,
@@ -1189,9 +1190,29 @@ export default function AdminPage() {
               <h1 style={{ margin: '0.25rem 0' }}>Centro de Control y Gestión Global</h1>
               <p className="text-muted" style={{ margin: 0 }}>Supervisa métricas, inventario de todos los vendedores, categorías, usuarios y ventas.</p>
             </div>
-            <Link to="/admin/soporte" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, padding: '0.75rem 1.25rem' }}>
-              <i className="fa fa-headset" /> Mesa de Ayuda & Soporte en Vivo
-            </Link>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => exportarVentasExcel(compras, stats)}
+                className="btn btn-outline"
+                title="Descargar reporte detallado en archivo Excel / CSV"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700, padding: '0.65rem 1rem', background: 'var(--card-bg, #ffffff)' }}
+              >
+                <i className="fa fa-file-excel" style={{ color: '#16a34a', fontSize: '1.1rem' }} />
+                Exportar a Excel
+              </button>
+              <button
+                onClick={() => generarReportePDF(compras, stats)}
+                className="btn btn-outline"
+                title="Generar balance financiero e informe imprimible en PDF"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: 700, padding: '0.65rem 1rem', background: 'var(--card-bg, #ffffff)' }}
+              >
+                <i className="fa fa-file-pdf" style={{ color: '#dc2626', fontSize: '1.1rem' }} />
+                Balance PDF
+              </button>
+              <Link to="/admin/soporte" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, padding: '0.65rem 1.15rem' }}>
+                <i className="fa fa-headset" /> Mesa de Ayuda
+              </Link>
+            </div>
           </div>
 
           {/* Admin Tabs */}
@@ -2572,8 +2593,30 @@ export default function AdminPage() {
           {/* Tab 5: Compras Globales */}
           {activeTab === 'compras' && (
             <div className="card fade-in" style={{ marginTop: '1.5rem' }}>
-              <h3>Historial Global de Transacciones ({compras.length})</h3>
-              <p className="text-muted" style={{ marginBottom: '1.25rem' }}>Todas las compras realizadas en el mercado.</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+                <div>
+                  <h3 style={{ margin: 0 }}>Historial Global de Transacciones ({compras.length})</h3>
+                  <p className="text-muted" style={{ margin: '0.25rem 0 0 0' }}>Todas las compras realizadas en el mercado.</p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => exportarVentasExcel(compras, stats)}
+                    className="btn btn-outline-primary btn-sm"
+                    title="Exportar a archivo Excel / CSV"
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
+                  >
+                    <i className="fa fa-file-excel" /> Descargar Excel
+                  </button>
+                  <button
+                    onClick={() => generarReportePDF(compras, stats)}
+                    className="btn btn-outline-danger btn-sm"
+                    title="Imprimir balance oficial en PDF"
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700 }}
+                  >
+                    <i className="fa fa-file-pdf" /> Imprimir Balance PDF
+                  </button>
+                </div>
+              </div>
 
               {compras.length > 0 ? (
                 <div className="orders-table-wrapper">
