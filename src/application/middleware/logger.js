@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-// Directorio de logs
-const logDir = path.join(__dirname, '..', 'logs');
+// Directorio de logs (en la raíz del proyecto)
+const logDir = path.join(__dirname, '../../../logs');
 if (!fs.existsSync(logDir)) {
   fs.mkdirSync(logDir, { recursive: true });
 }
