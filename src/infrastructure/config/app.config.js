@@ -17,15 +17,15 @@ module.exports = {
   googleClientId: sanitize(process.env.GOOGLE_CLIENT_ID) || '95151482078-k07kflr5nbjnjs89ntoff2dgikgsor1u.apps.googleusercontent.com',
   openRouterApiKey: process.env.OPENROUTER_API_KEY || _d('c2stb3ItdjEtMWVmNmE1ZmE1ZGU5MGQ4NTc4Yzk4ZTc2OTM0NzI2NzcwNmVkZDYyOTNkOWM1ZTM5ZjIyZTkxMTEwZDRhNDA3Mg=='),
   openRouterModel: process.env.OPENROUTER_MODEL || 'openrouter/free',
-  baseUrl: process.env.BASE_URL || 'https://delosmontesdemaria.onrender.com',
+  baseUrl: process.env.BASE_URL || 'https://delosmontesdemaria.duckdns.org',
   company: {
     name: 'DE LOS MONTES DE MARÍA S.A.S',
     nit: '1050277880',
     phone: '3008723989',
     formattedPhone: '+57 300 872 3989',
-    email: 'soporte@montesdemaria.com',
-    address: 'Montes de María, Bolívar / Sucre, Colombia',
-    website: 'https://agrocampo.co'
+    email: 'danilorodelo355@gmail.com',
+    address: 'El Carmen de Bolívar, Bolívar, Colombia',
+    website: 'https://delosmontesdemaria.duckdns.org'
   },
   wompi: {
     publicKey: process.env.WOMPI_PUBLIC_KEY,
