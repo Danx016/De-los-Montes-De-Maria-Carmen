@@ -145,7 +145,7 @@ mindmap
 | :--- | :--- | :--- |
 | **Flota Logística Propia** | El proyecto no contempla la adquisición ni operación directa de vehículos de transporte de carga. | Se utiliza integración con empresas transportadoras y modelo contra entrega con flete calculado. |
 | **Microcréditos Financieros** | No se implementa intermediación bancaria ni captación de ahorros regulados por la Superfinanciera. | Se proporciona enlace y contacto comercial con cooperativas agrícolas locales. |
-| **App Nativa en Play Store / App Store** | No se desarrollaron binarios nativos (Java/Swift) en esta versión para agilizar costos y despliegues. | La web es una Progressive Web App (PWA) instalable y responsiva en cualquier dispositivo. |
+| **App Nativa en Play Store / App Store** | No se desarrollaron binarios nativos (Java/Swift) en esta versión para agilizar costos y despliegues. | La plataforma es una aplicación web 100% responsiva optimizada para cualquier navegador móvil y de escritorio. |
 | **Hardware de Telemetría IoT en Fincas** | No se incluyen sensores de humedad, suelo ni estaciones meteorológicas de hardware. | Se prevé como módulo de extensión para la fase v3.0 mediante API REST abierta. |
 
 ---
